@@ -139,18 +139,19 @@ class _EditItemPageState extends State<EditItemPage> {
         ),
       ),
     );
-    if (picked != null) setState(() => _genre.text = picked);
+    if (picked != null && mounted) setState(() => _genre.text = picked);
   }
 
   Future<void> _pickCompletedDate() async {
     final now = DateTime.now();
+    final current = _completedAt;
     final picked = await showDatePicker(
       context: context,
-      initialDate: _completedAt ?? now,
+      initialDate: (current == null || current.isAfter(now)) ? now : current,
       firstDate: DateTime(1900),
       lastDate: now,
     );
-    if (picked != null) setState(() => _completedAt = picked);
+    if (picked != null && mounted) setState(() => _completedAt = picked);
   }
 
   Future<void> _confirmDelete() async {

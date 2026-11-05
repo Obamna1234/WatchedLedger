@@ -23,7 +23,7 @@ class CategoryPage extends StatefulWidget {
 }
 
 class _CategoryPageState extends State<CategoryPage>
-    with AutomaticKeepAliveClientMixin {
+    with AutomaticKeepAliveClientMixin<CategoryPage> {
   ListStatus _status = ListStatus.todo;
   ListOptions _options = const ListOptions();
   Stream<List<MediaItem>>? _stream;

@@ -1,8 +1,8 @@
 import '../../data/db/database.dart';
 import '../../data/genres.dart';
 
-/// Pure sorting, filtering and sectioning of a list, kept free of Flutter
-/// so it can be unit-tested.
+// Pure sorting, filtering and sectioning of a list, kept free of Flutter
+// so it can be unit-tested.
 
 enum SortMode { az, year, added, completed, rating }
 
