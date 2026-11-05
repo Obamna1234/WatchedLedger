@@ -126,6 +126,28 @@ class AppDatabase extends _$AppDatabase {
     ));
   }
 
+  /// Saves an edited item. Title-derived keys are recalculated here so they
+  /// can never drift out of sync with the title.
+  Future<void> updateItem(MediaItem item) async {
+    final title = cleanTitle(item.title);
+    if (title.isEmpty) {
+      throw ArgumentError.value(item.title, 'title', 'must not be empty');
+    }
+    await update(items).replace(item.copyWith(
+      title: title,
+      sortTitle: sortKey(title),
+      matchKey: matchKey(title),
+    ));
+  }
+
+  /// Every genre currently used in [category] (for the genre picker/filter).
+  Future<Set<String>> genresInUse(MediaCategory category) async {
+    final rows = await (select(items)
+          ..where((t) => t.category.equalsValue(category)))
+        .get();
+    return {for (final r in rows) r.genre};
+  }
+
   Future<int> deleteItem(int id) =>
       (delete(items)..where((t) => t.id.equals(id))).go();
 

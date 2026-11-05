@@ -127,7 +127,7 @@ Agreed staging. Workflows were built first, so every stage produces installable 
 | Stage | Contents |
 |---|---|
 | **1a Foundation** ✅ | Encrypted database, tabs, To Watch/Watched, quick add, duplicate warning, tick/swipe/undo, themes, CI + release workflows, README/PRIVACY/SECURITY |
-| **1b Core lists complete** | Edit sheet (title, year, genre, rating, note, series S/E), swipe-left menu (edit/delete), sort & filter, genre fast-scroll bar, done styling |
+| **1b Core lists complete** ✅ (awaiting CI) | Edit sheet (title, year, genre, rating, note, series S/E), swipe-left menu (edit/delete), sort & filter, genre fast-scroll bar, done styling |
 | **2 Title lookup** | Single network gate (offline mode, HTTPS, host allowlist), TMDB/Open Library/Google Books/iTunes/TVmaze, "Did you mean…?", cover cache, match-later, full privacy page |
 | **3 Search** | Highlight-all, up/down, "3 of 12", tick from results |
 | **4 Import/export + protection** | Paste/txt/csv import, Samsung Notes helper, review screen, txt/csv/json export, encrypted backup/restore, app lock (PIN/biometric) |

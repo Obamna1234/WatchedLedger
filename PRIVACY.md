@@ -14,7 +14,7 @@ WatchedLedger is built so that your library is nobody's business but yours.
 
 **This version: nothing.** The current release makes no network requests.
 
-**Once title lookup is added (Phase 3),** only the following will ever be sent. Each one happens only when you add or re-match a title, or when a cover is first displayed.
+**Once title lookup is added (Stage 2),** only the following will ever be sent. Each one happens only when you add or re-match a title, or when a cover is first displayed.
 
 | What is sent | To whom | When |
 |---|---|---|

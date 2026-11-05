@@ -1,11 +1,18 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 
 import '../../core/app_scope.dart';
 import '../../data/db/database.dart';
 import '../../data/models.dart';
+import '../edit/edit_item_page.dart';
+import 'fast_scroll_bar.dart';
 import 'item_tile.dart';
+import 'list_layout.dart';
+import 'list_options_sheets.dart';
 
-/// One tab: the To Watch / Watched switch and the list grouped by genre.
+/// One tab: the To Watch / Watched switch, sort & filter controls and the
+/// list (grouped by genre by default) with a fast-scroll index.
 class CategoryPage extends StatefulWidget {
   const CategoryPage({super.key, required this.category});
 
@@ -15,24 +22,14 @@ class CategoryPage extends StatefulWidget {
   State<CategoryPage> createState() => _CategoryPageState();
 }
 
-sealed class _Row {}
-
-class _HeaderRow extends _Row {
-  _HeaderRow(this.genre, this.count);
-  final String genre;
-  final int count;
-}
-
-class _ItemRow extends _Row {
-  _ItemRow(this.item);
-  final MediaItem item;
-}
-
 class _CategoryPageState extends State<CategoryPage>
     with AutomaticKeepAliveClientMixin {
   ListStatus _status = ListStatus.todo;
+  ListOptions _options = const ListOptions();
   Stream<List<MediaItem>>? _stream;
+  List<MediaItem> _latest = const [];
   final _scroll = ScrollController();
+  String? _bubble;
 
   /// Items swiped away but not yet gone from the database stream. Hiding
   /// them immediately keeps Flutter's Dismissible happy.
@@ -61,9 +58,20 @@ class _CategoryPageState extends State<CategoryPage>
     setState(() {
       _status = status;
       _hidden.clear();
+      // Year filters for "finished in" make no sense on the other list.
+      _options = _options.withFilters(
+        genres: _options.genres,
+        minRating: _options.minRating,
+        yearFrom: _options.yearFrom,
+        yearTo: _options.yearTo,
+        addedYear: _options.addedYear,
+      );
       _stream = _watch();
     });
+    if (_scroll.hasClients) _scroll.jumpTo(0);
   }
+
+  // ------------------------------------------------------------ actions
 
   void _showUndo(String message, MediaItem previous) {
     final db = AppScope.of(context).db;
@@ -89,10 +97,7 @@ class _CategoryPageState extends State<CategoryPage>
     if (fromSwipe) setState(() => _hidden.add(item.id));
     await AppScope.of(context).db.setStatus(item.id, target);
     if (!mounted) return;
-    _showUndo(
-      'Moved to ${widget.category.labelFor(target)}',
-      item,
-    );
+    _showUndo('Moved to ${widget.category.labelFor(target)}', item);
   }
 
   Future<void> _delete(MediaItem item) async {
@@ -102,53 +107,103 @@ class _CategoryPageState extends State<CategoryPage>
     _showUndo('Deleted "${item.title}"', item);
   }
 
-  List<_Row> _buildRows(List<MediaItem> items) {
-    final rows = <_Row>[];
-    String? currentGenre;
-    var headerIndex = -1;
-    var count = 0;
-    for (final item in items) {
-      if (item.genre != currentGenre) {
-        if (headerIndex >= 0) {
-          rows[headerIndex] = _HeaderRow(currentGenre!, count);
-        }
-        currentGenre = item.genre;
-        headerIndex = rows.length;
-        rows.add(_HeaderRow(item.genre, 0));
-        count = 0;
-      }
-      rows.add(_ItemRow(item));
-      count++;
+  Future<void> _edit(MediaItem item) async {
+    final outcome = await Navigator.of(context).push<EditOutcome>(
+      MaterialPageRoute(builder: (_) => EditItemPage(item: item)),
+    );
+    if (!mounted || outcome == null) return;
+    switch (outcome) {
+      case EditSaved(:final previous, :final updated):
+        final moved = previous.category != updated.category ||
+            previous.status != updated.status;
+        _showUndo(
+          moved
+              ? 'Moved to ${updated.category.tabLabel} › '
+                  '${updated.category.labelFor(updated.status)}'
+              : 'Saved',
+          previous,
+        );
+      case EditDeleteRequested():
+        await _delete(item);
     }
-    if (headerIndex >= 0) rows[headerIndex] = _HeaderRow(currentGenre!, count);
-    return rows;
+  }
+
+  Future<void> _openSort() => showSortSheet(
+        context,
+        options: _options,
+        onChanged: (o) => setState(() => _options = o),
+      );
+
+  Future<void> _openFilter() async {
+    final items = _latest;
+    final result = await showFilterSheet(
+      context,
+      options: _options,
+      category: widget.category,
+      status: _status,
+      genresInList: {for (final i in items) i.genre},
+      addedYears: {for (final i in items) i.addedAt.year},
+      completedYears: {
+        for (final i in items)
+          if (i.completedAt != null) i.completedAt!.year,
+      },
+    );
+    if (result != null && mounted) setState(() => _options = result);
+  }
+
+  // ------------------------------------------------------------- layout
+
+  void _jumpTo(ListSection section, List<double> offsets) {
+    if (!_scroll.hasClients) return;
+    final target = offsets[section.startRow];
+    _scroll.jumpTo(math.min(target, _scroll.position.maxScrollExtent));
   }
 
   @override
   Widget build(BuildContext context) {
     super.build(context);
     final theme = Theme.of(context);
+    final scale = MediaQuery.textScalerOf(context).scale(16) / 16;
+    final headerExtent = (22 + 22 * scale).roundToDouble();
+    final itemExtent = math.max(72.0, (28 + 48 * scale).roundToDouble());
+
     return Column(
       children: [
         Padding(
-          padding: const EdgeInsets.fromLTRB(12, 8, 12, 4),
-          child: SizedBox(
-            width: double.infinity,
-            child: SegmentedButton<ListStatus>(
-              showSelectedIcon: false,
-              segments: [
-                ButtonSegment(
-                  value: ListStatus.todo,
-                  label: Text(widget.category.todoLabel),
+          padding: const EdgeInsets.fromLTRB(12, 8, 4, 4),
+          child: Row(
+            children: [
+              Expanded(
+                child: SegmentedButton<ListStatus>(
+                  showSelectedIcon: false,
+                  segments: [
+                    ButtonSegment(
+                      value: ListStatus.todo,
+                      label: Text(widget.category.todoLabel),
+                    ),
+                    ButtonSegment(
+                      value: ListStatus.done,
+                      label: Text(widget.category.doneLabel),
+                    ),
+                  ],
+                  selected: {_status},
+                  onSelectionChanged: (s) => _setStatus(s.first),
                 ),
-                ButtonSegment(
-                  value: ListStatus.done,
-                  label: Text(widget.category.doneLabel),
+              ),
+              IconButton(
+                tooltip: 'Sort & group',
+                icon: const Icon(Icons.sort),
+                onPressed: _openSort,
+              ),
+              IconButton(
+                tooltip: 'Filter',
+                icon: Badge(
+                  isLabelVisible: _options.isFiltered,
+                  child: const Icon(Icons.filter_list),
                 ),
-              ],
-              selected: {_status},
-              onSelectionChanged: (s) => _setStatus(s.first),
-            ),
+                onPressed: _openFilter,
+              ),
+            ],
           ),
         ),
         Expanded(
@@ -164,48 +219,161 @@ class _CategoryPageState extends State<CategoryPage>
               }
               final ids = {for (final i in all) i.id};
               _hidden.removeWhere((id) => !ids.contains(id));
-              final items = [
+              final visible = [
                 for (final i in all)
                   if (!_hidden.contains(i.id)) i,
               ];
-              if (items.isEmpty) {
+              _latest = visible;
+              if (visible.isEmpty) {
                 return _EmptyState(category: widget.category, status: _status);
               }
-              final rows = _buildRows(items);
-              return Scrollbar(
-                controller: _scroll,
-                interactive: true,
-                thumbVisibility: rows.length > 30,
-                child: ListView.builder(
-                  controller: _scroll,
-                  padding: const EdgeInsets.only(bottom: 80),
-                  itemCount: rows.length,
-                  itemBuilder: (context, index) {
-                    return switch (rows[index]) {
-                      final _HeaderRow h => Padding(
-                          padding: const EdgeInsets.fromLTRB(16, 16, 16, 4),
-                          child: Text(
-                            '${h.genre}  ·  ${h.count}',
-                            style: theme.textTheme.titleSmall?.copyWith(
-                              color: theme.colorScheme.primary,
-                            ),
+
+              final layout = buildListLayout(visible, _options);
+              final rows = layout.rows;
+              final offsets = <double>[];
+              var y = 0.0;
+              for (final r in rows) {
+                offsets.add(y);
+                y += r is HeaderRow ? headerExtent : itemExtent;
+              }
+              final showIndex =
+                  layout.sections.length >= 2 && rows.length > 12;
+
+              return Column(
+                children: [
+                  if (_options.isFiltered)
+                    _FilterBanner(
+                      shown: layout.itemCount,
+                      total: layout.totalBeforeFilter,
+                      onClear: () => setState(
+                        () => _options = _options.withFilters(),
+                      ),
+                    ),
+                  Expanded(
+                    child: layout.rows.isEmpty
+                        ? const Center(child: Text('Nothing matches the filter'))
+                        : Stack(
+                            children: [
+                              Scrollbar(
+                                controller: _scroll,
+                                child: ListView.builder(
+                                  controller: _scroll,
+                                  padding: EdgeInsets.only(
+                                    bottom: 80,
+                                    right: showIndex ? 28 : 0,
+                                  ),
+                                  itemCount: rows.length,
+                                  itemExtentBuilder: (index, _) {
+                                    if (index >= rows.length) return null;
+                                    return rows[index] is HeaderRow
+                                        ? headerExtent
+                                        : itemExtent;
+                                  },
+                                  itemBuilder: (context, index) =>
+                                      switch (rows[index]) {
+                                    final HeaderRow h => _GenreHeader(
+                                        label: h.label,
+                                        count: h.count,
+                                        theme: theme,
+                                      ),
+                                    final ItemRow r => ItemTile(
+                                        key: ValueKey(r.item.id),
+                                        item: r.item,
+                                        onToggle: () => _toggle(r.item),
+                                        onSwipeToggle: () =>
+                                            _toggle(r.item, fromSwipe: true),
+                                        onEdit: () => _edit(r.item),
+                                        onSwipeDelete: () => _delete(r.item),
+                                      ),
+                                  },
+                                ),
+                              ),
+                              if (showIndex)
+                                Positioned(
+                                  top: 4,
+                                  bottom: 4,
+                                  right: 0,
+                                  child: FastScrollBar(
+                                    sections: layout.sections,
+                                    onJump: (s) => _jumpTo(s, offsets),
+                                    onActiveLabel: (l) =>
+                                        setState(() => _bubble = l),
+                                  ),
+                                ),
+                              if (_bubble != null)
+                                Center(child: FastScrollBubble(label: _bubble!)),
+                            ],
                           ),
-                        ),
-                      final _ItemRow r => ItemTile(
-                          key: ValueKey(r.item.id),
-                          item: r.item,
-                          onToggle: () => _toggle(r.item),
-                          onSwipeToggle: () => _toggle(r.item, fromSwipe: true),
-                          onSwipeDelete: () => _delete(r.item),
-                        ),
-                    };
-                  },
-                ),
+                  ),
+                ],
               );
             },
           ),
         ),
       ],
+    );
+  }
+}
+
+class _GenreHeader extends StatelessWidget {
+  const _GenreHeader({
+    required this.label,
+    required this.count,
+    required this.theme,
+  });
+
+  final String label;
+  final int count;
+  final ThemeData theme;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 6),
+      child: Align(
+        alignment: Alignment.bottomLeft,
+        child: Text(
+          '$label  ·  $count',
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: theme.textTheme.titleSmall
+              ?.copyWith(color: theme.colorScheme.primary),
+        ),
+      ),
+    );
+  }
+}
+
+class _FilterBanner extends StatelessWidget {
+  const _FilterBanner({
+    required this.shown,
+    required this.total,
+    required this.onClear,
+  });
+
+  final int shown;
+  final int total;
+  final VoidCallback onClear;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Material(
+      color: theme.colorScheme.secondaryContainer,
+      child: Padding(
+        padding: const EdgeInsets.only(left: 16),
+        child: Row(
+          children: [
+            Expanded(
+              child: Text(
+                'Filtered: showing $shown of $total',
+                style: TextStyle(color: theme.colorScheme.onSecondaryContainer),
+              ),
+            ),
+            TextButton(onPressed: onClear, child: const Text('Clear')),
+          ],
+        ),
+      ),
     );
   }
 }
