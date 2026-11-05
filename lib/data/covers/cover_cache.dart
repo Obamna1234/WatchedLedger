@@ -86,7 +86,7 @@ class CoverCache {
       return name;
     } on OfflineException {
       // Try again later, once Offline mode is switched off.
-      _inFlight.remove(url);
+      _inFlight.remove(url)?.ignore();
       return null;
     } catch (_) {
       return null;
