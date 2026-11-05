@@ -4,7 +4,7 @@ Maintained by Claude. Updated at the end of every stage, in the same pull reques
 
 ## Status
 **Stages 1a and 1b are built and passing CI** (2026-11-05): analyzer clean, 19 tests passing, Android APK and iOS IPA built. They are waiting for the owner to merge PRs #1 and #2.
-**Stage 2 (title lookup)** is on branch `stage-2-lookup`.
+**Stage 2 (title lookup) is built and passing CI** (2026-11-05): analyzer clean, 39 tests passing. It is waiting for the owner to merge PR #3.
 
 ## Done
 - **Proposal:** structure, packages and tech choices, written up in SPEC.md §13.
