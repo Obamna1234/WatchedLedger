@@ -11,7 +11,7 @@ const List<String> _screenGenres = [
 
 const List<String> _bookGenres = [
   'Biography & Memoir', 'Business', "Children's", 'Comics & Graphic Novels', //
-  'Fantasy', 'Historical Fiction', 'History', 'Horror', 'Literary Fiction',
+  'Fantasy', 'Fiction', 'Historical Fiction', 'History', 'Horror', 'Literary Fiction',
   'Mystery & Crime', 'Non-fiction', 'Philosophy', 'Poetry', 'Romance',
   'Science', 'Science Fiction', 'Self-Help', 'Thriller', 'Travel',
   'True Crime', 'Young Adult',

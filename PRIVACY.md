@@ -12,23 +12,29 @@ WatchedLedger is built so that your library is nobody's business but yours.
 
 ## What leaves the device
 
-**This version: nothing.** The current release makes no network requests.
-
-**Once title lookup is added (Stage 2),** only the following will ever be sent. Each one happens only when you add or re-match a title, or when a cover is first displayed.
+Only two things are ever sent. Each is sent only while **"Look up titles automatically"** is on and **Offline mode** is off:
 
 | What is sent | To whom | When |
 |---|---|---|
-| The title text you typed | TMDB (movies, series), Open Library or Google Books (books), iTunes Search (audiobooks, podcasts), TVmaze (series fallback) | When a title is looked up |
-| A request for a cover image | The image servers of those same services | The first time a cover is shown. After that it is cached on the device. |
+| The title text you typed | **Movies:** iTunes Search (Apple). **Series:** TVmaze, then iTunes if TVmaze finds nothing. **Books:** Open Library (Internet Archive), then Google Books. **Audiobooks:** iTunes, then Open Library. **Podcasts:** iTunes. | When you add a title, or tap **Look up details** on the Edit screen |
+| A request for a cover image | Those services' image servers (`*.mzstatic.com`, `static.tvmaze.com`, `covers.openlibrary.org` → `*.archive.org`, `books.google.com`) | The first time a cover is shown. After that it is cached on the device. |
 
 These requests carry nothing that identifies you:
 
-- no account,
+- no account or API key (every service is used keyless),
 - no device ID,
 - no list contents beyond the one title being looked up,
 - no cookies.
 
-Like any internet request, the service can see your IP address. All requests use HTTPS. Turning on **Offline mode** in Settings blocks every one of them.
+The app identifies itself only as `WatchedLedger`. Like any internet request, the service can see your IP address.
+
+All traffic goes through one gate in the code (`NetClient`), which:
+
+- refuses everything while Offline mode is on;
+- only allows HTTPS to the hosts listed above, and checks every redirect again;
+- limits time and size, so a misbehaving server can't hang the app or flood it.
+
+Everything a service sends back is cleaned and checked before it is stored. A cover is only saved if the file really is an image.
 
 ## On the device
 

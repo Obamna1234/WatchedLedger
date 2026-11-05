@@ -4,6 +4,7 @@ Maintained by Claude. Updated at the end of every stage, in the same pull reques
 
 ## Status
 **Stages 1a and 1b are built and passing CI** (2026-11-05): analyzer clean, 19 tests passing, Android APK and iOS IPA built. They are waiting for the owner to merge PRs #1 and #2.
+**Stage 2 (title lookup)** is on branch `stage-2-lookup`.
 
 ## Done
 - **Proposal:** structure, packages and tech choices, written up in SPEC.md §13.
@@ -30,15 +31,26 @@ Maintained by Claude. Updated at the end of every stage, in the same pull reques
   - **Item rows** show year · creator · S/E progress · stars · finished date · note.
   - **Tests:** sorting, filtering and sectioning.
 
+- **Stage 2, title lookup:**
+  - **Smart add:** a title is looked up when you add it, using keyless services only: iTunes for movies, audiobooks and podcasts; TVmaze for series; Open Library and Google Books for books. If a source finds nothing, the next one is tried.
+  - **Auto-file:** if exactly one result matches what you typed, it's filed automatically with the proper name, year, genre, creator and cover. Typing a year ("Dune 2021") picks the right version.
+  - **"Did you mean…?":** shown when there are several matches or none. It lists results with cover, title and year. You can keep typing and search again, or save exactly what you typed as free text.
+  - **No connection:** if offline, if lookups are switched off, or if the network fails, the title is saved as typed. It can be matched later with **Edit → Look up details**.
+  - **Covers:** downloaded once, checked to really be images, and stored on the phone, so they show offline.
+  - **Network gate:** one place in the code makes every request. It enforces Offline mode, HTTPS only and an allowlist of hosts (checked on redirects too), with time and size limits, a generic app name and no cookies.
+  - **Settings:** a new "Look up titles automatically" switch.
+  - **Privacy:** the privacy page and PRIVACY.md now list exactly which service gets what, and when.
+  - **Undo** after adding a title.
+  - **Tests:** network gate, each service's parsing (including malformed and hostile data), fallback, auto-file rules and genre mapping.
+
 ## Next
-- After the signing secrets are added and both PRs are merged: tag `v0.1.0` for the first signed Release.
-- **Stage 2, title lookup:** needs a TMDB key from you first.
+- After the signing secrets are added and the PRs are merged: tag `v0.1.0` for the first signed Release.
+- **Stage 3, search:** highlight every match, up/down arrows, a "3 of 12" counter, and ticking from results.
 
 ## Waiting on me (owner)
 - [x] Add the WatchedLedger repo to the Claude GitHub App.
 - [ ] **Review and merge PR #1, then PR #2** (Stage 1a, then 1b).
 - [ ] **Create the Android signing key and add the 4 GitHub Secrets.** Exact steps are in README → "Android signing key". Back the `.jks` file up.
-- [ ] **Decide on title lookup for movies/series:** keyless (iTunes + TVmaze, with an optional TMDB key in Settings), or TMDB from the start (needs a free TMDB account).
 - [ ] Before Stage 4: paste 5–10 lines copied from the Samsung Notes checklist, with fake titles, some ticked and some not.
 - [ ] Optional: tell Claude which iPhone and iOS version you have, and whether you use a Mac or a Windows PC, so the README can lead with the right sideloading tool.
 
@@ -53,5 +65,8 @@ Maintained by Claude. Updated at the end of every stage, in the same pull reques
 - **2026-11-04 Sort and filter choices** are kept while the app is open and reset when it restarts. They can be made to stick later if wanted.
 - **2026-11-04 Tapping an item opens Edit.** Only the tick box (or a swipe right) ticks it, so you can't tick by accident.
 - **2026-11-04 Repo name** is `Obamna1234/WatchedLedger`. The internal package name stays lowercase `watchedledger`, which Flutter requires.
+- **2026-11-05 No accounts for lookups (owner's choice).** Movies use iTunes; series use TVmaze, then iTunes. TMDB was dropped. If nothing matches, you can keep typing and save it as free text.
+- **2026-11-05 New dependency: `http`** (Dart team), needed for the network gate.
+- **2026-11-05 Auto-file** only when exactly one result matches the typed title (and year, if one was given). Otherwise you choose.
 - **2026-11-05 Commits use GitHub's private noreply email** (`…@users.noreply.github.com`), so your real email is never published.
 - **2026-11-04 Spec files merged:** SPEC.md now records all of these decisions (§13) plus the stage plan (§12).
