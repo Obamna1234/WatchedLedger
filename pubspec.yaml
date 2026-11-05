@@ -1,0 +1,36 @@
+name: watchedledger
+description: Private, offline-first tracker for movies, series, books, audiobooks and podcasts.
+publish_to: none
+
+# Version is overridden in CI from the git tag (vX.Y.Z) and a time-based build number.
+version: 0.1.0+1
+
+environment:
+  sdk: ^3.10.0
+
+# Keep this list short. Every dependency is reviewed and scanned by OSV in CI.
+dependencies:
+  flutter:
+    sdk: flutter
+  drift: ^2.35.3                    # typed SQLite access + migrations
+  sqlite3: ^3.8.0                   # SQLite engine (built with SQLite3MultipleCiphers, see hooks below)
+  path: ^1.9.0                      # path joining (Dart team)
+  path_provider: ^2.1.6             # app-private storage directory (Flutter team)
+  flutter_secure_storage: ^11.2.0   # database key in Android Keystore / iOS Keychain
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+  drift_dev: ^2.35.2
+  build_runner: ^2.16.2
+
+flutter:
+  uses-material-design: true
+
+# Use SQLite3MultipleCiphers so the whole database file is encrypted at rest.
+# The prebuilt library is downloaded from the sqlite3.dart GitHub releases at build time.
+hooks:
+  user_defines:
+    sqlite3:
+      source: sqlite3mc
