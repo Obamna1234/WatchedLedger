@@ -23,6 +23,7 @@ It replaces my current Samsung Notes checklist, which is slow and tedious (tap b
 
 - Claude has access to the GitHub repo and does the work end to end: creates and edits all files, commits, pushes, and sets up the build workflows. I don't write code or upload files by hand.
 - Work on a branch per stage and open a pull request with a plain-language summary of what changed and how to test it. I review and merge (or tell Claude to merge).
+  - **Decided 2026-11-06:** Claude merges each PR itself once CI is green.
 - Use clear commit messages. Never commit secrets, keystores, API keys or personal data.
 - Things only I can do (Claude must give me exact step-by-step instructions when needed):
   - adding GitHub Secrets (signing keystore, API keys)
@@ -130,7 +131,7 @@ Agreed staging. Workflows were built first, so every stage produces installable 
 | **1a Foundation** ✅ | Encrypted database, tabs, To Watch/Watched, quick add, duplicate warning, tick/swipe/undo, themes, CI + release workflows, README/PRIVACY/SECURITY |
 | **1b Core lists complete** ✅ | Edit sheet (title, year, genre, rating, note, series S/E), swipe-left menu (edit/delete), sort & filter, genre fast-scroll bar, done styling |
 | **2 Title lookup** ✅ | Single network gate (offline mode, HTTPS, host allowlist), TMDB/Open Library/Google Books/iTunes/TVmaze, "Did you mean…?", cover cache, match-later, full privacy page |
-| **3 Search** | Highlight-all, up/down, "3 of 12", tick from results |
+| **3 Search** ✅ | Highlight-all, up/down, "3 of 12", tick from results |
 | **4 Import/export + protection** | Paste/txt/csv import, Samsung Notes helper, review screen, txt/csv/json export, encrypted backup/restore, app lock (PIN/biometric) |
 | **5 Extras** | Random picker, stats, home-screen widgets, share-to-app, AltStore/SideStore source feed |
 

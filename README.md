@@ -9,10 +9,15 @@ repo.
 - Your library lives in an **encrypted database on your phone**.
 - See [PRIVACY.md](PRIVACY.md) for exactly what leaves the device, and when.
 
-> **Status: Stage 2 (title lookup).**
-> - **Works now:** five category tabs with To Watch / Watched lists, ticking (tap or swipe) with undo, an edit screen (rating, note, series progress), sort, filter and a genre fast-scroll index.
-> - **Smart add:** type a title and it's looked up automatically, with no accounts or API keys. Clear matches are filed straight away with the proper name, year, genre and cover. If it's unclear, you get a "Did you mean…?" list, where you can keep typing and search again or save exactly what you typed.
-> - **Coming next:** search, import/export, backups, app lock, stats, widgets and share-to-app.
+> **Status: Stage 3 (search).**
+> - **Works now:**
+>   - five category tabs with To Watch / Watched lists
+>   - ticking (tap or swipe) with undo
+>   - an edit screen with rating, note and series progress
+>   - sort, filter and a genre fast-scroll index
+> - **Smart add:** type a title and it's looked up automatically. It needs no accounts or API keys, and if nothing fits, you can save exactly what you typed.
+> - **Search:** every match is highlighted, ▲ ▼ jump between them with a "3 of 12" counter, and you can tick straight from the results.
+> - **Coming next:** import/export, backups, app lock, stats, widgets and share-to-app.
 
 ---
 
