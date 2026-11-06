@@ -9,8 +9,10 @@ repo.
 - Your library lives in an **encrypted database on your phone**.
 - See [PRIVACY.md](PRIVACY.md) for exactly what leaves the device, and when.
 
-> **Status: Phase 1 (foundation).**
-> - **Works now:** the five category tabs, To Watch / Watched lists, quick add, a duplicate warning, ticking (by tap or swipe), delete with undo, and light/dark/AMOLED themes.
+> **Status: Stage 1 (core lists).**
+> - **Works now:** the five category tabs, To Watch / Watched lists, quick add, a duplicate warning, and ticking (by tap or swipe) with undo.
+> - **Editing:** tap an item to edit it, with rating, note and series progress. Swipe left for Edit / Delete.
+> - **Browsing:** sort, filter and a genre fast-scroll index, plus light/dark/AMOLED themes.
 > - **Coming next:** title lookup with covers, search, import/export, backups, app lock, stats, widgets and share-to-app.
 
 ---
@@ -134,7 +136,7 @@ Each build prints the APK's signing-certificate SHA-256 in the run summary. Note
 
 ### Lookup API keys
 
-Title lookup arrives in Phase 3. TMDB is the only service that needs a key. The plan is for you to paste your own key into the app's settings, so it never sits inside the published APK.
+Title lookup arrives in Stage 2. TMDB is the only service that needs a key. The plan is for you to paste your own key into the app's settings, so it never sits inside the published APK.
 
 ---
 

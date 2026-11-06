@@ -3,52 +3,110 @@ import 'package:flutter/material.dart';
 import '../../data/db/database.dart';
 import '../../data/models.dart';
 
-/// A single title row: cover, title, year, completion date and tick box.
-/// Swipe right to tick/untick, swipe left to delete.
+enum _SwipeAction { edit, delete }
+
+/// A single title row: cover, title, details and tick box.
+/// Tap to edit. Swipe right to tick/untick. Swipe left for Edit / Delete.
 class ItemTile extends StatelessWidget {
   const ItemTile({
     super.key,
     required this.item,
     required this.onToggle,
     required this.onSwipeToggle,
+    required this.onEdit,
     required this.onSwipeDelete,
+    this.highlight = false,
   });
 
   final MediaItem item;
   final VoidCallback onToggle;
   final VoidCallback onSwipeToggle;
+  final VoidCallback onEdit;
   final VoidCallback onSwipeDelete;
 
+  /// Reserved for search highlighting (stage 3).
+  final bool highlight;
+
   bool get _done => item.status == ListStatus.done;
+
+  /// The one-line summary under the title.
+  static String details(MediaItem item) {
+    final parts = <String>[
+      if (item.year != null) '${item.year}',
+      if (item.creator != null && item.creator!.isNotEmpty) item.creator!,
+      if (item.season != null || item.episode != null)
+        [
+          if (item.season != null) 'S${item.season}',
+          if (item.episode != null) 'E${item.episode}',
+        ].join(' '),
+      if (item.rating != null) '★' * item.rating!,
+      if (item.status == ListStatus.done && item.completedAt != null)
+        completedLabel(item.category, item.completedAt!),
+      if (item.note != null && item.note!.isNotEmpty) '“${item.note}”',
+    ];
+    return parts.join('  ·  ');
+  }
+
+  Future<bool> _confirmSwipe(
+      BuildContext context, DismissDirection direction) async {
+    if (direction == DismissDirection.startToEnd) return true;
+    final action = await showModalBottomSheet<_SwipeAction>(
+      context: context,
+      showDragHandle: true,
+      builder: (context) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              title: Text(item.title, maxLines: 1, overflow: TextOverflow.ellipsis),
+            ),
+            ListTile(
+              leading: const Icon(Icons.edit_outlined),
+              title: const Text('Edit'),
+              onTap: () => Navigator.pop(context, _SwipeAction.edit),
+            ),
+            ListTile(
+              leading: const Icon(Icons.delete_outline),
+              title: const Text('Delete'),
+              onTap: () => Navigator.pop(context, _SwipeAction.delete),
+            ),
+          ],
+        ),
+      ),
+    );
+    if (action == _SwipeAction.edit) {
+      onEdit();
+      return false;
+    }
+    return action == _SwipeAction.delete;
+  }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
-
-    final details = <String>[
-      if (item.year != null) '${item.year}',
-      if (item.creator != null && item.creator!.isNotEmpty) item.creator!,
-      if (_done && item.completedAt != null)
-        completedLabel(item.category, item.completedAt!),
-    ];
+    final summary = details(item);
 
     final tile = ListTile(
+      tileColor: highlight ? scheme.tertiaryContainer : null,
       leading: _CoverThumb(item: item),
       title: Text(
         item.title,
-        maxLines: 2,
+        maxLines: 1,
         overflow: TextOverflow.ellipsis,
         style: _done
             ? TextStyle(color: scheme.onSurface.withValues(alpha: 0.6))
             : null,
       ),
-      subtitle: details.isEmpty ? null : Text(details.join('  ·  ')),
+      subtitle: summary.isEmpty
+          ? null
+          : Text(summary, maxLines: 1, overflow: TextOverflow.ellipsis),
       trailing: Checkbox(
         value: _done,
         onChanged: (_) => onToggle(),
         semanticLabel: _done ? 'Mark as not done' : 'Mark as done',
       ),
+      onTap: onEdit,
     );
 
     return Dismissible(
@@ -63,12 +121,13 @@ class ItemTile extends StatelessWidget {
         alignment: Alignment.centerLeft,
       ),
       secondaryBackground: _SwipeBackground(
-        color: scheme.errorContainer,
-        iconColor: scheme.onErrorContainer,
-        icon: Icons.delete_outline,
-        label: 'Delete',
+        color: scheme.secondaryContainer,
+        iconColor: scheme.onSecondaryContainer,
+        icon: Icons.more_horiz,
+        label: 'Edit / Delete',
         alignment: Alignment.centerRight,
       ),
+      confirmDismiss: (direction) => _confirmSwipe(context, direction),
       onDismissed: (direction) => direction == DismissDirection.startToEnd
           ? onSwipeToggle()
           : onSwipeDelete(),

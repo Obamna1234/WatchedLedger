@@ -3,8 +3,7 @@
 Maintained by Claude. Updated at the end of every stage, in the same pull request as the work.
 
 ## Status
-**Stage 1a (foundation) is written but not yet compiled.** The first real build happens in GitHub Actions once the repo exists.
-**Stage 1b (core lists complete) is in progress.**
+**Stages 1a and 1b are built and passing CI** (2026-11-05): analyzer clean, 19 tests passing, Android APK and iOS IPA built. They are waiting for the owner to merge PRs #1 and #2.
 
 ## Done
 - **Proposal:** structure, packages and tech choices, written up in SPEC.md §13.
@@ -21,18 +20,25 @@ Maintained by Claude. Updated at the end of every stage, in the same pull reques
   - **Docs:** README (install, update and build steps for both platforms), PRIVACY.md, SECURITY.md.
   - **Tests:** sanitiser, database and recovery-screen tests.
 
+- **Stage 1b, core lists complete:**
+  - **Edit screen:** tap any item. You can change the title, category, list, year, genre (typed, or picked from a list), director/author/host, 1–5 star rating, a one-line note, and the finished date. Series also get season/episode counters.
+  - **Swipe left** opens an Edit / Delete menu.
+  - **Undo** works after saving an edit, after moving an item between categories or lists, and after deleting.
+  - **Sort:** A–Z, release year, date added, date finished or rating, with a reverse option and grouping by genre on or off.
+  - **Filter:** by genre, minimum rating, release-year range, year added, and year finished (Watched list only). A banner shows "showing X of Y".
+  - **Fast-scroll index** down the right edge: genres, letters, decades, years or ratings depending on the sort. Drag along it to jump; a bubble shows where you are.
+  - **Item rows** show year · creator · S/E progress · stars · finished date · note.
+  - **Tests:** sorting, filtering and sectioning.
+
 ## Next
-- **Stage 1b:**
-  - an edit sheet covering title, year, genre, 1–5 star rating, one-line note and series season/episode
-  - swipe left opens an Edit/Delete menu
-  - sort and filter by genre, year, date added, date watched, rating and A–Z
-  - a genre fast-scroll bar
-- First green CI run, then tag `v0.1.0`.
+- After the signing secrets are added and both PRs are merged: tag `v0.1.0` for the first signed Release.
+- **Stage 2, title lookup:** needs a TMDB key from you first.
 
 ## Waiting on me (owner)
-- [ ] **Add the WatchedLedger repo to the Claude GitHub App** (github.com/settings/installations → Claude → Configure → Repository access) so Claude can push.
+- [x] Add the WatchedLedger repo to the Claude GitHub App.
+- [ ] **Review and merge PR #1, then PR #2** (Stage 1a, then 1b).
 - [ ] **Create the Android signing key and add the 4 GitHub Secrets.** Exact steps are in README → "Android signing key". Back the `.jks` file up.
-- [ ] Before Stage 2: a free TMDB account and API key (Claude will send exact steps).
+- [ ] **Decide on title lookup for movies/series:** keyless (iTunes + TVmaze, with an optional TMDB key in Settings), or TMDB from the start (needs a free TMDB account).
 - [ ] Before Stage 4: paste 5–10 lines copied from the Samsung Notes checklist, with fake titles, some ticked and some not.
 - [ ] Optional: tell Claude which iPhone and iOS version you have, and whether you use a Mac or a Windows PC, so the README can lead with the right sideloading tool.
 
@@ -44,4 +50,8 @@ Maintained by Claude. Updated at the end of every stage, in the same pull reques
 - **2026-11-03 Builds:** pushes produce artifacts; `vX.Y.Z` tags produce a Release. The build number is time-based.
 - **2026-11-03 Genres:** one primary genre per item. Podcasts are tracked as whole shows. Series progress uses simple S/E counters.
 - **2026-11-03 Platform folders** are generated in CI by `tool/bootstrap.sh`; only customised files are committed.
+- **2026-11-04 Sort and filter choices** are kept while the app is open and reset when it restarts. They can be made to stick later if wanted.
+- **2026-11-04 Tapping an item opens Edit.** Only the tick box (or a swipe right) ticks it, so you can't tick by accident.
+- **2026-11-04 Repo name** is `Obamna1234/WatchedLedger`. The internal package name stays lowercase `watchedledger`, which Flutter requires.
+- **2026-11-05 Commits use GitHub's private noreply email** (`…@users.noreply.github.com`), so your real email is never published.
 - **2026-11-04 Spec files merged:** SPEC.md now records all of these decisions (§13) plus the stage plan (§12).
