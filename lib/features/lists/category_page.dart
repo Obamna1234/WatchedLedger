@@ -6,6 +6,7 @@ import '../../core/app_scope.dart';
 import '../../data/db/database.dart';
 import '../../data/models.dart';
 import '../edit/edit_item_page.dart';
+import '../search/list_search.dart';
 import 'fast_scroll_bar.dart';
 import 'item_tile.dart';
 import 'list_layout.dart';
@@ -14,9 +15,21 @@ import 'list_options_sheets.dart';
 /// One tab: the To Watch / Watched switch, sort & filter controls and the
 /// list (grouped by genre by default) with a fast-scroll index.
 class CategoryPage extends StatefulWidget {
-  const CategoryPage({super.key, required this.category});
+  const CategoryPage({
+    super.key,
+    required this.category,
+    required this.status,
+    this.isActive = true,
+  });
 
   final MediaCategory category;
+
+  /// Which list is showing. Owned by the home screen so search can switch
+  /// lists ("also in Watched").
+  final ValueNotifier<ListStatus> status;
+
+  /// Only the visible tab answers search (counts matches and scrolls).
+  final bool isActive;
 
   @override
   State<CategoryPage> createState() => _CategoryPageState();
@@ -24,12 +37,14 @@ class CategoryPage extends StatefulWidget {
 
 class _CategoryPageState extends State<CategoryPage>
     with AutomaticKeepAliveClientMixin<CategoryPage> {
-  ListStatus _status = ListStatus.todo;
+  ListStatus get _status => widget.status.value;
   ListOptions _options = const ListOptions();
   Stream<List<MediaItem>>? _stream;
   List<MediaItem> _latest = const [];
   final _scroll = ScrollController();
   String? _bubble;
+
+  int _handledJump = -1;
 
   /// Items swiped away but not yet gone from the database stream. Hiding
   /// them immediately keeps Flutter's Dismissible happy.
@@ -37,6 +52,22 @@ class _CategoryPageState extends State<CategoryPage>
 
   @override
   bool get wantKeepAlive => true;
+
+  @override
+  void initState() {
+    super.initState();
+    widget.status.addListener(_onStatusChanged);
+  }
+
+  @override
+  void didUpdateWidget(CategoryPage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.status != widget.status) {
+      oldWidget.status.removeListener(_onStatusChanged);
+      widget.status.addListener(_onStatusChanged);
+      _onStatusChanged();
+    }
+  }
 
   @override
   void didChangeDependencies() {
@@ -49,14 +80,16 @@ class _CategoryPageState extends State<CategoryPage>
 
   @override
   void dispose() {
+    widget.status.removeListener(_onStatusChanged);
     _scroll.dispose();
     super.dispose();
   }
 
-  void _setStatus(ListStatus status) {
-    if (status == _status) return;
+  void _setStatus(ListStatus status) => widget.status.value = status;
+
+  void _onStatusChanged() {
+    if (!mounted) return;
     setState(() {
-      _status = status;
       _hidden.clear();
       // Year filters for "finished in" make no sense on the other list.
       _options = _options.withFilters(
@@ -159,10 +192,38 @@ class _CategoryPageState extends State<CategoryPage>
     _scroll.jumpTo(math.min(target, _scroll.position.maxScrollExtent));
   }
 
+  /// After the frame: tell search how many matches this list has, and
+  /// scroll to the current one when the search bar asked for a jump.
+  void _syncSearch(
+    ListSearch? search,
+    List<int> matchRows,
+    List<double> offsets,
+    double itemExtent,
+  ) {
+    if (search == null || !widget.isActive) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      search.reportTotal(matchRows.length);
+      if (_handledJump == search.jumpRequest) return;
+      _handledJump = search.jumpRequest;
+      if (matchRows.isEmpty || !_scroll.hasClients) return;
+      final row = matchRows[math.min(search.current, matchRows.length - 1)];
+      final position = _scroll.position;
+      final target = offsets[row] - (position.viewportDimension - itemExtent) / 2;
+      _scroll.animateTo(
+        target.clamp(0.0, position.maxScrollExtent),
+        duration: const Duration(milliseconds: 250),
+        curve: Curves.easeOutCubic,
+      );
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     super.build(context);
     final theme = Theme.of(context);
+    final search = SearchScope.maybeOf(context);
+    final query = search?.query ?? '';
     final scale = MediaQuery.textScalerOf(context).scale(16) / 16;
     final headerExtent = (22 + 22 * scale).roundToDouble();
     final itemExtent = math.max(72.0, (28 + 48 * scale).roundToDouble());
@@ -225,6 +286,7 @@ class _CategoryPageState extends State<CategoryPage>
               ];
               _latest = visible;
               if (visible.isEmpty) {
+                _syncSearch(search, const [], const [], itemExtent);
                 return _EmptyState(category: widget.category, status: _status);
               }
 
@@ -238,6 +300,18 @@ class _CategoryPageState extends State<CategoryPage>
               }
               final showIndex =
                   layout.sections.length >= 2 && rows.length > 12;
+
+              final matchRows = <int>[
+                if (query.isNotEmpty)
+                  for (var i = 0; i < rows.length; i++)
+                    if (rows[i] case ItemRow(:final item)
+                        when itemMatches(item, query))
+                      i,
+              ];
+              final currentRow = matchRows.isEmpty || search == null
+                  ? null
+                  : matchRows[math.min(search.current, matchRows.length - 1)];
+              _syncSearch(search, matchRows, offsets, itemExtent);
 
               return Column(
                 children: [
@@ -284,6 +358,9 @@ class _CategoryPageState extends State<CategoryPage>
                                             _toggle(r.item, fromSwipe: true),
                                         onEdit: () => _edit(r.item),
                                         onSwipeDelete: () => _delete(r.item),
+                                        query: query,
+                                        isCurrentMatch: widget.isActive &&
+                                            index == currentRow,
                                       ),
                                   },
                                 ),

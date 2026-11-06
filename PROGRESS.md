@@ -3,8 +3,8 @@
 Maintained by Claude. Updated at the end of every stage, in the same pull request as the work.
 
 ## Status
-**Stages 1a and 1b are built and passing CI** (2026-11-05): analyzer clean, 19 tests passing, Android APK and iOS IPA built. They are waiting for the owner to merge PRs #1 and #2.
-**Stage 2 (title lookup) is built and passing CI** (2026-11-05): analyzer clean, 39 tests passing. It is waiting for the owner to merge PR #3.
+**Stages 1 and 2 are merged into `main`** (PRs #1–#3, 2026-11-06).
+**Stage 3 (search)** is on branch `stage-3-search`, PR #4.
 
 ## Done
 - **Proposal:** structure, packages and tech choices, written up in SPEC.md §13.
@@ -43,13 +43,30 @@ Maintained by Claude. Updated at the end of every stage, in the same pull reques
   - **Undo** after adding a title.
   - **Tests:** network gate, each service's parsing (including malformed and hostile data), fallback, auto-file rules and genre mapping.
 
+- **Stage 3, search:**
+  - **Search bar:** tap 🔍 at the top. Every match in the visible list is highlighted as you type, ignoring capitals and accents ("amelie" finds "Amélie"). It searches titles, director/author/host and notes.
+  - **Jumping:** ▲ / ▼ (or Enter) jump between matches, with a "3 of 12" counter. The list scrolls so the current match is in the middle, shaded.
+  - **Tick from results:** tick, swipe and edit all work straight from the results, and the counter keeps up as items move.
+  - **"Also in" chips:** these show matches in your other lists and tabs ("Watched · 2", "Books › To Read · 1"). Tap one to jump there.
+  - **Back button** closes search.
+  - **Tests:** matching (accents, emoji), highlighting and counter logic.
+
 ## Next
-- After the signing secrets are added and the PRs are merged: tag `v0.1.0` for the first signed Release.
-- **Stage 3, search:** highlight every match, up/down arrows, a "3 of 12" counter, and ticking from results.
+- Tag `v0.1.0` for the first signed Release, once the signing secrets are added.
+- **Stage 4, import/export and protection:**
+  - paste a list, or import .txt / .csv files
+  - the Samsung Notes helper
+  - a review screen
+  - export to .txt / .csv / .json
+  - encrypted backup and restore
+  - app lock (PIN or fingerprint/Face ID)
 
 ## Waiting on me (owner)
 - [x] Add the WatchedLedger repo to the Claude GitHub App.
-- [ ] **Review and merge PR #1, then PR #2** (Stage 1a, then 1b).
+- [ ] **Switch on 4 GitHub settings.** Claude can't change repo settings: GitHub blocks that through Claude's connection. Steps:
+  1. **Settings → General**, scroll to **Pull Requests**. Tick **Allow auto-merge** and **Automatically delete head branches**.
+  2. **Settings → Advanced Security** (it may be called **Code security**). Click **Enable** for **Dependabot alerts**, **Dependabot security updates** and **Private vulnerability reporting**.
+  3. Optional: **Code → Branches**. Delete the old `stage-1a-foundation`, `stage-1b-core-lists` and `stage-2-lookup` branches with the 🗑 icon. They're already merged.
 - [ ] **Create the Android signing key and add the 4 GitHub Secrets.** Exact steps are in README → "Android signing key". Back the `.jks` file up.
 - [ ] Before Stage 4: paste 5–10 lines copied from the Samsung Notes checklist, with fake titles, some ticked and some not.
 - [ ] Optional: tell Claude which iPhone and iOS version you have, and whether you use a Mac or a Windows PC, so the README can lead with the right sideloading tool.
@@ -65,6 +82,8 @@ Maintained by Claude. Updated at the end of every stage, in the same pull reques
 - **2026-11-04 Sort and filter choices** are kept while the app is open and reset when it restarts. They can be made to stick later if wanted.
 - **2026-11-04 Tapping an item opens Edit.** Only the tick box (or a swipe right) ticks it, so you can't tick by accident.
 - **2026-11-04 Repo name** is `Obamna1234/WatchedLedger`. The internal package name stays lowercase `watchedledger`, which Flutter requires.
+- **2026-11-06 Merging:** Claude merges pull requests once CI is green, as the owner asked. PRs use merge commits, so history is kept.
+- **2026-11-06 Search** covers the visible list (after any filter), with chips for matches in other lists. It matches titles, creators and notes.
 - **2026-11-05 No accounts for lookups (owner's choice).** Movies use iTunes; series use TVmaze, then iTunes. TMDB was dropped. If nothing matches, you can keep typing and save it as free text.
 - **2026-11-05 New dependency: `http`** (Dart team), needed for the network gate.
 - **2026-11-05 Auto-file** only when exactly one result matches the typed title (and year, if one was given). Otherwise you choose.

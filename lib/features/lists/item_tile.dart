@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../data/db/database.dart';
 import '../../data/models.dart';
 import '../lookup/remote_thumb.dart';
+import '../search/list_search.dart';
 
 enum _SwipeAction { edit, delete }
 
@@ -16,7 +17,8 @@ class ItemTile extends StatelessWidget {
     required this.onSwipeToggle,
     required this.onEdit,
     required this.onSwipeDelete,
-    this.highlight = false,
+    this.query = '',
+    this.isCurrentMatch = false,
   });
 
   final MediaItem item;
@@ -25,8 +27,11 @@ class ItemTile extends StatelessWidget {
   final VoidCallback onEdit;
   final VoidCallback onSwipeDelete;
 
-  /// Reserved for search highlighting (stage 3).
-  final bool highlight;
+  /// Search text to highlight in the title and details ('' for none).
+  final String query;
+
+  /// This row is the current search match ("3 of 12").
+  final bool isCurrentMatch;
 
   bool get _done => item.status == ListStatus.done;
 
@@ -87,21 +92,34 @@ class ItemTile extends StatelessWidget {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
     final summary = details(item);
+    final highlight = TextStyle(
+      backgroundColor: scheme.tertiaryContainer,
+      color: scheme.onTertiaryContainer,
+      fontWeight: FontWeight.w600,
+    );
 
     final tile = ListTile(
-      tileColor: highlight ? scheme.tertiaryContainer : null,
+      tileColor: isCurrentMatch ? scheme.secondaryContainer : null,
       leading: ItemCover(item: item),
-      title: Text(
-        item.title,
+      title: Text.rich(
+        highlightSpan(
+          item.title,
+          query,
+          style: _done
+              ? TextStyle(color: scheme.onSurface.withValues(alpha: 0.6))
+              : null,
+          highlight: highlight,
+        ),
         maxLines: 1,
         overflow: TextOverflow.ellipsis,
-        style: _done
-            ? TextStyle(color: scheme.onSurface.withValues(alpha: 0.6))
-            : null,
       ),
       subtitle: summary.isEmpty
           ? null
-          : Text(summary, maxLines: 1, overflow: TextOverflow.ellipsis),
+          : Text.rich(
+              highlightSpan(summary, query, highlight: highlight),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
       trailing: Checkbox(
         value: _done,
         onChanged: (_) => onToggle(),

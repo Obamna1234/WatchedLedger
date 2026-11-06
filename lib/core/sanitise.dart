@@ -72,3 +72,45 @@ String sortKey(String title) {
 /// Duplicate-detection key: the sort key with spaces removed, so
 /// "Spider-Man", "Spiderman" and "spider man" all match.
 String matchKey(String title) => sortKey(title).replaceAll(' ', '');
+
+/// Case- and accent-insensitive search. Returns the [start, end) ranges in
+/// the ORIGINAL [text] where [query] occurs, so they can be highlighted.
+/// "amelie" finds "Amélie"; "ae" finds "Æon".
+List<(int, int)> findMatches(String text, String query) {
+  final q = _searchFold(cleanText(query, maxLength: 100)).$1;
+  if (q.isEmpty || text.isEmpty) return const [];
+  final (folded, starts, ends) = _searchFold(text);
+  final out = <(int, int)>[];
+  var from = 0;
+  while (true) {
+    final at = folded.indexOf(q, from);
+    if (at < 0) break;
+    out.add((starts[at], ends[at + q.length - 1]));
+    from = at + q.length;
+  }
+  return out;
+}
+
+bool containsMatch(String? text, String query) =>
+    text != null && findMatches(text, query).isNotEmpty;
+
+/// Folded text plus, for every folded code unit, where its source character
+/// starts and ends in the original string.
+(String, List<int>, List<int>) _searchFold(String s) {
+  final out = StringBuffer();
+  final starts = <int>[];
+  final ends = <int>[];
+  var i = 0;
+  for (final r in s.runes) {
+    final ch = String.fromCharCode(r);
+    final lower = ch.toLowerCase();
+    final f = _fold[lower] ?? lower;
+    for (var k = 0; k < f.length; k++) {
+      starts.add(i);
+      ends.add(i + ch.length);
+    }
+    out.write(f);
+    i += ch.length;
+  }
+  return (out.toString(), starts, ends);
+}
