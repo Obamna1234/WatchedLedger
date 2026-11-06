@@ -84,6 +84,9 @@ class AppDatabase extends _$AppDatabase {
     return query.watch();
   }
 
+  /// Every item in every list (used by search to count matches elsewhere).
+  Stream<List<MediaItem>> watchAll() => select(items).watch();
+
   /// Every item, in any category or list, whose title matches [title].
   Future<List<MediaItem>> findDuplicates(String title) {
     final key = matchKey(title);
