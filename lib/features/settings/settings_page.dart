@@ -39,6 +39,15 @@ class SettingsPage extends StatelessWidget {
               ),
             section('Privacy'),
             SwitchListTile(
+              title: const Text('Look up titles automatically'),
+              subtitle: const Text(
+                'Finds the proper name, year, genre and cover when you add '
+                'something. Off: titles are saved exactly as typed.',
+              ),
+              value: settings.lookupsEnabled,
+              onChanged: settings.setLookupsEnabled,
+            ),
+            SwitchListTile(
               title: const Text('Offline mode'),
               subtitle: const Text(
                 'Blocks every network request, including title lookups and '

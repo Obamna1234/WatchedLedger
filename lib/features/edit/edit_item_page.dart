@@ -6,7 +6,10 @@ import '../../core/app_scope.dart';
 import '../../core/sanitise.dart';
 import '../../data/db/database.dart';
 import '../../data/genres.dart';
+import '../../data/lookup/candidate.dart';
 import '../../data/models.dart';
+import '../lookup/lookup_sheet.dart';
+import '../lookup/remote_thumb.dart';
 
 /// What happened on the edit screen, so the list can offer Undo.
 sealed class EditOutcome {
@@ -52,6 +55,13 @@ class _EditItemPageState extends State<EditItemPage> {
   late int? _season = widget.item.season;
   late int? _episode = widget.item.episode;
   late DateTime? _completedAt = widget.item.completedAt;
+
+  // Lookup data; changed by "Look up details".
+  late String? _coverUrl = widget.item.coverUrl;
+  late String? _coverFile = widget.item.coverFile;
+  late String? _source = widget.item.source;
+  late String? _sourceId = widget.item.sourceId;
+  late MatchState _matchState = widget.item.matchState;
 
   final _formKey = GlobalKey<FormState>();
 
@@ -103,12 +113,49 @@ class _EditItemPageState extends State<EditItemPage> {
       season: Value(isSeries ? _season : null),
       episode: Value(isSeries ? _episode : null),
       completedAt: Value(completedAt),
+      coverUrl: Value(_coverUrl),
+      coverFile: Value(_coverFile),
+      source: Value(_source),
+      sourceId: Value(_sourceId),
+      matchState: _matchState,
       updatedAt: now,
     );
 
     await AppScope.of(context).db.updateItem(updated);
     if (!mounted) return;
     Navigator.of(context).pop(EditSaved(previous, updated));
+  }
+
+  Future<void> _lookUp() async {
+    final choice = await showLookupSheet(
+      context,
+      category: _category,
+      query: cleanTitle(_title.text),
+    );
+    if (choice == null || !mounted) return;
+    setState(() {
+      switch (choice) {
+        case PickedCandidate(:final candidate):
+          _applyCandidate(candidate);
+        case SaveAsTyped(:final text):
+          _title.text = text;
+          _matchState = MatchState.manual;
+      }
+    });
+  }
+
+  void _applyCandidate(LookupCandidate c) {
+    _title.text = c.title;
+    if (c.year != null) _year.text = '${c.year}';
+    if (c.genre != kUncategorised) _genre.text = c.genre;
+    if (c.creator != null) _creator.text = c.creator!;
+    if (c.coverUrl != null && c.coverUrl != _coverUrl) {
+      _coverUrl = c.coverUrl;
+      _coverFile = null; // the list will download the new cover
+    }
+    _source = c.source;
+    _sourceId = c.sourceId;
+    _matchState = MatchState.matched;
   }
 
   Future<void> _pickGenre() async {
@@ -206,6 +253,50 @@ class _EditItemPageState extends State<EditItemPage> {
         child: ListView(
           padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
           children: [
+            Row(
+              children: [
+                _coverFile != null
+                    ? ItemCover(
+                        item: widget.item.copyWith(
+                          coverFile: Value(_coverFile),
+                          coverUrl: Value(_coverUrl),
+                        ),
+                        width: 60,
+                        height: 84,
+                      )
+                    : RemoteThumb(
+                        key: ValueKey(_coverUrl),
+                        url: _coverUrl,
+                        category: _category,
+                        width: 60,
+                        height: 84,
+                      ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        switch (_matchState) {
+                          MatchState.matched =>
+                              'Matched${_source == null ? '' : ' via ${_sourceLabel(_source!)}'}',
+                          MatchState.manual => 'Saved as typed',
+                          MatchState.unmatched => 'Not looked up yet',
+                        },
+                        style: theme.textTheme.bodySmall,
+                      ),
+                      const SizedBox(height: 4),
+                      OutlinedButton.icon(
+                        onPressed: _lookUp,
+                        icon: const Icon(Icons.travel_explore),
+                        label: const Text('Look up details'),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            gap,
             TextFormField(
               controller: _title,
               decoration: const InputDecoration(
@@ -418,3 +509,11 @@ class _Counter extends StatelessWidget {
     );
   }
 }
+
+String _sourceLabel(String source) => switch (source) {
+      'itunes' => 'iTunes',
+      'tvmaze' => 'TVmaze',
+      'openlibrary' => 'Open Library',
+      'googlebooks' => 'Google Books',
+      _ => source,
+    };

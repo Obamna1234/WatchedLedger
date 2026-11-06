@@ -17,6 +17,7 @@ dependencies:
   path: ^1.9.0                      # path joining (Dart team)
   path_provider: ^2.1.6             # app-private storage directory (Flutter team)
   flutter_secure_storage: ^11.2.0   # database key in Android Keystore / iOS Keychain
+  http: ^1.5.0                      # HTTPS requests for title lookup + covers (Dart team)
 
 dev_dependencies:
   flutter_test:

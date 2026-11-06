@@ -89,10 +89,11 @@ It replaces my current Samsung Notes checklist, which is slow and tedious (tap b
 - When I add a title, look it up to confirm the correct name, year, genre and cover image, then file it automatically.
 - If misspelled or ambiguous, show a "Did you mean…?" list with cover, title and year to pick from.
 - Sources:
-  - TMDB for movies and series
+  - ~~TMDB for movies and series~~ **Changed 2026-11-05 (owner's choice):** no account or API key. Movies come from iTunes Search, series from TVmaze.
   - Open Library (or Google Books) for books and audiobooks
   - iTunes Search API for podcasts
 - Use whichever free, reliable options work best and explain the choice.
+- If nothing is found (or I don't like the matches), I can keep typing in the "Did you mean…?" box. Then I can either search again or save exactly what I typed as free text.
 - If a source returns nothing, try a fallback source, then let me save the title manually.
 - If offline or lookups are disabled, save the title as typed and let me match it later.
 
@@ -127,8 +128,8 @@ Agreed staging. Workflows were built first, so every stage produces installable 
 | Stage | Contents |
 |---|---|
 | **1a Foundation** ✅ | Encrypted database, tabs, To Watch/Watched, quick add, duplicate warning, tick/swipe/undo, themes, CI + release workflows, README/PRIVACY/SECURITY |
-| **1b Core lists complete** ✅ (awaiting CI) | Edit sheet (title, year, genre, rating, note, series S/E), swipe-left menu (edit/delete), sort & filter, genre fast-scroll bar, done styling |
-| **2 Title lookup** | Single network gate (offline mode, HTTPS, host allowlist), TMDB/Open Library/Google Books/iTunes/TVmaze, "Did you mean…?", cover cache, match-later, full privacy page |
+| **1b Core lists complete** ✅ | Edit sheet (title, year, genre, rating, note, series S/E), swipe-left menu (edit/delete), sort & filter, genre fast-scroll bar, done styling |
+| **2 Title lookup** ✅ | Single network gate (offline mode, HTTPS, host allowlist), TMDB/Open Library/Google Books/iTunes/TVmaze, "Did you mean…?", cover cache, match-later, full privacy page |
 | **3 Search** | Highlight-all, up/down, "3 of 12", tick from results |
 | **4 Import/export + protection** | Paste/txt/csv import, Samsung Notes helper, review screen, txt/csv/json export, encrypted backup/restore, app lock (PIN/biometric) |
 | **5 Extras** | Random picker, stats, home-screen widgets, share-to-app, AltStore/SideStore source feed |
@@ -145,7 +146,7 @@ Agreed staging. Workflows were built first, so every stage produces installable 
 | Encryption at rest | **SQLite3MultipleCiphers** (`hooks: user_defines: sqlite3: source: sqlite3mc`) | Drift's recommended replacement for SQLCipher. The 256-bit random key lives in `flutter_secure_storage` (Android Keystore; iOS Keychain set to `first_unlock_this_device`). The app refuses to run without cipher support. |
 | State | Plain Flutter (`InheritedWidget` `AppScope`, `ChangeNotifier`) | No Riverpod. Fewer dependencies. |
 | Settings | Stored in the encrypted database (`settings_entries` table) | No shared_preferences. |
-| Networking (stage 2) | Dart `http` behind one `NetClient` | Enforces offline mode, HTTPS-only, host allowlist, timeouts and size caps. |
+| Networking (stage 2) | Dart `http` (Dart team) behind one `NetClient` | Enforces offline mode, HTTPS-only, host allowlist, timeouts and size caps. |
 | Images (stage 2) | Own small file cache | Avoids `cached_network_image`'s dependency tree. |
 | Backups (stage 4) | `cryptography`: Argon2id → AES-256-GCM, `.wlbackup` file | Portable, password-protected. |
 | Lock (stage 4) | `local_auth` + PIN stored only as a slow hash | |
@@ -155,15 +156,23 @@ Agreed staging. Workflows were built first, so every stage produces installable 
 ### Lookup sources (stage 2)
 | Category | Primary | Fallback | Then |
 |---|---|---|---|
-| Movies | TMDB | iTunes Search (`media=movie`) | Manual |
-| Series | TMDB | TVmaze | Manual |
-| Books | Open Library | Google Books (keyless) | Manual |
-| Audiobooks | iTunes Search (`media=audiobook`) | Open Library | Manual |
-| Podcasts | iTunes Search (`media=podcast`) | — | Manual |
+| Movies | iTunes Search (`media=movie`) | — | Free text |
+| Series | TVmaze | iTunes Search (`media=tvShow`) | Free text |
+| Books | Open Library | Google Books (keyless) | Free text |
+| Audiobooks | iTunes Search (`media=audiobook`) | Open Library | Free text |
+| Podcasts | iTunes Search (`media=podcast`) | — | Free text |
 
-- The TMDB key is **pasted into the app's settings by the owner**, so it is never baked into the published APK.
-- The TMDB attribution notice is shown on the About/Privacy page.
-- Messy source genres are mapped onto a curated genre list per category.
+- **Every source is keyless: no accounts, no API keys.** A TMDB key could be added later as an optional upgrade for movies, but only if the owner asks.
+- **Auto-file:** a title is filed automatically when exactly one result matches the typed title (and year, if one was typed, e.g. "Dune 2021"). Anything ambiguous opens "Did you mean…?".
+- **Unreachable lookup:** offline mode, lookups switched off or a network error mean the title is saved as typed (`unmatched`). It can be matched later from the Edit screen ("Look up details").
+- **Genre mapping:** messy source genres are mapped onto the curated genre list for each category.
+- **Network gate:** every request goes through one `NetClient`, which enforces:
+  - offline mode
+  - HTTPS only
+  - a host allowlist, re-checked on every redirect
+  - a 12-second timeout and response size caps
+  - a generic `User-Agent: WatchedLedger`; no cookies are sent and nothing identifying is attached
+- **Covers:** downloaded through the same gate, checked to really be an image (magic bytes), and cached in app storage. After that they show offline.
 
 ### Data model
 - **`items`**:

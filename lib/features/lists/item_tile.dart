@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../data/db/database.dart';
 import '../../data/models.dart';
+import '../lookup/remote_thumb.dart';
 
 enum _SwipeAction { edit, delete }
 
@@ -89,7 +90,7 @@ class ItemTile extends StatelessWidget {
 
     final tile = ListTile(
       tileColor: highlight ? scheme.tertiaryContainer : null,
-      leading: _CoverThumb(item: item),
+      leading: ItemCover(item: item),
       title: Text(
         item.title,
         maxLines: 1,
@@ -132,28 +133,6 @@ class ItemTile extends StatelessWidget {
           ? onSwipeToggle()
           : onSwipeDelete(),
       child: tile,
-    );
-  }
-}
-
-class _CoverThumb extends StatelessWidget {
-  const _CoverThumb({required this.item});
-
-  final MediaItem item;
-
-  @override
-  Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    // Real cover images arrive with the lookup feature; until then a
-    // category icon keeps the layout stable.
-    return Container(
-      width: 40,
-      height: 56,
-      decoration: BoxDecoration(
-        color: scheme.surfaceContainerHighest,
-        borderRadius: BorderRadius.circular(6),
-      ),
-      child: Icon(item.category.icon, color: scheme.onSurfaceVariant),
     );
   }
 }

@@ -1,10 +1,16 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../core/app_scope.dart';
+import '../../core/net/net_client.dart';
 import '../../core/sanitise.dart';
 import '../../data/db/database.dart';
+import '../../data/lookup/candidate.dart';
+import '../../data/lookup/lookup_service.dart';
 import '../../data/models.dart';
+import '../lookup/lookup_sheet.dart';
 
 /// Text box at the top of the main screen. The category follows the open tab
 /// but can be changed for a single add.
@@ -39,35 +45,115 @@ class _QuickAddBarState extends State<QuickAddBar> {
     super.dispose();
   }
 
+  Future<bool> _duplicateOk(AppDatabase db, String title) async {
+    final duplicates = await db.findDuplicates(title);
+    if (duplicates.isEmpty) return true;
+    if (!mounted) return false;
+    return await _confirmDuplicate(title, duplicates) == true;
+  }
+
+  /// Add flow: duplicate check → lookup → auto-file if clear, otherwise
+  /// "Did you mean…?" (where the user can also keep typing and save as
+  /// typed) → save → fetch the cover in the background.
   Future<void> _submit() async {
-    final title = cleanTitle(_controller.text);
-    if (title.isEmpty || _busy) return;
+    final typed = cleanTitle(_controller.text);
+    if (typed.isEmpty || _busy) return;
     setState(() => _busy = true);
     try {
-      final db = AppScope.of(context).db;
-      final duplicates = await db.findDuplicates(title);
-      if (!mounted) return;
-      if (duplicates.isNotEmpty) {
-        final addAnyway = await _confirmDuplicate(title, duplicates);
-        if (addAnyway != true || !mounted) return;
-      }
+      final scope = AppScope.of(context);
       final category = _category;
       final status = _status;
-      await db.addItem(
+      if (!await _duplicateOk(scope.db, typed) || !mounted) return;
+
+      LookupCandidate? picked;
+      String? asTyped;
+      var matchState = MatchState.unmatched;
+      String? note;
+
+      if (scope.settings.offlineMode) {
+        asTyped = typed;
+        note = 'Offline mode is on, so it was saved as typed.';
+      } else if (!scope.settings.lookupsEnabled) {
+        asTyped = typed;
+        matchState = MatchState.manual;
+      } else {
+        LookupResult? result;
+        try {
+          result = await scope.lookup.search(typed, category);
+        } on OfflineException {
+          result = null;
+        }
+        if (!mounted) return;
+        if (result == null || result.couldNotReach) {
+          asTyped = typed;
+          note = "Couldn't reach the lookup service, so it was saved as "
+              'typed. You can match it later from Edit.';
+        } else {
+          picked = LookupService.confidentMatch(typed, result.candidates);
+          if (picked == null) {
+            final choice = await showLookupSheet(
+              context,
+              category: category,
+              query: typed,
+              initial: result,
+            );
+            // Dismissed: leave the text in the box so nothing is lost.
+            if (!mounted || choice == null) return;
+            switch (choice) {
+              case PickedCandidate(:final candidate):
+                picked = candidate;
+              case SaveAsTyped(:final text):
+                asTyped = text;
+                matchState = MatchState.manual;
+            }
+          }
+        }
+      }
+
+      final title = picked?.title ?? asTyped ?? typed;
+      if (matchKey(title) != matchKey(typed)) {
+        if (!await _duplicateOk(scope.db, title) || !mounted) return;
+      }
+
+      final id = await scope.db.addItem(
         category: category,
         status: status,
         title: title,
-        typedTitle: title,
+        typedTitle: typed,
+        year: picked?.year,
+        genre: picked?.genre,
+        creator: picked?.creator,
+        coverUrl: picked?.coverUrl,
+        source: picked?.source,
+        sourceId: picked?.sourceId,
+        matchState: picked != null ? MatchState.matched : matchState,
       );
+
+      final coverUrl = picked?.coverUrl;
+      if (coverUrl != null) {
+        unawaited(scope.covers.ensure(coverUrl).then((name) async {
+          if (name != null) await scope.db.setCoverFile(id, name);
+        }));
+      }
+
       if (!mounted) return;
       _controller.clear();
+      final year = picked?.year;
+      final label = year == null ? title : '$title ($year)';
       ScaffoldMessenger.of(context)
         ..hideCurrentSnackBar()
         ..showSnackBar(SnackBar(
           content: Text(
-            'Added to ${category.tabLabel} › ${category.labelFor(status)}',
+            'Added "$label" to ${category.tabLabel} › '
+            '${category.labelFor(status)}'
+            '${note == null ? '' : '\n$note'}',
           ),
-          duration: const Duration(seconds: 2),
+          duration: Duration(seconds: note == null ? 4 : 6),
+          persist: false,
+          action: SnackBarAction(
+            label: 'Undo',
+            onPressed: () => scope.db.deleteItem(id),
+          ),
         ));
     } finally {
       if (mounted) setState(() => _busy = false);
@@ -161,7 +247,13 @@ class _QuickAddBarState extends State<QuickAddBar> {
           IconButton.filled(
             tooltip: 'Add',
             onPressed: _busy ? null : _submit,
-            icon: const Icon(Icons.add),
+            icon: _busy
+                ? const SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : const Icon(Icons.add),
           ),
         ],
       ),

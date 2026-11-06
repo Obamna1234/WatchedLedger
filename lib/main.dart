@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 
 import 'app.dart';
+import 'core/net/net_client.dart';
 import 'core/settings.dart';
 import 'core/theme.dart';
+import 'data/covers/cover_cache.dart';
 import 'data/db/open.dart';
+import 'data/lookup/lookup_service.dart';
 import 'features/recovery/recovery_page.dart';
 
 void main() {
@@ -22,7 +25,7 @@ class BootApp extends StatefulWidget {
 
 class _BootAppState extends State<BootApp> {
   OpenResult? _result;
-  SettingsController? _settings;
+  AppServices? _services;
 
   @override
   void initState() {
@@ -33,24 +36,32 @@ class _BootAppState extends State<BootApp> {
   Future<void> _open() async {
     if (_result != null) setState(() => _result = null);
     final result = await openAppDatabase();
-    SettingsController? settings;
+    AppServices? services;
     if (result is DbOpened) {
-      settings = SettingsController(result.db);
+      final settings = SettingsController(result.db);
       await settings.load();
+      final net = NetClient(isOffline: () => settings.offlineMode);
+      services = AppServices(
+        db: result.db,
+        settings: settings,
+        net: net,
+        lookup: LookupService(net),
+        covers: await CoverCache.open(net),
+      );
     }
     if (!mounted) return;
     setState(() {
       _result = result;
-      _settings = settings;
+      _services = services;
     });
   }
 
   @override
   Widget build(BuildContext context) {
     final result = _result;
-    final settings = _settings;
-    if (result is DbOpened && settings != null) {
-      return WatchedLedgerApp(db: result.db, settings: settings);
+    final services = _services;
+    if (result is DbOpened && services != null) {
+      return WatchedLedgerApp(services: services);
     }
     return MaterialApp(
       title: 'WatchedLedger',

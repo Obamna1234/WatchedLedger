@@ -9,11 +9,10 @@ repo.
 - Your library lives in an **encrypted database on your phone**.
 - See [PRIVACY.md](PRIVACY.md) for exactly what leaves the device, and when.
 
-> **Status: Stage 1 (core lists).**
-> - **Works now:** the five category tabs, To Watch / Watched lists, quick add, a duplicate warning, and ticking (by tap or swipe) with undo.
-> - **Editing:** tap an item to edit it, with rating, note and series progress. Swipe left for Edit / Delete.
-> - **Browsing:** sort, filter and a genre fast-scroll index, plus light/dark/AMOLED themes.
-> - **Coming next:** title lookup with covers, search, import/export, backups, app lock, stats, widgets and share-to-app.
+> **Status: Stage 2 (title lookup).**
+> - **Works now:** five category tabs with To Watch / Watched lists, ticking (tap or swipe) with undo, an edit screen (rating, note, series progress), sort, filter and a genre fast-scroll index.
+> - **Smart add:** type a title and it's looked up automatically, with no accounts or API keys. Clear matches are filed straight away with the proper name, year, genre and cover. If it's unclear, you get a "Did you mean…?" list, where you can keep typing and search again or save exactly what you typed.
+> - **Coming next:** search, import/export, backups, app lock, stats, widgets and share-to-app.
 
 ---
 
@@ -134,9 +133,19 @@ The tag decides the version name. The build number comes from the build time, so
 
 Each build prints the APK's signing-certificate SHA-256 in the run summary. Note it down after your first release so you can spot a wrongly signed build.
 
-### Lookup API keys
+### Lookup services
 
-Title lookup arrives in Stage 2. TMDB is the only service that needs a key. The plan is for you to paste your own key into the app's settings, so it never sits inside the published APK.
+Nothing to set up: every lookup service is free and needs no account or key.
+
+| Category | Looked up with |
+|---|---|
+| Movies | iTunes Search |
+| Series | TVmaze, then iTunes |
+| Books | Open Library, then Google Books |
+| Audiobooks | iTunes, then Open Library |
+| Podcasts | iTunes |
+
+See [PRIVACY.md](PRIVACY.md) for exactly what is sent.
 
 ---
 
@@ -190,4 +199,4 @@ tool/          bootstrap script
 | Database | Drift on SQLite | Typed queries and safe migrations. |
 | Encryption at rest | SQLite3MultipleCiphers | The whole database file is encrypted. The 256-bit key is random and kept in Keystore/Keychain. |
 | State | Flutter's own `InheritedWidget` / `ChangeNotifier` | No extra state-management package. |
-| Runtime dependencies | 5 in total: `drift`, `sqlite3`, `path`, `path_provider`, `flutter_secure_storage` | Kept deliberately few. |
+| Runtime dependencies | 6 in total: `drift`, `sqlite3`, `path`, `path_provider`, `flutter_secure_storage`, `http` | Kept deliberately few. |

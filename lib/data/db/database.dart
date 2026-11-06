@@ -95,6 +95,13 @@ class AppDatabase extends _$AppDatabase {
     required ListStatus status,
     required String title,
     String? typedTitle,
+    int? year,
+    String? genre,
+    String? creator,
+    String? coverUrl,
+    String? source,
+    String? sourceId,
+    MatchState matchState = MatchState.unmatched,
     DateTime? now,
   }) {
     final clean = cleanTitle(title);
@@ -109,7 +116,13 @@ class AppDatabase extends _$AppDatabase {
       sortTitle: sortKey(clean),
       matchKey: matchKey(clean),
       typedTitle: Value(typedTitle),
-      matchState: MatchState.unmatched,
+      year: Value(year),
+      genre: genre == null ? const Value.absent() : Value(genre),
+      creator: Value(creator),
+      coverUrl: Value(coverUrl),
+      source: Value(source),
+      sourceId: Value(sourceId),
+      matchState: matchState,
       addedAt: ts,
       updatedAt: ts,
       completedAt: Value(status == ListStatus.done ? ts : null),
@@ -146,6 +159,12 @@ class AppDatabase extends _$AppDatabase {
           ..where((t) => t.category.equalsValue(category)))
         .get();
     return {for (final r in rows) r.genre};
+  }
+
+  /// Records the cached cover file for an item (or clears it).
+  Future<void> setCoverFile(int id, String? fileName) async {
+    await (update(items)..where((t) => t.id.equals(id)))
+        .write(ItemsCompanion(coverFile: Value(fileName)));
   }
 
   Future<int> deleteItem(int id) =>
