@@ -1,0 +1,26 @@
+# Every push to any branch: analyze, test, scan dependencies and build both
+# apps. Download the APK / IPA from the run's "Artifacts" section.
+name: CI
+
+on:
+  push:
+    branches: ['**']
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    uses: ./.github/workflows/build.yml
+    with:
+      release: false
+    secrets: inherit

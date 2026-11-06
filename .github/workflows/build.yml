@@ -1,0 +1,235 @@
+# Reusable build: called by ci.yml (every push) and release.yml (version tags).
+name: build
+
+on:
+  workflow_call:
+    inputs:
+      release:
+        description: Building a published release (requires the signing key)
+        type: boolean
+        default: false
+      version:
+        description: Version name or tag, e.g. 1.2.0 or v1.2.0 (defaults to pubspec version)
+        type: string
+        default: ''
+
+permissions:
+  contents: read
+
+env:
+  FLUTTER_VERSION: '3.47.x'
+  OSV_SCANNER_VERSION: 'v2.7.0'
+  OSV_SCANNER_SHA256: '160c6253e2922e9e0a6a9771c5c4c40a4b3c6090b34a3cdd5e80c96cc2e4218b'
+
+jobs:
+  meta:
+    name: Version
+    runs-on: ubuntu-latest
+    outputs:
+      name: ${{ steps.v.outputs.name }}
+      number: ${{ steps.v.outputs.number }}
+      commit: ${{ steps.v.outputs.commit }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - id: v
+        env:
+          INPUT_VERSION: ${{ inputs.version }}
+        run: |
+          set -euo pipefail
+          if [ -n "$INPUT_VERSION" ]; then
+            name="${INPUT_VERSION#v}"
+          else
+            name="$(grep -E '^version:' pubspec.yaml | sed -E 's/version: *([0-9]+\.[0-9]+\.[0-9]+).*/\1/')"
+          fi
+          if ! [[ "$name" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::Version '$name' must look like 1.2.3"; exit 1
+          fi
+          # Minutes since 1970: always increases, so Android accepts every
+          # newer build as an update (versionCode must only go up).
+          number=$(( $(date +%s) / 60 ))
+          {
+            echo "name=$name"
+            echo "number=$number"
+            echo "commit=${GITHUB_SHA::7}"
+          } >> "$GITHUB_OUTPUT"
+          echo "Version $name ($number) from ${GITHUB_SHA::7}" >> "$GITHUB_STEP_SUMMARY"
+
+  deps-scan:
+    name: Dependency vulnerability scan (OSV)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2.23.0
+        with:
+          channel: stable
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          cache: true
+      - run: flutter pub get
+      - name: Install OSV-Scanner (checksum verified)
+        run: |
+          set -euo pipefail
+          curl -sSfL -o osv-scanner \
+            "https://github.com/google/osv-scanner/releases/download/${OSV_SCANNER_VERSION}/osv-scanner_linux_amd64"
+          echo "${OSV_SCANNER_SHA256}  osv-scanner" | sha256sum --check --strict
+          chmod +x osv-scanner
+      - name: Scan pubspec.lock for known vulnerabilities
+        run: ./osv-scanner scan source --lockfile=pubspec.lock
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: pubspec-lock
+          path: pubspec.lock
+          retention-days: 30
+
+  android:
+    name: Android APK
+    needs: meta
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      VERSION_NAME: ${{ needs.meta.outputs.name }}
+      BUILD_NUMBER: ${{ needs.meta.outputs.number }}
+      COMMIT: ${{ needs.meta.outputs.commit }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6.1.0
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2.23.0
+        with:
+          channel: stable
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          cache: true
+
+      - name: Bootstrap project (platform files + generated code)
+        run: bash tool/bootstrap.sh
+
+      - name: Analyze
+        run: flutter analyze
+
+      - name: Test
+        run: flutter test
+
+      - name: Set up release signing key
+        env:
+          KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+          IS_RELEASE: ${{ inputs.release }}
+        run: |
+          set -euo pipefail
+          if [ -z "$KEYSTORE_B64" ]; then
+            if [ "$IS_RELEASE" = "true" ]; then
+              echo "::error::ANDROID_KEYSTORE_BASE64 secret is missing. Refusing to publish a debug-signed release."
+              exit 1
+            fi
+            echo "::warning::No signing key secret found. This APK is signed with a throwaway debug key and cannot update a release install."
+            exit 0
+          fi
+          ks="$RUNNER_TEMP/release.jks"
+          echo "$KEYSTORE_B64" | base64 --decode > "$ks"
+          {
+            echo "WL_KEYSTORE_PATH=$ks"
+            echo "WL_KEYSTORE_PASSWORD=$KEYSTORE_PASSWORD"
+            echo "WL_KEY_ALIAS=$KEY_ALIAS"
+            echo "WL_KEY_PASSWORD=$KEY_PASSWORD"
+          } >> "$GITHUB_ENV"
+
+      - name: Build release APK (minified + obfuscated)
+        run: |
+          set -euo pipefail
+          flutter build apk --release \
+            --obfuscate --split-debug-info=build/debug-info/android \
+            --build-name="$VERSION_NAME" --build-number="$BUILD_NUMBER" \
+            --dart-define=WL_VERSION="$VERSION_NAME" \
+            --dart-define=WL_COMMIT="$COMMIT"
+          mkdir -p dist
+          cp build/app/outputs/flutter-apk/app-release.apk "dist/WatchedLedger-$VERSION_NAME.apk"
+
+      - name: Show signing certificate
+        run: |
+          set -euo pipefail
+          apksigner="$(ls "$ANDROID_HOME"/build-tools/*/apksigner | sort -V | tail -1)"
+          "$apksigner" verify --print-certs "dist/WatchedLedger-$VERSION_NAME.apk" | tee cert.txt
+          {
+            echo '### APK signing certificate'
+            echo '```'
+            grep -E 'SHA-256' cert.txt || true
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Remove signing key from runner
+        if: always()
+        run: rm -f "$RUNNER_TEMP/release.jks"
+
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: android-apk
+          path: dist/*.apk
+          retention-days: 14
+          if-no-files-found: error
+
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: android-debug-symbols
+          path: build/debug-info/android
+          retention-days: 90
+
+  ios:
+    name: iOS IPA (unsigned)
+    needs: meta
+    runs-on: macos-latest
+    timeout-minutes: 60
+    env:
+      VERSION_NAME: ${{ needs.meta.outputs.name }}
+      BUILD_NUMBER: ${{ needs.meta.outputs.number }}
+      COMMIT: ${{ needs.meta.outputs.commit }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2.23.0
+        with:
+          channel: stable
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          cache: true
+
+      - name: Bootstrap project (platform files + generated code)
+        run: bash tool/bootstrap.sh
+
+      - name: Build iOS app without code signing (obfuscated)
+        run: |
+          set -euo pipefail
+          flutter build ios --release --no-codesign \
+            --obfuscate --split-debug-info=build/debug-info/ios \
+            --build-name="$VERSION_NAME" --build-number="$BUILD_NUMBER" \
+            --dart-define=WL_VERSION="$VERSION_NAME" \
+            --dart-define=WL_COMMIT="$COMMIT"
+
+      - name: Package .ipa for sideloading
+        run: |
+          set -euo pipefail
+          mkdir -p dist/Payload
+          cp -R build/ios/iphoneos/Runner.app dist/Payload/
+          (cd dist && zip -qry "WatchedLedger-$VERSION_NAME.ipa" Payload && rm -rf Payload)
+          ls -la dist
+
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: ios-ipa
+          path: dist/*.ipa
+          retention-days: 14
+          if-no-files-found: error
+
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: ios-debug-symbols
+          path: build/debug-info/ios
+          retention-days: 90
