@@ -4,7 +4,7 @@ Maintained by Claude. Updated at the end of every stage, in the same pull reques
 
 ## Status
 **Stages 1 and 2 are merged into `main`** (PRs #1–#3, 2026-11-06).
-**Stage 3 (search)** is on branch `stage-3-search`, PR #4.
+**Stage 3 (search) is merged** (PR #4, 2026-11-06): analyzer clean, 48 tests passing.
 
 ## Done
 - **Proposal:** structure, packages and tech choices, written up in SPEC.md §13.
