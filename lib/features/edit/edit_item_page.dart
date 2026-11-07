@@ -133,15 +133,17 @@ class _EditItemPageState extends State<EditItemPage> {
       query: cleanTitle(_title.text),
     );
     if (choice == null || !mounted) return;
-    setState(() {
-      switch (choice) {
-        case PickedCandidate(:final candidate):
-          _applyCandidate(candidate);
-        case SaveAsTyped(:final text):
+    switch (choice) {
+      case PickedCandidate(:final candidate):
+        final detailed = await AppScope.of(context).lookup.details(candidate);
+        if (!mounted) return;
+        setState(() => _applyCandidate(detailed));
+      case SaveAsTyped(:final text):
+        setState(() {
           _title.text = text;
           _matchState = MatchState.manual;
-      }
-    });
+        });
+    }
   }
 
   void _applyCandidate(LookupCandidate c) {
@@ -515,5 +517,6 @@ String _sourceLabel(String source) => switch (source) {
       'tvmaze' => 'TVmaze',
       'openlibrary' => 'Open Library',
       'googlebooks' => 'Google Books',
+      'wikipedia' => 'Wikipedia',
       _ => source,
     };

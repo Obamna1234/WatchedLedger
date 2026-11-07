@@ -16,8 +16,8 @@ Only two things are ever sent. Each is sent only while **"Look up titles automat
 
 | What is sent | To whom | When |
 |---|---|---|
-| The title text you typed | **Movies:** iTunes Search (Apple). **Series:** TVmaze, then iTunes if TVmaze finds nothing. **Books:** Open Library (Internet Archive), then Google Books. **Audiobooks:** iTunes, then Open Library. **Podcasts:** iTunes. | When you add a title, or tap **Look up details** on the Edit screen |
-| A request for a cover image | Those services' image servers (`*.mzstatic.com`, `static.tvmaze.com`, `covers.openlibrary.org` → `*.archive.org`, `books.google.com`) | The first time a cover is shown. After that it is cached on the device. |
+| The title text you typed | **Movies:** Wikipedia (Wikimedia Foundation), then iTunes. **Series:** TVmaze, then iTunes if TVmaze finds nothing. **Books:** Open Library (Internet Archive), then Google Books. **Audiobooks:** iTunes, then Open Library. **Podcasts:** iTunes; Wikipedia only if the name looks misspelled. | When you add a title, or tap **Look up details** on the Edit screen |
+| A request for a cover image | Those services' image servers (`*.mzstatic.com`, `static.tvmaze.com`, `covers.openlibrary.org` → `*.archive.org`, `books.google.com`, `upload.wikimedia.org`) | The first time a cover is shown. After that it is cached on the device. |
 
 These requests carry nothing that identifies you:
 

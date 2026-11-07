@@ -46,12 +46,14 @@ class NetClient {
     'www.googleapis.com',
     'books.google.com',
     'books.googleusercontent.com',
+    'en.wikipedia.org',
   };
 
   /// Image CDNs that the services above redirect cover downloads to.
   static const List<String> allowedHostSuffixes = [
     '.mzstatic.com', // Apple artwork
     '.archive.org', // Open Library covers
+    '.wikimedia.org', // Wikipedia images (upload.wikimedia.org)
   ];
 
   static const Duration timeout = Duration(seconds: 12);
@@ -72,11 +74,15 @@ class NetClient {
   }
 
   /// Fetches [url] and returns the body, following up to 3 redirects.
+  /// The whole fetch (redirects and body) must finish within [timeout].
   Future<Uint8List> getBytes(
     Uri url, {
     int maxBytes = maxJsonBytes,
     String accept = 'application/json',
-  }) async {
+  }) =>
+      _fetch(url, maxBytes, accept).timeout(timeout);
+
+  Future<Uint8List> _fetch(Uri url, int maxBytes, String accept) async {
     var current = url;
     for (var hop = 0; hop <= _maxRedirects; hop++) {
       if (_isOffline()) throw const OfflineException();
@@ -87,7 +93,7 @@ class NetClient {
         ..followRedirects = false
         ..headers['User-Agent'] = userAgent
         ..headers['Accept'] = accept;
-      final response = await _inner.send(request).timeout(timeout);
+      final response = await _inner.send(request);
       final status = response.statusCode;
 
       if (status >= 300 && status < 400) {
@@ -109,7 +115,7 @@ class NetClient {
         throw http.ClientException('Response too large', current);
       }
       final builder = BytesBuilder(copy: false);
-      await for (final chunk in response.stream.timeout(timeout)) {
+      await for (final chunk in response.stream) {
         builder.add(chunk);
         if (builder.length > maxBytes) {
           throw http.ClientException('Response too large', current);

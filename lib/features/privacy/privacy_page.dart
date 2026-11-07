@@ -68,14 +68,15 @@ class PrivacyPage extends StatelessWidget {
               'address.',
             ),
             heading('Who receives it'),
-            service('Movies', 'iTunes Search (Apple)'),
+            service('Movies', 'Wikipedia (Wikimedia Foundation), then iTunes'),
             service('Series', 'TVmaze, then iTunes Search if needed'),
             service('Books', 'Open Library (Internet Archive), then Google Books'),
             service('Audiobooks', 'iTunes Search, then Open Library'),
-            service('Podcasts', 'iTunes Search'),
+            service('Podcasts', 'iTunes Search; Wikipedia only to fix a '
+                'misspelled show name'),
             service('Covers', 'The same services’ image servers '
                 '(mzstatic.com, static.tvmaze.com, covers.openlibrary.org / '
-                'archive.org, books.google.com)'),
+                'archive.org, books.google.com, upload.wikimedia.org)'),
             body('The app refuses to contact any other address.'),
             heading('Never collected'),
             body(

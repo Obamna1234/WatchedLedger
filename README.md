@@ -144,11 +144,11 @@ Nothing to set up: every lookup service is free and needs no account or key.
 
 | Category | Looked up with |
 |---|---|
-| Movies | iTunes Search |
+| Movies | Wikipedia, then iTunes |
 | Series | TVmaze, then iTunes |
 | Books | Open Library, then Google Books |
 | Audiobooks | iTunes, then Open Library |
-| Podcasts | iTunes |
+| Podcasts | iTunes (Wikipedia helps with misspelled names) |
 
 See [PRIVACY.md](PRIVACY.md) for exactly what is sent.
 

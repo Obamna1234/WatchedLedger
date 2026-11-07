@@ -110,6 +110,12 @@ class _QuickAddBarState extends State<QuickAddBar> {
         }
       }
 
+      final chosen = picked;
+      if (chosen != null) {
+        picked = await scope.lookup.details(chosen);
+        if (!mounted) return;
+      }
+
       final title = picked?.title ?? asTyped ?? typed;
       if (matchKey(title) != matchKey(typed)) {
         if (!await _duplicateOk(scope.db, title) || !mounted) return;
