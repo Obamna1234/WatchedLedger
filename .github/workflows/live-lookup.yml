@@ -1,0 +1,38 @@
+# Checks the REAL lookup services (iTunes, TVmaze, Open Library, Google
+# Books) with correct and misspelled titles, and writes a results table to
+# the run's summary page. Runs weekly so we notice if a service changes,
+# and whenever the lookup code changes.
+name: Live lookup check
+
+on:
+  push:
+    paths:
+      - 'live_test/**'
+      - 'lib/data/lookup/**'
+      - 'lib/core/net/**'
+      - '.github/workflows/live-lookup.yml'
+  schedule:
+    - cron: '17 3 * * 1' # Mondays 03:17 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  live:
+    name: Real services, real misspellings
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2.23.0
+        with:
+          channel: stable
+          flutter-version: '3.47.x'
+          cache: true
+      - name: Bootstrap project
+        run: bash tool/bootstrap.sh
+      - name: Look up titles on the real services
+        run: flutter test live_test/ --reporter expanded
