@@ -169,14 +169,10 @@ Future<void> finish(WidgetTester tester) async {
 }
 
 void main() {
-  probes();
   testWidgets('misspelled "Severence" → Did you mean → pick Severance',
       (tester) async {
     final h = await pumpAddBar(tester, MediaCategory.series);
     await typeAndAdd(tester, 'Severence');
-    // ignore: avoid_print
-    print('PROBE requests=${h.requests} busy-spinner='
-        '${find.byType(CircularProgressIndicator).evaluate().length}');
 
     // Not filed automatically: the spelling differs, so the user chooses.
     expect(find.text('Did you mean…?'), findsOneWidget);
@@ -291,35 +287,3 @@ void main() {
   });
 }
 
-// TEMPORARY: find which layer stalls under the widget-test clock.
-void probes() {
-  for (final layer in ['futureTimeout', 'streamTimeout', 'gate', 'service']) {
-    testWidgets('PROBE layer $layer', (tester) async {
-      final mock = MockClient(fakeServices);
-      final net = NetClient(isOffline: () => false, inner: mock);
-      final uri = Uri.https('api.tvmaze.com', '/search/shows', {'q': 'sever'});
-      final Future<Object?> f = switch (layer) {
-        'futureTimeout' => mock
-            .send(http.Request('GET', uri))
-            .timeout(const Duration(seconds: 12)),
-        'streamTimeout' => mock.send(http.Request('GET', uri)).then((r) => r
-            .stream
-            .timeout(const Duration(seconds: 12))
-            .toList()),
-        'gate' => net.getBytes(uri),
-        _ => LookupService(net).search('Severence', MediaCategory.series),
-      };
-      var done = false;
-      Object? err;
-      f.then((_) => done = true, onError: (Object e) {
-        err = e;
-        done = true;
-      }).ignore();
-      for (var i = 0; i < 50 && !done; i++) {
-        await tester.pump(const Duration(milliseconds: 100));
-      }
-      // ignore: avoid_print
-      print('PROBE $layer done=$done err=$err');
-    });
-  }
-}
