@@ -21,10 +21,38 @@ http.Response jsonResponse(Object body) => http.Response.bytes(
     utf8.encode(jsonEncode(body)), 200,
     headers: {'content-type': 'application/json; charset=utf-8'});
 
-/// Pretend services: TVmaze is spelling-tolerant (like the real one);
-/// iTunes only finds correctly spelled titles.
+/// Pretend services that behave like the real ones (see the live check):
+/// TVmaze and Wikipedia forgive typos; iTunes only finds exact spellings
+/// and no longer returns movies at all.
 Future<http.Response> fakeServices(http.Request req) async {
   final q = req.url.queryParameters;
+  if (req.url.host == 'en.wikipedia.org') {
+    if (req.url.path.startsWith('/api/rest_v1/page/summary/')) {
+      return jsonResponse({
+        'title': 'Inception',
+        'extract': 'Inception is a 2010 science fiction action film written '
+            'and directed by Christopher Nolan.',
+      });
+    }
+    final term = (q['q'] ?? '').toLowerCase();
+    if (term.startsWith('incep')) {
+      return jsonResponse({
+        'pages': [
+          {
+            'key': 'Inception',
+            'title': 'Inception',
+            'description': '2010 film by Christopher Nolan',
+          },
+          {
+            'key': 'Inception_(deep_learning_architecture)',
+            'title': 'Inception (deep learning architecture)',
+            'description': 'Family of convolutional neural networks',
+          },
+        ],
+      });
+    }
+    return jsonResponse({'pages': []});
+  }
   if (req.url.host == 'api.tvmaze.com') {
     if ((q['q'] ?? '').toLowerCase().startsWith('sever')) {
       return jsonResponse([
@@ -41,15 +69,15 @@ Future<http.Response> fakeServices(http.Request req) async {
     return jsonResponse([]);
   }
   if (req.url.host == 'itunes.apple.com') {
-    if ((q['term'] ?? '').toLowerCase() == 'inception') {
+    if (q['media'] == 'podcast' &&
+        (q['term'] ?? '').toLowerCase() == 'hardcore history') {
       return jsonResponse({
         'results': [
           {
-            'trackId': 400763833,
-            'trackName': 'Inception',
-            'artistName': 'Christopher Nolan',
-            'releaseDate': '2010-07-16T07:00:00Z',
-            'primaryGenreName': 'Action & Adventure',
+            'collectionId': 173001861,
+            'collectionName': "Dan Carlin's Hardcore History",
+            'artistName': 'Dan Carlin',
+            'primaryGenreName': 'History',
           },
         ],
       });
@@ -99,13 +127,35 @@ Future<void> typeAndAdd(WidgetTester tester, String title) async {
 
 Finder get sheet => find.byType(BottomSheet);
 
-Future<List<MediaItem>> saved(WidgetTester tester, Harness h) async =>
-    (await tester.runAsync(() => h.db.select(h.db.items).get()))!;
+/// Waits for [future] by advancing the test clock (the database and the
+/// pretend network both run on it).
+Future<T> settle<T>(WidgetTester tester, Future<T> future) async {
+  late T value;
+  var done = false;
+  Object? error;
+  future.then((v) {
+    value = v;
+    done = true;
+  }, onError: (Object e) {
+    error = e;
+    done = true;
+  }).ignore();
+  for (var i = 0; i < 100 && !done; i++) {
+    await tester.pump(const Duration(milliseconds: 20));
+  }
+  if (error != null) throw error!;
+  expect(done, isTrue, reason: 'timed out waiting');
+  return value;
+}
 
-/// Let snackbars time out so no timers are left running.
+Future<List<MediaItem>> saved(WidgetTester tester, Harness h) =>
+    settle(tester, h.db.select(h.db.items).get());
+
+/// Let snackbars time out and unmount everything, so no timers are left.
 Future<void> finish(WidgetTester tester) async {
   await tester.pump(const Duration(seconds: 10));
-  await tester.pumpAndSettle();
+  await tester.pumpWidget(const SizedBox());
+  await tester.pump(const Duration(seconds: 1));
 }
 
 void main() {
@@ -135,17 +185,41 @@ void main() {
     await finish(tester);
   });
 
-  testWidgets('misspelled "Inceptoin" finds nothing → fix it in the box → pick',
+  testWidgets('misspelled "Inceptoin" → Did you mean → Inception (2010)',
       (tester) async {
     final h = await pumpAddBar(tester, MediaCategory.movie);
     await typeAndAdd(tester, 'Inceptoin');
 
     expect(find.text('Did you mean…?'), findsOneWidget);
-    expect(find.textContaining('No matches in iTunes'), findsOneWidget);
+    // Only the film is offered, not the deep-learning article.
+    final results = find.descendant(of: sheet, matching: find.byType(ListTile));
+    expect(results, findsOneWidget);
+    expect(find.descendant(of: sheet, matching: find.text('Inception')),
+        findsOneWidget);
 
-    // Keep typing in the sheet and search again.
+    await tester.tap(results);
+    await tester.pumpAndSettle();
+
+    final item = (await saved(tester, h)).single;
+    expect(item.title, 'Inception');
+    expect(item.year, 2010);
+    expect(item.creator, 'Christopher Nolan');
+    expect(item.genre, 'Science Fiction'); // from the Wikipedia summary
+    expect(item.typedTitle, 'Inceptoin');
+    expect(item.source, 'wikipedia');
+    await finish(tester);
+  });
+
+  testWidgets('typo nothing recognises → fix it in the box → search again',
+      (tester) async {
+    final h = await pumpAddBar(tester, MediaCategory.podcast);
+    // Neither pretend service recognises this typo, so the sheet says
+    // "No matches" and the user corrects it there.
+    await typeAndAdd(tester, 'Hardcore Histroy');
+    expect(find.textContaining('No matches'), findsOneWidget);
+
     final box = find.descendant(of: sheet, matching: find.byType(TextField));
-    await tester.enterText(box, 'Inception');
+    await tester.enterText(box, 'Hardcore History');
     await tester.tap(find.byTooltip('Search again'));
     await tester.pumpAndSettle();
 
@@ -155,11 +229,8 @@ void main() {
     await tester.pumpAndSettle();
 
     final item = (await saved(tester, h)).single;
-    expect(item.title, 'Inception');
-    expect(item.year, 2010);
-    expect(item.creator, 'Christopher Nolan');
-    expect(item.genre, 'Action');
-    expect(item.typedTitle, 'Inceptoin');
+    expect(item.title, "Dan Carlin's Hardcore History");
+    expect(item.genre, 'History');
     await finish(tester);
   });
 
@@ -167,6 +238,7 @@ void main() {
     final h = await pumpAddBar(tester, MediaCategory.movie);
     await typeAndAdd(tester, "Grandma's 80th Birthday Video");
 
+    expect(find.textContaining('No matches'), findsOneWidget);
     await tester.tap(find.textContaining('" as typed'));
     await tester.pumpAndSettle();
 
@@ -186,14 +258,14 @@ void main() {
     expect(sheet, findsNothing);
     final item = (await saved(tester, h)).single;
     expect(item.title, 'Inception');
+    expect(item.year, 2010);
     expect(item.matchState, MatchState.matched);
     await finish(tester);
   });
 
   testWidgets('offline mode saves as typed and sends nothing', (tester) async {
     final h = await pumpAddBar(tester, MediaCategory.movie);
-    await tester.runAsync(() => h.settings.setOfflineMode(true));
-    await tester.pump();
+    await settle(tester, h.settings.setOfflineMode(true));
     await typeAndAdd(tester, 'Inceptoin');
 
     expect(sheet, findsNothing);

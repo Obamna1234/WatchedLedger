@@ -1,4 +1,5 @@
 import '../../core/net/net_client.dart';
+import '../genres.dart';
 import '../models.dart';
 import 'candidate.dart';
 import 'genre_map.dart';
@@ -13,6 +14,10 @@ abstract class LookupProvider {
   String get displayName;
 
   Future<List<LookupCandidate>> search(String query, MediaCategory category);
+
+  /// Extra details for a chosen result (one more request), if the search
+  /// results alone are thin. Default: nothing to add.
+  Future<LookupCandidate> details(LookupCandidate c) async => c;
 }
 
 const int _limit = 12;
@@ -223,5 +228,105 @@ class GoogleBooksProvider extends LookupProvider {
       ));
     }
     return out;
+  }
+}
+
+// --------------------------------------------------------------- Wikipedia
+
+enum WikiKind { film, podcast }
+
+/// English Wikipedia's title search (Wikimedia Foundation, no key). Its
+/// search box is typo-tolerant, so "Inceptoin" finds "Inception", and each
+/// page has a short description like "2010 film by Christopher Nolan".
+/// Used for movies (Apple's iTunes no longer answers movie searches) and as
+/// a spelling helper for podcasts.
+/// https://www.mediawiki.org/wiki/API:REST_API
+class WikipediaProvider extends LookupProvider {
+  const WikipediaProvider(super.net, this.kind);
+  final WikiKind kind;
+
+  @override
+  String get displayName => 'Wikipedia';
+
+  static final RegExp _leadingYear = RegExp(r'^((?:18|19|20)\d{2})\b');
+  static final RegExp _film = RegExp(r'\bfilm\b', caseSensitive: false);
+  static final RegExp _notAFilm =
+      RegExp(r'film series|franchise|filmmaker', caseSensitive: false);
+  static final RegExp _podcast = RegExp(r'\bpodcast\b', caseSensitive: false);
+  static final RegExp _by = RegExp(r'\bby (.+)$');
+  static final RegExp _qualifier = RegExp(
+      r'\s*\((?:(?:18|19|20)\d{2} )?(?:[A-Za-z]+ )*(?:film|podcast)\)$');
+  static final RegExp _genreWords =
+      RegExp(r'\b(?:18|19|20)\d{2}\s+(.{3,80}?)\s*film\b');
+
+  bool _wanted(String description) => switch (kind) {
+        WikiKind.film => _leadingYear.hasMatch(description) &&
+            _film.hasMatch(description) &&
+            !_notAFilm.hasMatch(description),
+        WikiKind.podcast => _podcast.hasMatch(description),
+      };
+
+  static String? _thumb(Map<String, Object?>? m) {
+    final raw = m?['url'] ?? m?['source'];
+    if (raw is! String) return null;
+    return safeImageUrl(raw.startsWith('//') ? 'https:$raw' : raw);
+  }
+
+  @override
+  Future<List<LookupCandidate>> search(
+      String query, MediaCategory category) async {
+    final json = await net.getJson(Uri.https('en.wikipedia.org',
+        '/w/rest.php/v1/search/title', {'q': query, 'limit': '12'}));
+    final out = <LookupCandidate>[];
+    for (final raw in asList(asMap(json)?['pages'])) {
+      final page = asMap(raw);
+      final rawTitle = str(page, 'title');
+      final key = str(page, 'key');
+      final description = str(page, 'description') ?? '';
+      if (rawTitle == null || key == null || !_wanted(description)) continue;
+      final title = rawTitle.replaceFirst(_qualifier, '').trim();
+      if (title.isEmpty) continue;
+      out.add(LookupCandidate(
+        title: title,
+        year: kind == WikiKind.film
+            ? yearOf(_leadingYear.firstMatch(description)?.group(1))
+            : null,
+        creator: kind == WikiKind.film
+            ? _by.firstMatch(description)?.group(1)?.trim()
+            : null,
+        coverUrl: _thumb(asMap(page['thumbnail'])),
+        source: 'wikipedia',
+        sourceId: key,
+      ));
+    }
+    return out;
+  }
+
+  /// Reads the page summary for the genre ("a 2010 science fiction action
+  /// film") and a picture if Wikipedia has a free one.
+  @override
+  Future<LookupCandidate> details(LookupCandidate c) async {
+    if (kind != WikiKind.film) return c;
+    final json = asMap(await net.getJson(Uri(
+      scheme: 'https',
+      host: 'en.wikipedia.org',
+      pathSegments: ['api', 'rest_v1', 'page', 'summary', c.sourceId],
+    )));
+    final extract = str(json, 'extract', maxLength: 600) ?? '';
+    var genre = c.genre;
+    final words = _genreWords.firstMatch(extract)?.group(1);
+    if (words != null) {
+      final mapped = mapGenre(MediaCategory.movie, [words]);
+      if (curatedGenres(MediaCategory.movie).contains(mapped)) genre = mapped;
+    }
+    return LookupCandidate(
+      title: c.title,
+      year: c.year,
+      genre: genre,
+      creator: c.creator,
+      coverUrl: c.coverUrl ?? _thumb(asMap(json?['thumbnail'])),
+      source: c.source,
+      sourceId: c.sourceId,
+    );
   }
 }

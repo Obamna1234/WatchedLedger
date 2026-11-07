@@ -51,6 +51,12 @@ Maintained by Claude. Updated at the end of every stage, in the same pull reques
   - **Back button** closes search.
   - **Tests:** matching (accents, emoji), highlighting and counter logic.
 
+- **Misspelling test (2026-11-08):**
+  - **Live check:** a new "Live lookup check" workflow sends correct and misspelled titles to the real services every week and whenever lookup code changes. It writes a results table to the run's page.
+  - **Bug it found:** Apple's iTunes returns no movies at all any more. Movies now come from Wikipedia, which fixes typos ("Inceptoin" → Inception, "The Godfathr" → The Godfather) and gives year, director and genre.
+  - **Podcast typos** ("Hardcore Histroy") are now fixed via Wikipedia, then looked up on iTunes.
+  - **Screen test:** the add box and "Did you mean…?" sheet are now tested end to end: pick the fix, retype and search again, save as typed, exact match filed automatically, offline sends nothing.
+
 ## Next
 - Tag `v0.1.0` for the first signed Release, once the signing secrets are added.
 - **Stage 4, import/export and protection:**
@@ -82,6 +88,7 @@ Maintained by Claude. Updated at the end of every stage, in the same pull reques
 - **2026-11-04 Sort and filter choices** are kept while the app is open and reset when it restarts. They can be made to stick later if wanted.
 - **2026-11-04 Tapping an item opens Edit.** Only the tick box (or a swipe right) ticks it, so you can't tick by accident.
 - **2026-11-04 Repo name** is `Obamna1234/WatchedLedger`. The internal package name stays lowercase `watchedledger`, which Flutter requires.
+- **2026-11-08 Movies come from Wikipedia** (iTunes stopped answering movie searches). The trade-off: most movies have no poster, because Wikipedia only shares freely licensed images.
 - **2026-11-06 Merging:** Claude merges pull requests once CI is green, as the owner asked. PRs use merge commits, so history is kept.
 - **2026-11-06 Search** covers the visible list (after any filter), with chips for matches in other lists. It matches titles, creators and notes.
 - **2026-11-05 No accounts for lookups (owner's choice).** Movies use iTunes; series use TVmaze, then iTunes. TMDB was dropped. If nothing matches, you can keep typing and save it as free text.

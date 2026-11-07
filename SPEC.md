@@ -157,12 +157,13 @@ Agreed staging. Workflows were built first, so every stage produces installable 
 ### Lookup sources (stage 2)
 | Category | Primary | Fallback | Then |
 |---|---|---|---|
-| Movies | iTunes Search (`media=movie`) | — | Free text |
+| Movies | Wikipedia title search (typo-tolerant) | iTunes Search (`media=movie`) | Free text |
 | Series | TVmaze | iTunes Search (`media=tvShow`) | Free text |
 | Books | Open Library | Google Books (keyless) | Free text |
 | Audiobooks | iTunes Search (`media=audiobook`) | Open Library | Free text |
-| Podcasts | iTunes Search (`media=podcast`) | — | Free text |
+| Podcasts | iTunes Search (`media=podcast`) | If no close match: Wikipedia fixes the spelling, then iTunes again | Free text |
 
+- **2026-11-08 change:** Apple's iTunes Search no longer returns movies (verified by the live check: 0 results even for "Inception"), so movies now come from **Wikipedia**. Its title search fixes typos ("Inceptoin" → Inception), and its short descriptions give the year and director ("2010 film by Christopher Nolan"). The page summary gives the genre. Wikipedia rarely provides film posters (they aren't freely licensed), so most movies show the category icon instead of a poster.
 - **Every source is keyless: no accounts, no API keys.** A TMDB key could be added later as an optional upgrade for movies, but only if the owner asks.
 - **Auto-file:** a title is filed automatically when exactly one result matches the typed title (and year, if one was typed, e.g. "Dune 2021"). Anything ambiguous opens "Did you mean…?".
 - **Unreachable lookup:** offline mode, lookups switched off or a network error mean the title is saved as typed (`unmatched`). It can be matched later from the Edit screen ("Look up details").

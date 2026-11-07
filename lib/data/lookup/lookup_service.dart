@@ -45,7 +45,13 @@ class LookupService {
   final NetClient net;
 
   List<LookupProvider> chainFor(MediaCategory category) => switch (category) {
-        MediaCategory.movie => [ItunesProvider(net, ItunesMedia.movie)],
+        // Apple's iTunes stopped answering movie searches (Nov 2026), so
+        // Wikipedia comes first; iTunes stays as a fallback in case it
+        // comes back.
+        MediaCategory.movie => [
+            WikipediaProvider(net, WikiKind.film),
+            ItunesProvider(net, ItunesMedia.movie),
+          ],
         MediaCategory.series => [
             TvmazeProvider(net),
             ItunesProvider(net, ItunesMedia.tvShow),
@@ -68,20 +74,63 @@ class LookupService {
     if (query.text.isEmpty) return const LookupResult([], []);
     final tried = <String>[];
     Object? lastError;
+    var found = <LookupCandidate>[];
     for (final provider in chainFor(category)) {
       tried.add(provider.displayName);
       try {
-        final found = await provider.search(query.text, category);
-        if (found.isNotEmpty) {
-          return LookupResult(rank(query, found), tried);
-        }
+        found = await provider.search(query.text, category);
+        if (found.isNotEmpty) break;
       } on OfflineException {
         rethrow;
       } catch (e) {
         lastError = e;
       }
     }
-    return LookupResult(const [], tried, error: lastError);
+
+    // iTunes doesn't forgive typos in podcast names. If nothing close came
+    // back, ask Wikipedia how the show is really spelled and search again.
+    if (category == MediaCategory.podcast && !_hasClose(query, found)) {
+      try {
+        final respelled = await _respellPodcast(query.text);
+        if (respelled.isNotEmpty) found = [...respelled, ...found];
+      } on OfflineException {
+        rethrow;
+      } catch (e) {
+        lastError ??= e;
+      }
+    }
+
+    if (found.isEmpty) return LookupResult(const [], tried, error: lastError);
+    return LookupResult(rank(query, found), tried);
+  }
+
+  static bool _hasClose(ParsedQuery query, List<LookupCandidate> found) {
+    final key = matchKey(query.text);
+    return found.any((c) => matchKey(c.title).contains(key));
+  }
+
+  Future<List<LookupCandidate>> _respellPodcast(String text) async {
+    final pages = await WikipediaProvider(net, WikiKind.podcast)
+        .search(text, MediaCategory.podcast);
+    if (pages.isEmpty) return const [];
+    final fixed = pages.first.title;
+    if (matchKey(fixed) == matchKey(text)) return const [];
+    return ItunesProvider(net, ItunesMedia.podcast)
+        .search(fixed, MediaCategory.podcast);
+  }
+
+  /// Fills in extra details for the result the user is about to save
+  /// (e.g. a movie's genre from Wikipedia). Never fails: on any problem the
+  /// candidate is returned as it was.
+  Future<LookupCandidate> details(LookupCandidate c) async {
+    try {
+      return switch (c.source) {
+        'wikipedia' => await WikipediaProvider(net, WikiKind.film).details(c),
+        _ => c,
+      };
+    } catch (_) {
+      return c;
+    }
   }
 
   /// Exact title matches first (and the right year first among those);

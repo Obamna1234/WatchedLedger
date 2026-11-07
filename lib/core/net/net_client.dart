@@ -46,12 +46,14 @@ class NetClient {
     'www.googleapis.com',
     'books.google.com',
     'books.googleusercontent.com',
+    'en.wikipedia.org',
   };
 
   /// Image CDNs that the services above redirect cover downloads to.
   static const List<String> allowedHostSuffixes = [
     '.mzstatic.com', // Apple artwork
     '.archive.org', // Open Library covers
+    '.wikimedia.org', // Wikipedia images (upload.wikimedia.org)
   ];
 
   static const Duration timeout = Duration(seconds: 12);

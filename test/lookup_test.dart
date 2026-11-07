@@ -304,4 +304,115 @@ void main() {
     expect(a, isNot(CoverCache.nameFor('https://x.mzstatic.com/b.jpg')));
     expect(a, matches(RegExp(r'^[0-9a-f]{16}\.img$')));
   });
+
+  group('Wikipedia', () {
+    http.Response pages(List<Map<String, Object?>> p) =>
+        jsonResponse({'pages': p});
+
+    test('keeps films only, reads year and director, tidies titles', () async {
+      final net = client((_) async => pages([
+            {
+              'key': 'Interstellar_Overdrive',
+              'title': 'Interstellar Overdrive',
+              'description': '1967 instrumental by Pink Floyd',
+            },
+            {
+              'key': 'Interstellar_(film)',
+              'title': 'Interstellar (film)',
+              'description': '2014 film by Christopher Nolan',
+              'thumbnail': {'url': '//upload.wikimedia.org/a/b.jpg'},
+            },
+            {
+              'key': 'The_Godfather_(film_series)',
+              'title': 'The Godfather (film series)',
+              'description': 'American crime film series',
+            },
+            {
+              'key': 'Christopher_Nolan',
+              'title': 'Christopher Nolan',
+              'description': 'British-American filmmaker (born 1970)',
+            },
+          ]));
+      final r = await WikipediaProvider(net, WikiKind.film)
+          .search('intersteller', MediaCategory.movie);
+      expect(r, hasLength(1));
+      expect(r.single.title, 'Interstellar');
+      expect(r.single.year, 2014);
+      expect(r.single.creator, 'Christopher Nolan');
+      expect(r.single.coverUrl, 'https://upload.wikimedia.org/a/b.jpg');
+      expect(r.single.sourceId, 'Interstellar_(film)');
+    });
+
+    test('details read the genre from the summary', () async {
+      late Uri asked;
+      final net = client((req) async {
+        asked = req.url;
+        return jsonResponse({
+          'extract': 'Interstellar is a 2014 epic science fiction film '
+              'directed by Christopher Nolan.',
+        });
+      });
+      const c = LookupCandidate(
+          title: 'Interstellar',
+          year: 2014,
+          source: 'wikipedia',
+          sourceId: 'Interstellar_(film)');
+      final d = await LookupService(net).details(c);
+      expect(asked.path, '/api/rest_v1/page/summary/Interstellar_(film)');
+      expect(d.genre, 'Science Fiction');
+      expect(d.year, 2014);
+    });
+
+    test('details never fail the add', () async {
+      final net = client((_) async => throw http.ClientException('down'));
+      const c = LookupCandidate(
+          title: 'X', source: 'wikipedia', sourceId: 'X');
+      expect(await LookupService(net).details(c), same(c));
+    });
+
+    test('movies try Wikipedia first, then iTunes', () async {
+      final hosts = <String>[];
+      final net = client((req) async {
+        hosts.add(req.url.host);
+        return req.url.host == 'en.wikipedia.org'
+            ? pages([])
+            : jsonResponse({'results': []});
+      });
+      await LookupService(net).search('nothing', MediaCategory.movie);
+      expect(hosts, ['en.wikipedia.org', 'itunes.apple.com']);
+    });
+
+    test('podcast typos are respelled via Wikipedia, then iTunes again',
+        () async {
+      final terms = <String>[];
+      final net = client((req) async {
+        if (req.url.host == 'en.wikipedia.org') {
+          return pages([
+            {
+              'key': 'Hardcore_History',
+              'title': 'Hardcore History',
+              'description': 'History podcast by Dan Carlin',
+            },
+          ]);
+        }
+        final term = req.url.queryParameters['term']!;
+        terms.add(term);
+        if (term == 'Hardcore History') {
+          return jsonResponse({
+            'results': [
+              {
+                'collectionId': 1,
+                'collectionName': "Dan Carlin's Hardcore History",
+              },
+            ],
+          });
+        }
+        return jsonResponse({'results': []});
+      });
+      final r =
+          await LookupService(net).search('Hardcore Histroy', MediaCategory.podcast);
+      expect(terms, ['Hardcore Histroy', 'Hardcore History']);
+      expect(r.candidates.first.title, "Dan Carlin's Hardcore History");
+    });
+  });
 }
