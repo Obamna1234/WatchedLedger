@@ -122,10 +122,18 @@ Future<Harness> pumpAddBar(WidgetTester tester, MediaCategory category) async {
 Future<void> typeAndAdd(WidgetTester tester, String title) async {
   await tester.enterText(find.byType(TextField).first, title);
   await tester.tap(find.byTooltip('Add'));
-  await tester.pumpAndSettle();
+  await pumpABit(tester);
 }
 
 Finder get sheet => find.byType(BottomSheet);
+
+/// Advances the test clock ~2 seconds. (pumpAndSettle would never return
+/// while the Add button's progress spinner is turning behind the sheet.)
+Future<void> pumpABit(WidgetTester tester) async {
+  for (var i = 0; i < 20; i++) {
+    await tester.pump(const Duration(milliseconds: 100));
+  }
+}
 
 /// Waits for [future] by advancing the test clock (the database and the
 /// pretend network both run on it).
@@ -170,7 +178,7 @@ void main() {
         findsOneWidget);
 
     await tester.tap(find.descendant(of: sheet, matching: find.text('Severance')));
-    await tester.pumpAndSettle();
+    await pumpABit(tester);
     expect(sheet, findsNothing);
 
     final items = await saved(tester, h);
@@ -198,7 +206,7 @@ void main() {
         findsOneWidget);
 
     await tester.tap(results);
-    await tester.pumpAndSettle();
+    await pumpABit(tester);
 
     final item = (await saved(tester, h)).single;
     expect(item.title, 'Inception');
@@ -221,12 +229,12 @@ void main() {
     final box = find.descendant(of: sheet, matching: find.byType(TextField));
     await tester.enterText(box, 'Hardcore History');
     await tester.tap(find.byTooltip('Search again'));
-    await tester.pumpAndSettle();
+    await pumpABit(tester);
 
     final result = find.descendant(of: sheet, matching: find.byType(ListTile));
     expect(result, findsOneWidget);
     await tester.tap(result);
-    await tester.pumpAndSettle();
+    await pumpABit(tester);
 
     final item = (await saved(tester, h)).single;
     expect(item.title, "Dan Carlin's Hardcore History");
@@ -240,7 +248,7 @@ void main() {
 
     expect(find.textContaining('No matches'), findsOneWidget);
     await tester.tap(find.textContaining('" as typed'));
-    await tester.pumpAndSettle();
+    await pumpABit(tester);
 
     final item = (await saved(tester, h)).single;
     expect(item.title, "Grandma's 80th Birthday Video");
