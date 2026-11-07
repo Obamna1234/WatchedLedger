@@ -116,6 +116,8 @@ Future<Harness> pumpAddBar(WidgetTester tester, MediaCategory category) async {
       home: Scaffold(body: QuickAddBar(category: category)),
     ),
   ));
+  // Open the database up front (first use creates the tables).
+  await settle(tester, db.readSettings());
   return Harness(db, settings, requests);
 }
 
@@ -171,6 +173,9 @@ void main() {
       (tester) async {
     final h = await pumpAddBar(tester, MediaCategory.series);
     await typeAndAdd(tester, 'Severence');
+    // ignore: avoid_print
+    print('PROBE requests=${h.requests} busy-spinner='
+        '${find.byType(CircularProgressIndicator).evaluate().length}');
 
     // Not filed automatically: the spelling differs, so the user chooses.
     expect(find.text('Did you mean…?'), findsOneWidget);
