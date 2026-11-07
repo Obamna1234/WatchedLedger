@@ -36,3 +36,17 @@ jobs:
         run: bash tool/bootstrap.sh
       - name: Look up titles on the real services
         run: flutter test live_test/ --reporter expanded
+      - name: Diagnostics (temporary)
+        if: always()
+        run: |
+          UA='User-Agent: WatchedLedger'
+          show() { echo; echo "=== $1"; curl -s -m 20 -H "$UA" -w '\n[HTTP %{http_code}]' "$1" | head -c 1500; echo; }
+          show 'https://itunes.apple.com/search?term=inception&media=movie&entity=movie&limit=3'
+          show 'https://itunes.apple.com/search?term=inception&media=movie&limit=3'
+          show 'https://itunes.apple.com/search?term=inception&media=movie&entity=movie&limit=3&country=au'
+          show 'https://itunes.apple.com/search?term=inception&entity=movie&limit=3&country=gb'
+          show 'https://itunes.apple.com/search?term=inception&limit=3'
+          for q in inceptoin intersteller 'the%20godfathr' inception 'hardcore%20histroy' searial; do
+            show "https://en.wikipedia.org/w/rest.php/v1/search/title?q=$q&limit=6"
+          done
+          show 'https://en.wikipedia.org/w/rest.php/v1/search/page?q=inceptoin&limit=4'
