@@ -294,7 +294,7 @@ class WikipediaProvider extends LookupProvider {
         creator: kind == WikiKind.film
             ? _by.firstMatch(description)?.group(1)?.trim()
             : null,
-        coverUrl: _thumb(asMap(page['thumbnail'])),
+        coverUrl: _thumb(asMap(page?['thumbnail'])),
         source: 'wikipedia',
         sourceId: key,
       ));
