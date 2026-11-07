@@ -293,13 +293,19 @@ void main() {
 
 // TEMPORARY: find which layer stalls under the widget-test clock.
 void probes() {
-  for (final layer in ['mock', 'gate', 'service']) {
+  for (final layer in ['futureTimeout', 'streamTimeout', 'gate', 'service']) {
     testWidgets('PROBE layer $layer', (tester) async {
       final mock = MockClient(fakeServices);
       final net = NetClient(isOffline: () => false, inner: mock);
       final uri = Uri.https('api.tvmaze.com', '/search/shows', {'q': 'sever'});
       final Future<Object?> f = switch (layer) {
-        'mock' => mock.get(uri),
+        'futureTimeout' => mock
+            .send(http.Request('GET', uri))
+            .timeout(const Duration(seconds: 12)),
+        'streamTimeout' => mock.send(http.Request('GET', uri)).then((r) => r
+            .stream
+            .timeout(const Duration(seconds: 12))
+            .toList()),
         'gate' => net.getBytes(uri),
         _ => LookupService(net).search('Severence', MediaCategory.series),
       };
