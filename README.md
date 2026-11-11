@@ -84,19 +84,15 @@ Pick one tool:
 | Trigger | What happens |
 |---|---|
 | Push to any branch | `CI` workflow: analyze → test → dependency scan → build the APK and IPA. Download them from the run's **Artifacts** (kept 14 days). |
-| Push a tag `vX.Y.Z` | `Release` workflow: the same build with the real signing key required, then a GitHub Release with the APK, the IPA and checksums. |
+| New `version:` in `pubspec.yaml` lands on `main` (or a `vX.Y.Z` tag is pushed) | `Release` workflow: the same build with the real signing key required, then a tag and a GitHub Release with the APK, the IPA and checksums. |
 
 This repo is **public**, so GitHub Actions minutes are free and unmetered, including the macOS runner the iOS build needs. In a private repo on the free plan, each macOS minute uses up 10 of the 2,000 free monthly minutes.
 
 ### Making a release
 
-```bash
-# 1. bump `version:` in pubspec.yaml (e.g. 0.2.0+1), commit, push
-git tag v0.2.0
-git push origin v0.2.0
-```
+Change `version:` in `pubspec.yaml` (for example `0.1.0+1` → `0.2.0+1`) and merge that into `main`. The **Release** workflow notices the new version, then builds, signs, tags `v0.2.0` and publishes the GitHub Release automatically. Pushing a `vX.Y.Z` tag by hand also works.
 
-The tag decides the version name. The build number comes from the build time, so it always goes up, and Android accepts each new APK as an update.
+The version name comes from `pubspec.yaml` (or the tag). The build number comes from the build time, so it always goes up, and Android accepts each new APK as an update.
 
 ### Security checks in CI
 
