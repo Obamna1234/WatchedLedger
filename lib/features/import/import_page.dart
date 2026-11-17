@@ -10,10 +10,15 @@ import '../../core/sanitise.dart';
 import '../../data/models.dart';
 import '../../data/transfer/import_parsers.dart';
 import '../../data/transfer/import_plan.dart';
+import '../../data/transfer/samsung_notes.dart';
 import '../lookup/lookup_sheet.dart';
 import '../lookup/remote_thumb.dart';
 
 const int _maxImportFileBytes = 10 * 1024 * 1024;
+
+/// Samsung Notes files carry their pictures, so they may be bigger; only the
+/// note's text inside is unpacked.
+const int _maxNotesFileBytes = 60 * 1024 * 1024;
 
 /// Paste or pick a file -> look titles up -> review -> save.
 /// Pops with the number of titles added.
@@ -77,23 +82,38 @@ class _ImportPageState extends State<ImportPage> {
 
   Future<void> _pickFile() async {
     final picked = await FilePicker.pickFile(
-        dialogTitle: 'Choose a list (.txt, .csv or .json)');
+        dialogTitle: 'Choose a list (.txt, .csv, .json or Samsung Notes)');
     if (picked == null || !mounted) return;
+    final size = await picked.xFile.length();
+    if (!mounted) return;
+    if (size > _maxNotesFileBytes) {
+      _toast('That file is too large.');
+      return;
+    }
     final bytes = await picked.xFile.readAsBytes();
     if (!mounted) return;
+    final name = picked.name.toLowerCase();
+
+    if (name.endsWith('.sdocx') || looksLikeZip(bytes)) {
+      final List<ImportRow> rows;
+      try {
+        rows = rowsFromNote(readSamsungNote(bytes));
+      } on SamsungNotesException catch (e) {
+        _toast(e.message);
+        return;
+      }
+      await _startRows(ImportFormat.samsungNotes, rows);
+      return;
+    }
+
     if (bytes.length > _maxImportFileBytes) {
       _toast('That file is too large (10 MB max).');
       return;
     }
-    final String text;
-    try {
-      text = utf8.decode(bytes, allowMalformed: true);
-    } catch (_) {
-      _toast("That file couldn't be read as text.");
-      return;
-    }
-    if (text.contains('\u0000')) {
-      _toast("That doesn't look like a text, CSV or JSON file.");
+    final text = decodeImportText(bytes);
+    if (text == null) {
+      _toast("That doesn't look like a text, CSV, JSON or Samsung Notes "
+          'file. Word and PDF files need to be saved as text first.');
       return;
     }
     await _start(text, fileName: picked.name);
@@ -101,15 +121,19 @@ class _ImportPageState extends State<ImportPage> {
 
   Future<void> _start(String text, {String? fileName}) async {
     final parsed = parseImport(text, fileName: fileName);
-    if (parsed.rows.isEmpty) {
+    await _startRows(parsed.format, parsed.rows);
+  }
+
+  Future<void> _startRows(ImportFormat format, List<ImportRow> rows) async {
+    if (rows.isEmpty) {
       _toast('No titles found.');
       return;
     }
     final scope = AppScope.of(context);
-    final entries = await prepareImport(scope.db, parsed.rows, _category);
+    final entries = await prepareImport(scope.db, rows, _category);
     if (!mounted) return;
     setState(() {
-      _format = parsed.format;
+      _format = format;
       _entries = entries;
     });
     await _lookup();
@@ -382,7 +406,7 @@ class _ImportPageState extends State<ImportPage> {
                   children: [
                     Chip(label: Text('Matched $found')),
                     FilterChip(
-                      label: Text('To check $toCheck · Duplicates $dupes'),
+                      label: Text('Check these $toCheck · Duplicates $dupes'),
                       selected: _onlyToCheck,
                       onSelected: (v) => setState(() => _onlyToCheck = v),
                     ),
@@ -390,7 +414,8 @@ class _ImportPageState extends State<ImportPage> {
                 ),
                 Text(
                   'Tap a title to fix the match. Tap To Watch / Watched to '
-                  'switch lists. Long-press to change the category.',
+                  'switch lists ("Not sure" means the file didn\u2019t say). '
+                  'Long-press to change the category.',
                   style: theme.textTheme.bodySmall,
                 ),
               ],
@@ -398,15 +423,49 @@ class _ImportPageState extends State<ImportPage> {
           ),
           const Divider(height: 1),
           Expanded(
-            child: ListView.builder(
-              itemCount: shown.length,
-              itemBuilder: (context, i) => _EntryTile(
-                entry: shown[i],
-                onChanged: () => setState(() {}),
-                onFix: () => _fix(shown[i]),
-                onLongPress: () => _changeCategory(shown[i]),
-              ),
-            ),
+            child: Builder(builder: (context) {
+              // Headings from the note, each with "all watched / all to
+              // watch" buttons, then its titles.
+              final rows = <Object>[];
+              String? lastGroup;
+              for (final e in shown) {
+                final g = e.group;
+                if (g != null && g != lastGroup) rows.add(g);
+                lastGroup = g;
+                rows.add(e);
+              }
+              return ListView.builder(
+                itemCount: rows.length,
+                itemBuilder: (context, i) {
+                  final row = rows[i];
+                  if (row is String) {
+                    final inGroup = [
+                      for (final e in shown)
+                        if (e.group == row) e,
+                    ];
+                    return _GroupHeader(
+                      title: row,
+                      onAll: (status) => setState(() {
+                        for (final e in inGroup) {
+                          e
+                            ..status = status
+                            ..statusSure = true;
+                        }
+                      }),
+                      doneLabel: inGroup.first.category.doneLabel,
+                      todoLabel: inGroup.first.category.todoLabel,
+                    );
+                  }
+                  final e = row as ImportEntry;
+                  return _EntryTile(
+                    entry: e,
+                    onChanged: () => setState(() {}),
+                    onFix: () => _fix(e),
+                    onLongPress: () => _changeCategory(e),
+                  );
+                },
+              );
+            }),
           ),
         ],
       ),
@@ -456,6 +515,8 @@ class _EntryTile extends StatelessWidget {
       state = 'Saved as typed';
     } else if (e.looked) {
       state = 'No clear match: tap to choose';
+    } else if (!e.statusSure) {
+      state = 'Not sure if ${e.category.doneLabel.toLowerCase()}';
     } else {
       state = 'Not looked up yet';
     }
@@ -494,6 +555,32 @@ class _EntryTile extends StatelessWidget {
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: theme.textTheme.bodySmall),
+                    if (!e.statusSure && state != 'Not sure if '
+                        '${e.category.doneLabel.toLowerCase()}')
+                      Text(
+                        'Not sure if ${e.category.doneLabel.toLowerCase()}: '
+                        'tap the list button to confirm',
+                        style: theme.textTheme.bodySmall
+                            ?.copyWith(color: theme.colorScheme.error),
+                      ),
+                    if (e.category == MediaCategory.series &&
+                        e.seasons.isNotEmpty)
+                      Wrap(
+                        spacing: 4,
+                        children: [
+                          for (final season in e.seasons.keys.toList()..sort())
+                            FilterChip(
+                              visualDensity: VisualDensity.compact,
+                              label: Text('S$season'),
+                              tooltip: 'Season $season watched?',
+                              selected: e.seasons[season]!,
+                              onSelected: (on) {
+                                e.seasons[season] = on;
+                                onChanged();
+                              },
+                            ),
+                        ],
+                      ),
                     Text(
                       state,
                       style: theme.textTheme.bodySmall?.copyWith(
@@ -508,15 +595,60 @@ class _EntryTile extends StatelessWidget {
             ),
             TextButton(
               onPressed: () {
-                e.status = e.status == ListStatus.done
-                    ? ListStatus.todo
-                    : ListStatus.done;
+                if (e.statusSure) {
+                  e.status = e.status == ListStatus.done
+                      ? ListStatus.todo
+                      : ListStatus.done;
+                }
+                e.statusSure = true;
                 onChanged();
               },
-              child: Text(e.category.labelFor(e.status)),
+              child: Text(e.statusSure
+                  ? e.category.labelFor(e.status)
+                  : '${e.category.labelFor(e.status)}?'),
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _GroupHeader extends StatelessWidget {
+  const _GroupHeader({
+    required this.title,
+    required this.onAll,
+    required this.doneLabel,
+    required this.todoLabel,
+  });
+  final String title;
+  final ValueChanged<ListStatus> onAll;
+  final String doneLabel;
+  final String todoLabel;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Container(
+      color: theme.colorScheme.surfaceContainerHighest,
+      padding: const EdgeInsets.fromLTRB(16, 4, 8, 4),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(title,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: theme.textTheme.titleSmall),
+          ),
+          TextButton(
+            onPressed: () => onAll(ListStatus.done),
+            child: Text('All $doneLabel'.toLowerCase()),
+          ),
+          TextButton(
+            onPressed: () => onAll(ListStatus.todo),
+            child: Text('All $todoLabel'.toLowerCase()),
+          ),
+        ],
       ),
     );
   }

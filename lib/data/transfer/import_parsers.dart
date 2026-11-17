@@ -1,9 +1,11 @@
 import 'dart:convert';
+import 'dart:typed_data';
 
 import '../../core/sanitise.dart';
 import '../models.dart';
 import 'csv.dart';
 import 'export.dart' show csvHeader;
+import 'samsung_notes.dart' show NoteLine;
 
 /// One title found in pasted text or an imported file, before lookup.
 class ImportRow {
@@ -20,8 +22,12 @@ class ImportRow {
     this.pages,
     this.season,
     this.episode,
+    this.group,
+    this.statusSure = true,
     List<String>? tags,
-  }) : tags = tags ?? [];
+    Map<int, bool>? seasons,
+  })  : tags = tags ?? [],
+        seasons = seasons ?? {};
 
   String title;
   MediaCategory? category;
@@ -36,6 +42,16 @@ class ImportRow {
   int? season;
   int? episode;
   final List<String> tags;
+
+  /// The heading this came under in a note (for the check screen).
+  String? group;
+
+  /// False when nothing said whether it was watched (no tick, marker or
+  /// heading); the check screen asks the user to confirm those.
+  bool statusSure;
+
+  /// Seasons mentioned for a series ("Mo season 1" ✓) -> watched or not.
+  final Map<int, bool> seasons;
 
   /// Text used for the lookup ("Heat 1995" picks the right version).
   String get query => year == null ? title : '$title $year';
@@ -53,6 +69,7 @@ enum ImportFormat {
   imdb,
   trakt,
   genericCsv,
+  samsungNotes,
 }
 
 extension ImportFormatLabel on ImportFormat {
@@ -65,6 +82,7 @@ extension ImportFormatLabel on ImportFormat {
         ImportFormat.imdb => 'IMDb export',
         ImportFormat.trakt => 'Trakt export',
         ImportFormat.genericCsv => 'Spreadsheet (CSV)',
+        ImportFormat.samsungNotes => 'Samsung Notes file',
       };
 }
 
@@ -79,6 +97,11 @@ const int _maxNote = kMaxNoteLength;
 
 /// Works out what kind of text/file this is and reads every title from it.
 ImportParseResult parseImport(String text, {String? fileName}) {
+  final r = _parseImport(text, fileName: fileName);
+  return ImportParseResult(r.format, mergeSeasons(r.rows));
+}
+
+ImportParseResult _parseImport(String text, {String? fileName}) {
   final name = (fileName ?? '').toLowerCase();
   final trimmed = text.trimLeft();
   if (trimmed.startsWith('[') || trimmed.startsWith('{')) {
@@ -261,6 +284,7 @@ ImportParseResult? _fromCsv(
             status: statusCol.isEmpty
                 ? ListStatus.todo
                 : _statusFrom(_cell(r, cols, statusCol)),
+            statusSure: statusCol.isNotEmpty,
             year: _year(_cell(r, cols, 'year')),
             rating: _stars(_cell(r, cols, 'rating'), 5),
             note: _note(_cell(r, cols, 'note')),
@@ -400,6 +424,7 @@ ImportParseResult _fromLines(String text) {
   final rows = <ImportRow>[];
   MediaCategory? category;
   ListStatus? sectionStatus;
+  String? group;
   var sawOurHeader = false;
   for (final rawLine in const LineSplitter().convert(text)) {
     if (rows.length >= maxImportRows) break;
@@ -417,9 +442,18 @@ ImportParseResult _fromLines(String text) {
       sectionStatus = s == null
           ? null
           : (s.startsWith('to ') ? ListStatus.todo : ListStatus.done);
+      group = cleanText(line);
+      continue;
+    }
+    final sh = statusHeading(line);
+    if (sh != null) {
+      sectionStatus = sh.status;
+      if (sh.category != null) category = sh.category;
+      group = cleanText(line);
       continue;
     }
 
+    final boxed = _emptyBox.hasMatch(line);
     var done = false;
     if (_strike.hasMatch(line)) {
       done = true;
@@ -469,10 +503,278 @@ ImportParseResult _fromLines(String text) {
       year: year,
       rating: rating,
       note: note,
+      group: group,
+      statusSure: done || boxed || sectionStatus != null || sawOurHeader,
     ));
   }
   return ImportParseResult(
     sawOurHeader ? ImportFormat.watchedLedgerText : ImportFormat.lines,
     rows,
   );
+}
+
+
+// ------------------------------------------------- headings and seasons
+
+final RegExp _emptyBox = RegExp(
+    r'^\s*(?:[-*•]\s*)?(?:\[\s?\]|\(\s?\)|[☐□◻⬜])');
+
+const String _kinds =
+    r'(movies?|films?|series|tv(?: shows?)?|shows?|books?|audiobooks?|'
+    r'podcasts?|(?:video )?games?)';
+final RegExp _doneWords = RegExp(
+    r"^(?:already |have |i've |ive )?(?:watched|seen|done|finished|completed|"
+    r'read|played|listened(?: to)?|watched list|seen it)$',
+    caseSensitive: false);
+final RegExp _todoWords = RegExp(
+    r'^(?:to[ -]?(?:watch|read|play|listen(?: to)?|see)|watch ?list|'
+    r'want to (?:watch|read|play|see|listen to)|not (?:yet )?'
+    r'(?:watched|seen|read|played)|unwatched|unread|unplayed|later|'
+    r'watch later|backlog|wish ?list|queue|up next|next up|to do|todo|'
+    r'plan to (?:watch|read|play))$',
+    caseSensitive: false);
+final RegExp _statusHeadingShape = RegExp(
+    '^\\s*#*\\s*(?:$_kinds\\s*[-:]?\\s*)?(.+?)(?:\\s*[-:]?\\s*$_kinds)?\\s*:?\\s*\$',
+    caseSensitive: false);
+
+/// "Watched:", "To watch", "Movies - seen", "Watchlist (games)" and similar
+/// headings that say which list the lines below belong to.
+({ListStatus status, MediaCategory? category})? statusHeading(String line) {
+  final t = cleanText(line).replaceAll(RegExp(r'[()\[\]]'), ' ').trim();
+  if (t.isEmpty || t.length > 40) return null;
+  final m = _statusHeadingShape.firstMatch(t);
+  if (m == null) return null;
+  final words = m.group(2)!.trim();
+  final kind = m.group(1) ?? m.group(3);
+  final category = kind == null ? null : _categoryFrom(kind);
+  if (_doneWords.hasMatch(words)) {
+    return (status: ListStatus.done, category: category);
+  }
+  if (_todoWords.hasMatch(words)) {
+    return (status: ListStatus.todo, category: category);
+  }
+  return null;
+}
+
+final RegExp _seasonInTitle = RegExp(
+    r'^(.{2,}?)[\s,(\-–:]*\bseason\s*(\d{1,2})\b[\s)]*[,;:\-–]?\s*(.*)$',
+    caseSensitive: false);
+
+/// "Mo season 1" ✓ + "Mo season 2 (waiting)" -> one series "Mo" with
+/// season 1 watched and season 2 not. The show itself stays on the To Watch
+/// list (only some seasons are known to be watched).
+List<ImportRow> mergeSeasons(List<ImportRow> rows) {
+  final out = <ImportRow>[];
+  final byKey = <String, ImportRow>{};
+  for (final r in rows) {
+    final c = r.category;
+    final m = c == null ||
+            c == MediaCategory.series ||
+            c == MediaCategory.movie
+        ? _seasonInTitle.firstMatch(r.title)
+        : null;
+    final base = m == null ? '' : cleanTitle(m.group(1)!);
+    if (m == null || base.length < 2) {
+      out.add(r);
+      continue;
+    }
+    final season = int.parse(m.group(2)!);
+    final rest = cleanText(m.group(3)!
+        .replaceAll(RegExp(r'^[\s()]+|[\s()]+$'), ''));
+    final key = matchKey(base);
+    final existing = byKey[key];
+    if (existing != null) {
+      existing.seasons[season] =
+          (existing.seasons[season] ?? false) || r.status == ListStatus.done;
+      existing.statusSure = existing.statusSure && r.statusSure;
+      if (rest.isNotEmpty) {
+        existing.note = _note(
+            [if (existing.note != null) existing.note!, rest].join('; '));
+      }
+      continue;
+    }
+    final merged = ImportRow(
+      title: base,
+      category: MediaCategory.series,
+      status: ListStatus.todo,
+      year: r.year,
+      rating: r.rating,
+      note: _note([if (r.note != null) r.note!, if (rest.isNotEmpty) rest]
+          .join('; ')),
+      creator: r.creator,
+      group: r.group,
+      statusSure: r.statusSure,
+      tags: r.tags,
+      seasons: {season: r.status == ListStatus.done},
+    );
+    byKey[key] = merged;
+    out.add(merged);
+  }
+  return out;
+}
+
+// ------------------------------------------------------- Samsung Notes
+
+/// The one category a heading names ("Drama Series" -> series), or null
+/// if it names none or several ("Movies/Series").
+MediaCategory? _categoryInText(String text) {
+  final t = text.toLowerCase();
+  final hits = <MediaCategory>{
+    if (RegExp(r'\b(?:movies?|films?)\b').hasMatch(t)) MediaCategory.movie,
+    if (RegExp(r'\b(?:series|tv shows?)\b').hasMatch(t)) MediaCategory.series,
+    if (RegExp(r'\baudio ?books?\b').hasMatch(t)) MediaCategory.audiobook,
+    if (RegExp(r'(?<!audio ?)\bbooks?\b').hasMatch(t)) MediaCategory.book,
+    if (RegExp(r'\bpodcasts?\b').hasMatch(t)) MediaCategory.podcast,
+    if (RegExp(r'\bgames?\b').hasMatch(t)) MediaCategory.game,
+  };
+  return hits.length == 1 ? hits.single : null;
+}
+
+final RegExp _bracketNote = RegExp(r'\s*\(([^()]{2,120})\)?\s*$');
+
+/// Turns a Samsung Notes note into import rows.
+/// - Tick boxes: ticked = watched, unticked = not yet (certain).
+/// - Plain lines: a trailing "@" means watched, a leading "-" means not yet.
+/// - Headings ("Action movies", "WATCHED", "To watch") set the category
+///   and/or list for the lines below them; "MOVIES"-style headings in
+///   capitals start a new section.
+/// - Comments in brackets become the item's note, so the lookup gets the
+///   plain title.
+List<ImportRow> rowsFromNote(List<NoteLine> lines) {
+  final rows = <ImportRow>[];
+  MediaCategory? section, sub;
+  ListStatus? groupStatus;
+  String? group;
+
+  int? nextNonEmpty(int i) {
+    for (var k = i + 1; k < lines.length; k++) {
+      if (lines[k].text.trim().isNotEmpty) return k;
+    }
+    return null;
+  }
+
+  for (var i = 0; i < lines.length && rows.length < maxImportRows; i++) {
+    final line = lines[i];
+    var t = cleanText(line.text.replaceAll('￼', ' '));
+    if (t.isEmpty || RegExp(r'^[_\-=*~.\s]+$').hasMatch(t)) continue;
+
+    var done = line.checkbox ? line.checked : null;
+    if (t.endsWith('@')) {
+      done = true;
+      t = t.substring(0, t.length - 1).trim();
+    }
+    final dash = t.startsWith('-');
+    if (dash) t = t.substring(1).trim();
+
+    if (!line.checkbox && done == null && !dash) {
+      if (t.length > 150) continue; // a long comment, not a title
+      final next = nextNonEmpty(i);
+      final startsBlock = (i == 0 || lines[i - 1].text.trim().isEmpty) &&
+          next != null &&
+          lines[next].checkbox;
+      final sh = statusHeading(t);
+      final kind = _categoryInText(t);
+      final isSection = t.length > 2 &&
+          t == t.toUpperCase() &&
+          RegExp('[A-Z]').hasMatch(t) &&
+          !t.contains(' ');
+      if (sh != null || isSection || kind != null || t.endsWith(':') ||
+          startsBlock) {
+        group = t.replaceAll(RegExp(r':$'), '');
+        if (sh != null) {
+          groupStatus = sh.status;
+          if (sh.category != null) sub = sh.category;
+        } else if (isSection) {
+          section = kind;
+          sub = null;
+          groupStatus = null;
+        } else {
+          sub = kind;
+          groupStatus = null;
+        }
+        continue;
+      }
+    }
+
+    String? note;
+    final b = _bracketNote.firstMatch(t);
+    if (b != null && b.start > 1 && _year(b.group(1)) == null) {
+      note = b.group(1);
+      t = t.substring(0, b.start);
+    }
+    final title = cleanTitle(t);
+    if (title.isEmpty) continue;
+
+    var category = sub ?? section;
+    // "... series" / "... season 2" in a mixed list is a series.
+    final hint = _categoryInText(title);
+    if (category != MediaCategory.book &&
+        category != MediaCategory.podcast &&
+        category != MediaCategory.game &&
+        (hint == MediaCategory.series ||
+            RegExp(r'\bseason\s*\d', caseSensitive: false).hasMatch(title))) {
+      category = MediaCategory.series;
+    }
+
+    final status = done ?? groupStatus ?? ListStatus.todo;
+    rows.add(ImportRow(
+      title: title,
+      category: category,
+      status: done == true ? ListStatus.done : status,
+      note: _note(note),
+      group: group,
+      statusSure: done != null || dash || groupStatus != null,
+    ));
+  }
+  return mergeSeasons(rows);
+}
+
+// ------------------------------------------------------------ text files
+
+/// Reads a text file in UTF-8 or UTF-16 (Windows Notepad's "Unicode").
+/// Returns null for files that aren't text (images, Word files, PDFs).
+String? decodeImportText(Uint8List bytes) {
+  if (bytes.isEmpty) return '';
+  String text;
+  if (bytes.length >= 2 && bytes[0] == 0xFF && bytes[1] == 0xFE) {
+    text = _utf16(bytes, 2, little: true);
+  } else if (bytes.length >= 2 && bytes[0] == 0xFE && bytes[1] == 0xFF) {
+    text = _utf16(bytes, 2, little: false);
+  } else if (_looksUtf16Le(bytes)) {
+    text = _utf16(bytes, 0, little: true);
+  } else {
+    final start = bytes.length >= 3 &&
+            bytes[0] == 0xEF &&
+            bytes[1] == 0xBB &&
+            bytes[2] == 0xBF
+        ? 3
+        : 0;
+    text = utf8.decode(Uint8List.sublistView(bytes, start),
+        allowMalformed: true);
+  }
+  // Text files don't contain NUL; binary files nearly always do.
+  if (text.contains('\u0000')) return null;
+  // Lots of replacement characters = not really text.
+  final bad = '�'.allMatches(text).length;
+  if (text.length > 20 && bad > text.length ~/ 20) return null;
+  return text;
+}
+
+bool _looksUtf16Le(Uint8List b) {
+  final n = b.length < 400 ? b.length - b.length % 2 : 400;
+  if (n < 4) return false;
+  var zeroOdd = 0;
+  for (var i = 1; i < n; i += 2) {
+    if (b[i] == 0) zeroOdd++;
+  }
+  return zeroOdd > n ~/ 2 * 0.7;
+}
+
+String _utf16(Uint8List b, int start, {required bool little}) {
+  final data = ByteData.sublistView(b);
+  final units = <int>[
+    for (var i = start; i + 1 < b.length; i += 2)
+      data.getUint16(i, little ? Endian.little : Endian.big),
+  ];
+  return String.fromCharCodes(units);
 }

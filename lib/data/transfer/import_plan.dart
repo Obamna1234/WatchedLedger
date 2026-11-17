@@ -14,12 +14,23 @@ import 'import_parsers.dart';
 class ImportEntry {
   ImportEntry(this.row, this.category)
       : status = row.status,
+        statusSure = row.statusSure,
+        seasons = {...row.seasons},
         include = true;
 
   final ImportRow row;
   MediaCategory category;
   ListStatus status;
   bool include;
+
+  /// False until something (a tick, marker, heading or the user) said
+  /// which list it belongs on.
+  bool statusSure;
+
+  /// Series seasons from the import (season -> watched).
+  final Map<int, bool> seasons;
+
+  String? get group => row.group;
 
   /// Chosen match, or null to save the title as typed.
   LookupCandidate? match;
@@ -36,7 +47,8 @@ class ImportEntry {
   String get title => match?.title ?? row.title;
   int? get year => match?.year ?? row.year;
 
-  bool get needsAttention => include && looked && match == null && !confirmed;
+  bool get needsAttention =>
+      include && ((looked && match == null && !confirmed) || !statusSure);
 }
 
 /// Turns parsed rows into review entries and flags duplicates.
@@ -119,7 +131,7 @@ Future<int> saveImport(AppDatabase db, List<ImportEntry> entries,
       final m = e.match;
       final r = e.row;
       final done = e.status == ListStatus.done;
-      await db.into(db.items).insert(ItemsCompanion.insert(
+      final id = await db.into(db.items).insert(ItemsCompanion.insert(
             category: e.category,
             status: e.status,
             title: title,
@@ -140,7 +152,9 @@ Future<int> saveImport(AppDatabase db, List<ImportEntry> entries,
                 : (e.confirmed ? MatchState.manual : MatchState.unmatched),
             rating: Value(r.rating?.clamp(1, 5)),
             note: Value(r.note),
-            season: Value(e.category == MediaCategory.series ? r.season : null),
+            season: Value(e.category != MediaCategory.series
+                ? null
+                : r.season ?? _latestWatched(e.seasons)),
             episode:
                 Value(e.category == MediaCategory.series ? r.episode : null),
             runtimeMinutes: Value(r.runtimeMinutes),
@@ -150,10 +164,29 @@ Future<int> saveImport(AppDatabase db, List<ImportEntry> entries,
             updatedAt: ts,
             completedAt: Value(done ? (r.finished ?? ts) : null),
           ));
+      if (e.category == MediaCategory.series) {
+        for (final MapEntry(key: season, value: watched) in e.seasons.entries) {
+          if (!watched) continue;
+          await db.into(db.episodeMarks).insertOnConflictUpdate(
+              EpisodeMarksCompanion.insert(
+                  itemId: id,
+                  season: season,
+                  number: AppDatabase.wholeSeason,
+                  watchedAt: ts));
+        }
+      }
       added++;
     }
   });
   // Finished imports get their diary entry on the finished date.
   await db.backfillDiary();
   return added;
+}
+
+int? _latestWatched(Map<int, bool> seasons) {
+  int? best;
+  for (final MapEntry(key: s, value: w) in seasons.entries) {
+    if (w && (best == null || s > best)) best = s;
+  }
+  return best;
 }
