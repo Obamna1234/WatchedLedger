@@ -39,7 +39,7 @@ void main() {
         '[x] Alien',
         '[ ] Up',
         '~~Arrival~~',
-        'H̶e̶a̶t̶ 2',
+        'H\u0336e\u0336a\u0336t\u0336 2',
         '✅ Fargo',
         'Brazil ✓',
         'Jaws (watched)',
@@ -71,7 +71,7 @@ void main() {
     });
 
     test('hidden and control characters are cleaned', () {
-      final r = parseImport('He​at‮\nDune\u0007');
+      final r = parseImport('He\u200Bat\u202E\nDune\u0007');
       expect(titles(r), ['Heat', 'Dune']);
     });
   });

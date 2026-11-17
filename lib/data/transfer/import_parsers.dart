@@ -379,7 +379,7 @@ final RegExp _doneMarker = RegExp(
 final RegExp _todoMarker = RegExp(
     r'^\s*(?:[-*•◦▪○◯]\s*)?(?:\[\s?\]|\(\s?\)|'
     r'[☐□◻⬜])?\s*(?:\d{1,4}[.)]\s+)?');
-final RegExp _strike = RegExp('[̶̵̷̸]');
+final RegExp _strike = RegExp('[\u0335\u0336\u0337\u0338]');
 final RegExp _markdownStrike = RegExp(r'^~~(.+)~~$');
 final RegExp _trailingDone =
     RegExp(r'\s*(?:[✓✔✅]|\((?:done|watched|read|seen)\))\s*$',

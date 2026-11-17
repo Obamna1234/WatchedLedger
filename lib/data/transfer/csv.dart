@@ -6,7 +6,7 @@ const int _maxFields = 200;
 /// Parses CSV text into rows of fields. Handles quoted fields, doubled
 /// quotes, CRLF/LF line endings and a leading byte-order mark.
 List<List<String>> parseCsv(String text, {String separator = ','}) {
-  if (text.startsWith('﻿')) text = text.substring(1);
+  if (text.startsWith('\uFEFF')) text = text.substring(1);
   final rows = <List<String>>[];
   var row = <String>[];
   final field = StringBuffer();
