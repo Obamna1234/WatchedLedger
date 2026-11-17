@@ -1,7 +1,7 @@
 # WatchedLedger
 
-A private, offline-first tracker for the movies, series, books, audiobooks and
-podcasts you've finished, and the ones you want to get to next. It runs on
+A private, offline-first tracker for the movies, series, books, audiobooks,
+podcasts, games and videos you've finished, and the ones you want to get to next. It runs on
 Android and iPhone, and it's built and distributed only through this GitHub
 repo.
 
@@ -9,8 +9,8 @@ repo.
 - Your library lives in an **encrypted database on your phone**.
 - See [PRIVACY.md](PRIVACY.md) for exactly what leaves the device, and when.
 
-> **Status: all planned stages done, v1.0.0.**
-> - **Lists:** five category tabs with To Watch / Watched, ticking (tap or swipe) with undo, an edit screen with rating, note and series progress, sort, filter and a genre fast-scroll index.
+> **Status: v1.1.0.**
+> - **Lists:** seven category tabs (Movies, Series, Books, Audiobooks, Podcasts, Games, Videos) with To Watch / Watched, ticking (tap or swipe) with undo, an edit screen with rating, note and series progress, sort, filter and a genre fast-scroll index.
 > - **Smart add:** titles are looked up automatically with no accounts or API keys. If nothing fits, save exactly what you typed.
 > - **Search:** every match highlighted, ▲ ▼ to jump, "3 of 12" counter, tick from the results.
 > - **Mobile data:** Wi-Fi only by default; titles added on mobile data are matched once you're back on Wi-Fi.
@@ -24,6 +24,7 @@ repo.
 > - **Reading/listening progress** (page, % or h:mm) and **yearly goals** ("24 books in 2027") on the Stats screen.
 > - **Episodes:** tick single episodes (list from TVmaze) and get optional **"new episode" reminders** that the phone schedules itself.
 > - **Sync two phones** over home Wi-Fi with a one-time code (Settings → Sync with another phone), encrypted, no account or server.
+> - **New in 1.1:** Games and Videos tabs; tick whole shows, seasons or single episodes; import Samsung Notes `.sdocx` files with their ticks and strike-throughs; paste or share links (YouTube, TikTok, Spotify, Facebook, Instagram…) and open them in the right app; Where to watch, Recommended by, Watch with and Not out yet (with a release-day reminder); shareable folders; Recently deleted (30 days); private items; select several; find duplicates; backup reminder.
 
 ---
 

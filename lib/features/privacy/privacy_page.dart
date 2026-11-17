@@ -124,6 +124,19 @@ class PrivacyPage extends StatelessWidget {
               'draw them. Remove the widget and they are deleted. While the '
               'app lock is on it only says "Locked".',
             ),
+            const SizedBox(height: 8),
+            body(
+              'Shared folders: when you tap Share on a folder, your phone '
+              "opens its normal share menu with a plain message (titles and "
+              'links). Nothing is uploaded anywhere by WatchedLedger, and '
+              'private items are never included.',
+            ),
+            const SizedBox(height: 8),
+            body(
+              'Recently deleted and private items stay in the encrypted '
+              'database on this phone. Deleted items are erased for good '
+              'after 30 days.',
+            ),
           ],
         ),
       ),

@@ -7,7 +7,8 @@ Maintained by Claude. Updated at the end of every stage, in the same pull reques
 **Stage 3 (search) is merged** (PR #4, 2026-11-06): analyzer clean, 48 tests passing.
 **Stage 4 (import/export and protection) is merged** (2026-11-17) and released as **v0.2.0**.
 **Stage 5 (extras) is merged** (2026-11-17) and released as **v0.3.0**.
-**Stage 6 (tracking and sync) is merged** (2026-11-17) and released as **v1.0.0**. Every planned stage is done.
+**Stage 6 (tracking and sync) is merged** (2026-11-17) and released as **v1.0.0**.
+**Stages 7 and 8 (your requests after 1.0) are merged** (2026-11-17) and released as **v1.1.0**.
 
 ## Done
 - **Proposal:** structure, packages and tech choices, written up in SPEC.md §13.
@@ -89,20 +90,39 @@ Maintained by Claude. Updated at the end of every stage, in the same pull reques
 
 - **Final pass (2026-11-17):** Claude re-checked the riskier new code. It found and fixed one bug: Undo after ticking or unticking now keeps the diary right, and there's a test for it. The 30-second demo video was re-recorded with the new features.
 
+- **Stage 7, games, seasons, Samsung Notes and links:**
+  - **Games tab** (To Play / Played) for every console, looked up on Wikipedia with "Did you mean…?" for typos. **Videos tab** for YouTube, Facebook, Instagram, TikTok and other clips.
+  - **Seasons:** for any series, tick the whole show, whole seasons or single episodes (Edit → Seasons & episodes). Works even when the show isn't on TVmaze.
+  - **Samsung Notes files:** import the .sdocx file itself (Samsung Notes: ⋮ → Save as file → Samsung Notes file). Ticked boxes and crossed-out lines are read from the file. Headings like "Watched" or "To watch" set the list; the genre words in headings only group the review screen. Anything the app isn't sure about is marked "Not sure" so you can check it, and each heading has "All watched / All to watch" buttons.
+  - **Any text file** (UTF-8, UTF-16, with or without BOM) can be imported; binary files are refused.
+  - **Niche titles:** Wikidata is now the last fallback for every category. Paste or share a link from YouTube, Vimeo, TikTok, Dailymotion, Spotify, SoundCloud or Reddit and the title and thumbnail are filled in; other social links (Facebook, Instagram, X…) are saved to Videos. "Not listed? Fill in the details yourself" opens the editor with tap-to-choose presets.
+  - **Open links** in the YouTube, NewPipe or browser app (▶ on the row). "Search YouTube" opens the YouTube or NewPipe app; share the video back to add it.
+- **Stage 8, extras you picked:**
+  - Recommended by, Watch with and Where to watch on every item, with filters.
+  - **Not out yet** with a release date, shown at the top, and a reminder on the day.
+  - **Folders you can share:** a plain message with titles and links (the other person doesn't need the app; if they have it, they can import the folder).
+  - **Recently deleted** (30 days), **private items** (hidden behind the app lock PIN), **select several** (long-press), **find duplicates** (Settings) and a monthly **backup reminder**.
+
 ## Next
 - Nothing planned. Ideas for later, only if you want them: QR pairing for sync, iPhone widget and share sheet (needs a paid Apple account to be practical), more lookup sources.
 
 ## Waiting on me (owner)
 - [x] Add the WatchedLedger repo to the Claude GitHub App.
-- [ ] **Switch on 4 GitHub settings.** Claude can't change repo settings: GitHub blocks that through Claude's connection. Steps:
-  1. **Settings → General**, scroll to **Pull Requests**. Tick **Allow auto-merge** and **Automatically delete head branches**.
-  2. **Settings → Advanced Security** (it may be called **Code security**). Click **Enable** for **Dependabot alerts**, **Dependabot security updates** and **Private vulnerability reporting**.
-  3. Optional: **Code → Branches**. Delete the old `stage-…` branches and `final-polish` with the 🗑 icon. They're all merged (`stage-4c-import` was a mistake and is unused). Keep `main` and `demo-recordings`.
+- [x] Switched on auto-merge, automatic branch deletion and Dependabot security updates (2026-11-17).
+- [ ] Optional: **Code → Branches**, delete old merged `stage-…` branches with the 🗑 icon. Keep `main` and `demo-recordings`.
 - [x] Android signing key created and the 4 GitHub Secrets added (2026-11-11). **Keep the `.jks` file and its password backed up.**
-- [ ] Optional: paste 5–10 lines copied from your Samsung Notes checklist (fake titles are fine, some ticked, some not). The importer already handles common tick marks and crossed-out text, and you can flip any item on the review screen, but a real sample lets Claude make sure your ticks come through automatically.
+- [x] Samsung Notes sample sent (2026-11-17). It was used only to check the importer and is not stored in the repo.
 - [ ] Optional: tell Claude which iPhone and iOS version you have, and whether you use a Mac or a Windows PC, so the README can lead with the right sideloading tool.
 
 ## Decisions made
+- **2026-11-17 Enums appended:** `game` (5) and `video` (6) added to the end of the category list; database schema v3 adds link, people, where-to-watch, not-out-yet, private columns and the `trash` table (migration tested).
+- **2026-11-17 Headings in imported notes** only decide the category and grouping, never the genre (your headings' genre words aren't real genres). The genre comes from the lookup.
+- **2026-11-17 YouTube search** opens the YouTube or NewPipe app rather than searching from inside WatchedLedger: searching YouTube in-app would need a Google API key tied to an account. Sharing the video back adds it.
+- **2026-11-17 Links** only via oEmbed (title and thumbnail) from sites that offer it without a key. Facebook and Instagram need a Meta account for that, so their links are saved with the title you type.
+- **2026-11-17 New dependency `url_launcher`** (Flutter team) to open links in other apps.
+- **2026-11-17 Personal names** (people you watch with) only ever come from your own data, never from the app.
+- **2026-11-17 Shared folders** are plain text messages: no server, no link-shortener, nothing hosted. Private items are never included.
+- **2026-11-17 Private items** need the app lock to actually hide; without a PIN there's nothing to hide them behind, and the app says so.
 - **2026-11-17 Sync uses a typed one-time code instead of QR pairing** (a change from SPEC §12a). Why: scanning a QR code needs a camera and barcode package (the common ones pull in Google ML Kit); a permanent pairing key and always-on discovery add risk. Now: one tap on each phone per sync, 8-character code (about 40 bits) stretched with Argon2id, AES-256-GCM, private addresses only, one sync or 5 minutes, 5 wrong tries and it stops. Can be revisited if you want QR.
 - **2026-11-17 Reminders are native code, not `flutter_local_notifications`:** its current version needs a newer Android build setup (compileSdk 37, desugaring). A small Kotlin + Swift piece does the job: inexact alarms (no "exact alarm" permission), restored after a reboot.
 - **2026-11-17 Diary entries for deleted items** are kept until the next app start so Undo can bring everything back, then tidied away.
