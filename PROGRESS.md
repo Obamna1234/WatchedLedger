@@ -5,6 +5,7 @@ Maintained by Claude. Updated at the end of every stage, in the same pull reques
 ## Status
 **Stages 1 and 2 are merged into `main`** (PRs #1–#3, 2026-11-06).
 **Stage 3 (search) is merged** (PR #4, 2026-11-06): analyzer clean, 48 tests passing.
+**Stage 4 (import/export and protection) is merged** (2026-11-17) and released as **v0.2.0**.
 
 ## Done
 - **Proposal:** structure, packages and tech choices, written up in SPEC.md §13.
@@ -57,16 +58,16 @@ Maintained by Claude. Updated at the end of every stage, in the same pull reques
   - **Podcast typos** ("Hardcore Histroy") are now fixed via Wikipedia, then looked up on iTunes.
   - **Screen test:** the add box and "Did you mean…?" sheet are now tested end to end: pick the fix, retype and search again, save as typed, exact match filed automatically, offline sends nothing.
 
-## Next
 - **Stage 4, import/export and protection:**
-  - paste a list, or import .txt / .csv files
-  - the Samsung Notes helper
-  - **import from Letterboxd, Goodreads, Trakt and IMDb export files** (new)
-  - a review screen
-  - export to .txt / .csv / .json
-  - encrypted backup and restore
-  - app lock (PIN or fingerprint/Face ID)
-  - **mobile data setting: Wi-Fi only by default** (new)
+  - **Use mobile data** setting, **Wi-Fi only by default**. Titles added on mobile data or offline are saved as typed and looked up automatically back on Wi-Fi.
+  - **Import** (Settings → Import, export and backup → Import titles): paste a list or pick a .txt / .csv / .json file. Understands Samsung Notes-style ticks and crossed-out lines, and the export files from **Letterboxd, Goodreads, IMDb and Trakt** (ratings, dates read/watched, authors, pages, tags).
+  - **Review screen:** every title is looked up one at a time, then you check the list: fix a match, switch To Watch / Watched, change category, skip. Duplicates start unticked.
+  - **Export** to .txt, .csv or .json (spreadsheet cells are guarded against formula tricks).
+  - **Encrypted backup and restore:** password-protected file (Argon2id + AES-256), saved wherever you choose. Restore can merge or replace.
+  - **App lock (optional):** PIN, plus fingerprint / Face ID if you want. Locks immediately or after 1/5/15 minutes away. Waits get longer after 5 wrong tries. "Hide in recent apps" blanks the app switcher (and blocks screenshots on Android).
+  - Database upgraded to version 2, ready for Stage 6 (existing data kept; migration tested).
+
+## Next
 - **Stage 5, extras:**
   - smart "Pick something for me" (from your list only; length and mood filters)
   - "More by this director/author"
@@ -87,10 +88,13 @@ Maintained by Claude. Updated at the end of every stage, in the same pull reques
   2. **Settings → Advanced Security** (it may be called **Code security**). Click **Enable** for **Dependabot alerts**, **Dependabot security updates** and **Private vulnerability reporting**.
   3. Optional: **Code → Branches**. Delete the old `stage-1a-foundation`, `stage-1b-core-lists` and `stage-2-lookup` branches with the 🗑 icon. They're already merged.
 - [x] Android signing key created and the 4 GitHub Secrets added (2026-11-11). **Keep the `.jks` file and its password backed up.**
-- [ ] Before Stage 4: paste 5–10 lines copied from the Samsung Notes checklist, with fake titles, some ticked and some not.
+- [ ] Optional: paste 5–10 lines copied from your Samsung Notes checklist (fake titles are fine, some ticked, some not). The importer already handles common tick marks and crossed-out text, and you can flip any item on the review screen, but a real sample lets Claude make sure your ticks come through automatically.
 - [ ] Optional: tell Claude which iPhone and iOS version you have, and whether you use a Mac or a Windows PC, so the README can lead with the right sideloading tool.
 
 ## Decisions made
+- **2026-11-17 Import:** own parsers, no new package. Unmatched imported titles are saved as typed and matched in the background later. Imports never overwrite existing items.
+- **2026-11-17 App lock PIN** is kept in Keystore/Keychain, not in the database, so a restored backup can't switch the lock on without a PIN. Forgetting the PIN means reinstalling, which erases the library, so the app tells you to keep a backup.
+- **2026-11-17 Mobile data:** Wi-Fi only by default. New permission `ACCESS_NETWORK_STATE` (connection type only). Fingerprint unlock adds `USE_BIOMETRIC`.
 - **2026-11-03 Public repo.** Its GitHub Actions minutes are free, including macOS.
 - **2026-11-03 Drift + sqlite3 with SQLite3MultipleCiphers** for encryption at rest. Isar was rejected (unmaintained).
 - **2026-11-03 No state-management package.** Plain Flutter; 5 runtime dependencies.

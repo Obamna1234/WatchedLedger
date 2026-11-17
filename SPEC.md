@@ -132,7 +132,7 @@ Agreed staging. Workflows were built first, so every stage produces installable 
 | **1b Core lists complete** ✅ | Edit sheet (title, year, genre, rating, note, series S/E), swipe-left menu (edit/delete), sort & filter, genre fast-scroll bar, done styling |
 | **2 Title lookup** ✅ | Single network gate (offline mode, HTTPS, host allowlist), TMDB/Open Library/Google Books/iTunes/TVmaze, "Did you mean…?", cover cache, match-later, full privacy page |
 | **3 Search** ✅ | Highlight-all, up/down, "3 of 12", tick from results |
-| **4 Import/export + protection** | Paste/txt/csv import, Samsung Notes helper, review screen, txt/csv/json export, encrypted backup/restore, app lock (PIN/biometric) |
+| **4 Import/export + protection** ✅ | Paste/txt/csv import, Samsung Notes helper, review screen, txt/csv/json export, encrypted backup/restore, app lock (PIN/biometric) |
 | **5 Extras** | Smart "Pick something for me", "More by this director/author", stats, home-screen widgets, share-to-app, AltStore/SideStore source feed |
 | **6 Tracking & sync** (added 2026-11-17) | Rewatch/reread diary, reading & listening progress with yearly goals, custom lists & tags, episode tracking with "new episode" reminders, phone-to-phone sync over home Wi-Fi |
 
@@ -236,8 +236,10 @@ Agreed staging. Workflows were built first, so every stage produces installable 
 | Networking (stage 2) | Dart `http` (Dart team) behind one `NetClient` | Enforces offline mode, HTTPS-only, host allowlist, timeouts and size caps. |
 | Images (stage 2) | Own small file cache | Avoids `cached_network_image`'s dependency tree. |
 | Backups (stage 4) | `cryptography`: Argon2id → AES-256-GCM, `.wlbackup` file | Portable, password-protected. |
-| Lock (stage 4) | `local_auth` + PIN stored only as a slow hash | |
+| Lock (stage 4) | `local_auth` (Flutter team) + PIN stored only as a PBKDF2-SHA256 hash (120,000 rounds, random salt) in Keystore/Keychain, never in the database or backups | 5 free tries, then a wait of 30 s doubling up to 1 h (survives restarts). Android needs `FlutterFragmentActivity`, an AppCompat launch theme and `androidx.appcompat`. "Hide in recent apps" = `FLAG_SECURE` on Android (via a tiny method channel), a cover screen on iOS. |
 | Files (stage 4) | `file_picker` (system picker) | So no storage permission is needed. |
+| Connection type (stage 4) | `connectivity_plus` | Tells Wi-Fi from mobile data for the "Use mobile data" setting (default Wi-Fi only). |
+| Imports (stage 4) | Own parsers, no package | Plain lists / Samsung Notes (tick marks, strikethrough), WatchedLedger txt/csv, Letterboxd, Goodreads, IMDb, Trakt JSON and any CSV with a Title column. Max 5,000 rows, 10 MB. Everything goes through a review screen; duplicates start unticked. |
 | Widgets / share (stage 5) | `home_widget`, `share_handler` + native Kotlin/SwiftUI | |
 
 ### Lookup sources (stage 2)
