@@ -7,6 +7,7 @@ Maintained by Claude. Updated at the end of every stage, in the same pull reques
 **Stage 3 (search) is merged** (PR #4, 2026-11-06): analyzer clean, 48 tests passing.
 **Stage 4 (import/export and protection) is merged** (2026-11-17) and released as **v0.2.0**.
 **Stage 5 (extras) is merged** (2026-11-17) and released as **v0.3.0**.
+**Stage 6 (tracking and sync) is merged** (2026-11-17) and released as **v1.0.0**. Every planned stage is done.
 
 ## Done
 - **Proposal:** structure, packages and tech choices, written up in SPEC.md §13.
@@ -77,13 +78,17 @@ Maintained by Claude. Updated at the end of every stage, in the same pull reques
   - **App icon** and an **AltStore/SideStore source** so iPhone updates show up in those apps.
   - Book lookups now save page counts.
 
+- **Stage 6, tracking and sync:**
+  - **Diary:** every finish is an entry (date, optional rating and note). "Watched again / Read again" on the Edit screen; a month-by-month Diary screen (📊 → Diary); stats count every entry. Older finished items got their entry automatically.
+  - **Tags:** add any tags on the Edit screen (suggests ones you've used); filter by tag on every tab; included in exports, backups and sync.
+  - **Progress:** books (page of total, or %), audiobooks (h:mm of total), shown on the To Read / To Listen rows.
+  - **Yearly goals** per category on the Stats screen.
+  - **Episodes:** for series matched with TVmaze, tick episodes one by one (or a whole season, or "everything up to here"); S/E counters follow.
+  - **New episode reminders** (off by default): follow a show, switch reminders on in Settings, and the phone schedules a notification for each upcoming air date. TVmaze only sees the followed shows' numbers, about once a day.
+  - **Sync two phones** on home Wi-Fi: one shows an address and a one-time code, the other types them in. Encrypted end to end; newest edit wins; deletions sync.
+
 ## Next
-- **Stage 6, tracking and sync** (new):
-  - rewatch/reread diary
-  - reading and listening progress, with yearly goals
-  - custom lists and tags
-  - episode tracking with "new episode" reminders (local notifications, no account)
-  - phone-to-phone sync over home Wi-Fi
+- Final independent review, a new demo video and a last pass on the docs.
 
 ## Waiting on me (owner)
 - [x] Add the WatchedLedger repo to the Claude GitHub App.
@@ -96,6 +101,9 @@ Maintained by Claude. Updated at the end of every stage, in the same pull reques
 - [ ] Optional: tell Claude which iPhone and iOS version you have, and whether you use a Mac or a Windows PC, so the README can lead with the right sideloading tool.
 
 ## Decisions made
+- **2026-11-17 Sync uses a typed one-time code instead of QR pairing** (a change from SPEC §12a). Why: scanning a QR code needs a camera and barcode package (the common ones pull in Google ML Kit); a permanent pairing key and always-on discovery add risk. Now: one tap on each phone per sync, 8-character code (about 40 bits) stretched with Argon2id, AES-256-GCM, private addresses only, one sync or 5 minutes, 5 wrong tries and it stops. Can be revisited if you want QR.
+- **2026-11-17 Reminders are native code, not `flutter_local_notifications`:** its current version needs a newer Android build setup (compileSdk 37, desugaring). A small Kotlin + Swift piece does the job: inexact alarms (no "exact alarm" permission), restored after a reboot.
+- **2026-11-17 Diary entries for deleted items** are kept until the next app start so Undo can bring everything back, then tidied away.
 - **2026-11-17 Widget and share are Android-only.** On iPhone they need extra app parts (extensions) that free sideloading handles badly. On iPhone, copy and paste into Import instead.
 - **2026-11-17 No packages for widget/share:** small native Kotlin pieces instead of `home_widget` / `share_handler`, so fewer dependencies.
 - **2026-11-17 App icon** drawn by Claude (a ledger page with a green tick).

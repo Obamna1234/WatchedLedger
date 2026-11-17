@@ -9,7 +9,7 @@ repo.
 - Your library lives in an **encrypted database on your phone**.
 - See [PRIVACY.md](PRIVACY.md) for exactly what leaves the device, and when.
 
-> **Status: Stage 5 (extras), v0.3.0.**
+> **Status: all planned stages done, v1.0.0.**
 > - **Lists:** five category tabs with To Watch / Watched, ticking (tap or swipe) with undo, an edit screen with rating, note and series progress, sort, filter and a genre fast-scroll index.
 > - **Smart add:** titles are looked up automatically with no accounts or API keys. If nothing fits, save exactly what you typed.
 > - **Search:** every match highlighted, ▲ ▼ to jump, "3 of 12" counter, tick from the results.
@@ -19,7 +19,11 @@ repo.
 > - **App lock:** optional PIN and fingerprint / Face ID.
 > - **Extras:** 🎲 "Pick something for me" (mood and length filters), 📊 stats, "More by…" this director/author/host.
 > - **Android only:** share a link or text from Netflix, IMDb, Goodreads, a podcast app or a browser into the app, and a home screen widget with your next titles and a quick-add button.
-> - **Coming next:** rewatch diary, reading progress and goals, tags and custom lists, episode reminders and Wi-Fi sync between phones.
+> - **Diary:** every time you finish something, including rewatches and rereads ("Watched again"), by month (📊 → Diary).
+> - **Tags** on any item (e.g. "Halloween", "with Sam"), with a tag filter on every tab.
+> - **Reading/listening progress** (page, % or h:mm) and **yearly goals** ("24 books in 2027") on the Stats screen.
+> - **Episodes:** tick single episodes (list from TVmaze) and get optional **"new episode" reminders** that the phone schedules itself.
+> - **Sync two phones** over home Wi-Fi with a one-time code (Settings → Sync with another phone), encrypted, no account or server.
 
 ---
 
