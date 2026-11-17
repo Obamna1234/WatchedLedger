@@ -86,6 +86,9 @@ Future<void> add(WidgetTester t, String typed, {String? pick}) async {
 void main() {
   final binding = IntegrationTestWidgetsFlutterBinding.ensureInitialized();
   binding.framePolicy = LiveTestWidgetsFlutterBindingFramePolicy.fullyLive;
+  // Let enterText() type into the app (off by default on real devices). This
+  // also keeps the on-screen keyboard out of the recording.
+  binding.testTextInput.register();
 
   testWidgets('demo', (t) async {
     app.main();
