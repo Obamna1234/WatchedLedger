@@ -52,7 +52,7 @@ void main() {
     });
 
     test('handles BOM, CRLF and semicolons', () {
-      expect(parseCsv('﻿a;b\r\nc;d\r\n', separator: ';'), [
+      expect(parseCsv('\uFEFFa;b\r\nc;d\r\n', separator: ';'), [
         ['a', 'b'],
         ['c', 'd'],
       ]);
