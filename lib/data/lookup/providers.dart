@@ -313,7 +313,7 @@ class WikipediaProvider extends LookupProvider {
             ? null
             : _by.firstMatch(description)?.group(1)?.trim(),
         coverUrl: _thumb(asMap(page?['thumbnail'])),
-        source: 'wikipedia',
+        source: kind == WikiKind.game ? 'wikipedia-game' : 'wikipedia',
         sourceId: key,
       ));
     }
