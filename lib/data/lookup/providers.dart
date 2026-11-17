@@ -29,8 +29,12 @@ enum ItunesMedia { movie, tvShow, audiobook, podcast }
 /// Apple's iTunes Search API: movies, TV seasons, audiobooks and podcasts.
 /// https://performance-partners.apple.com/search-api
 class ItunesProvider extends LookupProvider {
-  const ItunesProvider(super.net, this.media);
+  const ItunesProvider(super.net, this.media, {this.attribute, this.limit = _limit});
   final ItunesMedia media;
+
+  /// Search one field only, e.g. 'authorTerm' for "More by this author".
+  final String? attribute;
+  final int limit;
 
   @override
   String get displayName => 'iTunes';
@@ -60,7 +64,8 @@ class ItunesProvider extends LookupProvider {
       'term': query,
       'media': media.name,
       'entity': _entity,
-      'limit': '$_limit',
+      'limit': '$limit',
+      'attribute': ?attribute,
     }));
     final out = <LookupCandidate>[];
     final seen = <String>{};

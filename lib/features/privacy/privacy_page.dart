@@ -56,12 +56,14 @@ class PrivacyPage extends StatelessWidget {
             ),
             heading('What leaves this device'),
             body(
-              'Only two things, and only when lookups are on and Offline mode '
+              'Only these, and only when lookups are on and Offline mode '
               'is off:\n'
               '1. The title you type, sent when you add a title, import a '
               'list (one title at a time) or tap "Look up details".\n'
               '2. A request for a cover picture, the first time a cover is '
-              'shown. After that it is kept on this device.\n\n'
+              'shown. After that it is kept on this device.\n'
+              '3. A director, author or host name, only when you tap '
+              '"More by…".\n\n'
               'Nothing else is sent: no account, no device ID, no list '
               'contents, no cookies. Requests use HTTPS and a generic app '
               'name. Like any internet request, the service can see your IP '

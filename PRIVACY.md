@@ -12,11 +12,12 @@ WatchedLedger is built so that your library is nobody's business but yours.
 
 ## What leaves the device
 
-Only two things are ever sent. Each is sent only while **"Look up titles automatically"** is on and **Offline mode** is off:
+Only these things are ever sent. Each is sent only while **"Look up titles automatically"** is on and **Offline mode** is off:
 
 | What is sent | To whom | When |
 |---|---|---|
 | The title text you typed | **Movies:** Wikipedia (Wikimedia Foundation), then iTunes. **Series:** TVmaze, then iTunes if TVmaze finds nothing. **Books:** Open Library (Internet Archive), then Google Books. **Audiobooks:** iTunes, then Open Library. **Podcasts:** iTunes; Wikipedia only if the name looks misspelled. | When you add a title, import a list (one title at a time), or tap **Look up details** on the Edit screen |
+| A person's name (director, author or host) | **Movies:** Wikipedia. **Series:** TVmaze. **Books:** Open Library. **Audiobooks and podcasts:** iTunes. | Only when you tap **More by…** on the Edit screen |
 | A request for a cover image | Those services' image servers (`*.mzstatic.com`, `static.tvmaze.com`, `covers.openlibrary.org` → `*.archive.org`, `books.google.com`, `upload.wikimedia.org`) | The first time a cover is shown. After that it is cached on the device. |
 
 **Mobile data:** by default nothing is fetched on mobile data (**Settings → Use mobile data → Wi-Fi only**). Titles added on mobile data are saved as typed and looked up automatically once the phone is back on Wi-Fi. You can allow lookups only, or everything, on mobile data.
