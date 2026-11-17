@@ -85,11 +85,15 @@ class LookupService {
     if (query.text.isEmpty) return const LookupResult([], []);
     final tried = <String>[];
     Object? lastError;
+    // If any source answered (even with nothing), it's "no matches", not
+    // "couldn't reach".
+    var answered = false;
     var found = <LookupCandidate>[];
     for (final provider in chainFor(category)) {
       tried.add(provider.displayName);
       try {
         found = await provider.search(query.text, category);
+        answered = true;
         if (found.isNotEmpty) break;
       } on OfflineException {
         rethrow;
@@ -111,7 +115,9 @@ class LookupService {
       }
     }
 
-    if (found.isEmpty) return LookupResult(const [], tried, error: lastError);
+    if (found.isEmpty) {
+      return LookupResult(const [], tried, error: answered ? null : lastError);
+    }
     return LookupResult(rank(query, found), tried);
   }
 

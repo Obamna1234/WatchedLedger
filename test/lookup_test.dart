@@ -370,7 +370,7 @@ void main() {
       expect(await LookupService(net).details(c), same(c));
     });
 
-    test('movies try Wikipedia first, then iTunes', () async {
+    test('movies try Wikipedia, then iTunes, then Wikidata', () async {
       final hosts = <String>[];
       final net = client((req) async {
         hosts.add(req.url.host);
@@ -379,7 +379,7 @@ void main() {
             : jsonResponse({'results': []});
       });
       await LookupService(net).search('nothing', MediaCategory.movie);
-      expect(hosts, ['en.wikipedia.org', 'itunes.apple.com']);
+      expect(hosts, ['en.wikipedia.org', 'itunes.apple.com', 'www.wikidata.org']);
     });
 
     test('podcast typos are respelled via Wikipedia, then iTunes again',
