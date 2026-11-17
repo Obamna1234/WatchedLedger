@@ -4,6 +4,7 @@ import '../../core/app_scope.dart';
 import '../../core/build_info.dart';
 import '../../core/settings.dart';
 import '../../core/theme.dart';
+import '../data/data_page.dart';
 import '../privacy/privacy_page.dart';
 
 class SettingsPage extends StatelessWidget {
@@ -81,6 +82,15 @@ class SettingsPage extends StatelessWidget {
               trailing: const Icon(Icons.chevron_right),
               onTap: () => Navigator.of(context).push(
                 MaterialPageRoute<void>(builder: (_) => const PrivacyPage()),
+              ),
+            ),
+            section('Your data'),
+            ListTile(
+              leading: const Icon(Icons.save_alt),
+              title: const Text('Export, backup and restore'),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => Navigator.of(context).push(
+                MaterialPageRoute<void>(builder: (_) => const DataPage()),
               ),
             ),
             section('About'),

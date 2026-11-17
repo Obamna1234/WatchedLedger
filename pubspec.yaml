@@ -19,6 +19,8 @@ dependencies:
   flutter_secure_storage: ^11.2.0   # database key in Android Keystore / iOS Keychain
   http: ^1.5.0                      # HTTPS requests for title lookup + covers (Dart team)
   connectivity_plus: ^7.3.2         # Wi-Fi vs mobile data, for the "Use mobile data" setting
+  cryptography: ^2.9.0              # Argon2id + AES-256-GCM for encrypted backup files
+  file_picker: ^13.4.0              # system open/save dialogs (no storage permission needed)
 
 dev_dependencies:
   flutter_test:
