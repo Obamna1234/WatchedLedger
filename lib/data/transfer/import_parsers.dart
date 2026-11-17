@@ -587,9 +587,10 @@ List<ImportRow> mergeSeasons(List<ImportRow> rows) {
       existing.seasons[season] =
           (existing.seasons[season] ?? false) || r.status == ListStatus.done;
       existing.statusSure = existing.statusSure && r.statusSure;
-      if (rest.isNotEmpty) {
+      final extra = [if (r.note != null) r.note!, if (rest.isNotEmpty) rest];
+      if (extra.isNotEmpty) {
         existing.note = _note(
-            [if (existing.note != null) existing.note!, rest].join('; '));
+            [if (existing.note != null) existing.note!, ...extra].join('; '));
       }
       continue;
     }
@@ -669,17 +670,21 @@ List<ImportRow> rowsFromNote(List<NoteLine> lines) {
     if (!line.checkbox && done == null && !dash) {
       if (t.length > 150) continue; // a long comment, not a title
       final next = nextNonEmpty(i);
-      final startsBlock = (i == 0 || lines[i - 1].text.trim().isEmpty) &&
-          next != null &&
-          lines[next].checkbox;
+      final afterBlank = i == 0 || lines[i - 1].text.trim().isEmpty;
+      final startsBlock = afterBlank && next != null && lines[next].checkbox;
       final sh = statusHeading(t);
       final kind = _categoryInText(t);
       final isSection = t.length > 2 &&
           t == t.toUpperCase() &&
           RegExp('[A-Z]').hasMatch(t) &&
           !t.contains(' ');
-      if (sh != null || isSection || kind != null || t.endsWith(':') ||
-          startsBlock) {
+      final firstLine = rows.isEmpty && group == null;
+      if (sh != null ||
+          isSection ||
+          (kind != null && afterBlank) ||
+          t.endsWith(':') ||
+          startsBlock ||
+          firstLine) {
         group = t.replaceAll(RegExp(r':$'), '');
         if (sh != null) {
           groupStatus = sh.status;
