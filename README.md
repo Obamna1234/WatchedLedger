@@ -9,15 +9,15 @@ repo.
 - Your library lives in an **encrypted database on your phone**.
 - See [PRIVACY.md](PRIVACY.md) for exactly what leaves the device, and when.
 
-> **Status: Stage 3 (search).**
-> - **Works now:**
->   - five category tabs with To Watch / Watched lists
->   - ticking (tap or swipe) with undo
->   - an edit screen with rating, note and series progress
->   - sort, filter and a genre fast-scroll index
-> - **Smart add:** type a title and it's looked up automatically. It needs no accounts or API keys, and if nothing fits, you can save exactly what you typed.
-> - **Search:** every match is highlighted, ▲ ▼ jump between them with a "3 of 12" counter, and you can tick straight from the results.
-> - **Coming next:** import/export, backups, app lock, stats, widgets and share-to-app.
+> **Status: Stage 4 (import/export and protection), v0.2.0.**
+> - **Lists:** five category tabs with To Watch / Watched, ticking (tap or swipe) with undo, an edit screen with rating, note and series progress, sort, filter and a genre fast-scroll index.
+> - **Smart add:** titles are looked up automatically with no accounts or API keys. If nothing fits, save exactly what you typed.
+> - **Search:** every match highlighted, ▲ ▼ to jump, "3 of 12" counter, tick from the results.
+> - **Mobile data:** Wi-Fi only by default; titles added on mobile data are matched once you're back on Wi-Fi.
+> - **Import:** paste a list or Samsung Notes checklist, or import files from Letterboxd, Goodreads, IMDb or Trakt, then check everything on a review screen.
+> - **Export and backup:** .txt / .csv / .json, plus password-encrypted backups you can restore.
+> - **App lock:** optional PIN and fingerprint / Face ID.
+> - **Coming next:** smart picker, stats, widgets, share-to-app, then diary, progress, tags, episode reminders and Wi-Fi sync.
 
 ---
 

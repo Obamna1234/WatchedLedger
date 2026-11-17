@@ -5,6 +5,7 @@ import '../../core/build_info.dart';
 import '../../core/settings.dart';
 import '../../core/theme.dart';
 import '../data/data_page.dart';
+import '../lock/lock_settings_page.dart';
 import '../privacy/privacy_page.dart';
 
 class SettingsPage extends StatelessWidget {
@@ -28,7 +29,7 @@ class SettingsPage extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(title: const Text('Settings')),
       body: ListenableBuilder(
-        listenable: Listenable.merge([settings, scope.network]),
+        listenable: Listenable.merge([settings, scope.network, scope.lock]),
         builder: (context, _) => ListView(
           children: [
             section('Appearance'),
@@ -76,6 +77,17 @@ class SettingsPage extends StatelessWidget {
               value: settings.offlineMode,
               onChanged: settings.setOfflineMode,
             ),
+            if (scope.lock case final lock?)
+              ListTile(
+                leading: const Icon(Icons.lock_outline),
+                title: const Text('App lock'),
+                subtitle: Text(lock.enabled ? 'On' : 'Off'),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () => Navigator.of(context).push(
+                  MaterialPageRoute<void>(
+                      builder: (_) => LockSettingsPage(lock: lock)),
+                ),
+              ),
             ListTile(
               leading: const Icon(Icons.shield_outlined),
               title: const Text('What leaves this device'),

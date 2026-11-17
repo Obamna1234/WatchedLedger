@@ -3,6 +3,8 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import 'app.dart';
+import 'core/lock/app_lock.dart';
+import 'core/lock/platform_lock.dart';
 import 'core/net/net_client.dart';
 import 'core/net/network_status.dart';
 import 'core/settings.dart';
@@ -65,6 +67,11 @@ class _BootAppState extends State<BootApp> {
       network.addListener(matcher.run);
       settings.addListener(matcher.run);
       unawaited(Future<void>.delayed(const Duration(seconds: 3), matcher.run));
+      final lock = AppLock(
+        storage: SecureLockStorage(),
+        biometrics: DeviceBiometrics(),
+      );
+      await lock.load();
       services = AppServices(
         db: result.db,
         settings: settings,
@@ -73,6 +80,7 @@ class _BootAppState extends State<BootApp> {
         covers: covers,
         network: network,
         matcher: matcher,
+        lock: lock,
       );
     }
     if (!mounted) return;
