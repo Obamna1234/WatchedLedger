@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'core/app_scope.dart';
+import 'core/lock/app_lock.dart';
 import 'core/net/net_client.dart';
 import 'core/net/network_status.dart';
 import 'core/settings.dart';
@@ -10,6 +11,7 @@ import 'data/db/database.dart';
 import 'data/lookup/background_matcher.dart';
 import 'data/lookup/lookup_service.dart';
 import 'features/home/home_page.dart';
+import 'features/lock/lock_gate.dart';
 
 /// Everything created once at startup after the database opens.
 class AppServices {
@@ -21,6 +23,7 @@ class AppServices {
     required this.covers,
     required this.network,
     required this.matcher,
+    this.lock,
   });
 
   final AppDatabase db;
@@ -30,6 +33,7 @@ class AppServices {
   final CoverCache covers;
   final NetworkStatus network;
   final BackgroundMatcher matcher;
+  final AppLock? lock;
 }
 
 class WatchedLedgerApp extends StatelessWidget {
@@ -48,6 +52,7 @@ class WatchedLedgerApp extends StatelessWidget {
       covers: services.covers,
       network: services.network,
       matcher: services.matcher,
+      lock: services.lock,
       child: ListenableBuilder(
         listenable: settings,
         builder: (context, _) {
@@ -59,6 +64,12 @@ class WatchedLedgerApp extends StatelessWidget {
             darkTheme: mode == AppThemeMode.amoled ? amoledTheme() : darkTheme(),
             themeMode: mode.materialMode,
             home: const HomePage(),
+            builder: services.lock == null
+                ? null
+                : (context, child) => LockGate(
+                      lock: services.lock!,
+                      child: child ?? const SizedBox.shrink(),
+                    ),
           );
         },
       ),

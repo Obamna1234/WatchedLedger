@@ -4,6 +4,7 @@ import '../data/covers/cover_cache.dart';
 import '../data/db/database.dart';
 import '../data/lookup/background_matcher.dart';
 import '../data/lookup/lookup_service.dart';
+import 'lock/app_lock.dart';
 import 'net/net_client.dart';
 import 'net/network_status.dart';
 import 'settings.dart';
@@ -19,6 +20,7 @@ class AppScope extends InheritedWidget {
     required this.covers,
     required this.network,
     this.matcher,
+    this.lock,
     required super.child,
   });
 
@@ -31,6 +33,9 @@ class AppScope extends InheritedWidget {
 
   /// Matches titles saved as typed once lookups are possible (null in tests).
   final BackgroundMatcher? matcher;
+
+  /// Optional PIN / biometric lock (null in tests).
+  final AppLock? lock;
 
   static AppScope of(BuildContext context) {
     final scope = context.dependOnInheritedWidgetOfExactType<AppScope>();
@@ -46,5 +51,6 @@ class AppScope extends InheritedWidget {
       lookup != oldWidget.lookup ||
       covers != oldWidget.covers ||
       network != oldWidget.network ||
-      matcher != oldWidget.matcher;
+      matcher != oldWidget.matcher ||
+      lock != oldWidget.lock;
 }

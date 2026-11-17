@@ -52,10 +52,13 @@ Device backups:
 
 Backups are encrypted files that you create yourself and save wherever you choose.
 
+**App lock (optional):** your PIN is stored only as a salted hash (PBKDF2) in the phone's secure storage, never in the database or in backups.
+
 ## Permissions
 
 | Platform | Permission | Why |
 |---|---|---|
 | Android | `INTERNET` | Title lookup and covers. Offline mode switches this use off inside the app. |
 | Android | `ACCESS_NETWORK_STATE` | To tell Wi-Fi from mobile data for the "Use mobile data" setting. It only reads the connection type; no prompt. |
-| iOS | None yet | Face ID will be requested only if you turn on the optional app lock. |
+| Android | `USE_BIOMETRIC` | Only used if you turn on fingerprint unlock for the app lock. The fingerprint never reaches the app; Android just says yes or no. |
+| iOS | Face ID | Asked only if you turn on Face ID for the app lock. The app only learns yes or no. |

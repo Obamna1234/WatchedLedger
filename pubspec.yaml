@@ -21,6 +21,7 @@ dependencies:
   connectivity_plus: ^7.3.2         # Wi-Fi vs mobile data, for the "Use mobile data" setting
   cryptography: ^2.9.0              # Argon2id + AES-256-GCM for encrypted backup files
   file_picker: ^13.4.0              # system open/save dialogs (no storage permission needed)
+  local_auth: ^3.0.2                # optional fingerprint / Face ID unlock (Flutter team)
 
 dev_dependencies:
   flutter_test:
