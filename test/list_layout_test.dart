@@ -28,6 +28,8 @@ MediaItem item(
     genre: genre,
     matchState: MatchState.unmatched,
     following: false,
+    upcoming: false,
+    isPrivate: false,
     rating: rating,
     addedAt: t,
     completedAt: completed,

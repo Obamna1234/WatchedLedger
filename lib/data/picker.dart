@@ -80,6 +80,7 @@ PickLength? lengthOf(MediaItem i) {
     case MediaCategory.series:
     case MediaCategory.podcast:
     case MediaCategory.game:
+    case MediaCategory.video:
       return null;
   }
 }

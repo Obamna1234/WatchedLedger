@@ -59,6 +59,10 @@ MediaCategory? _categoryFromHost(Uri u) {
       on('epicgames.com') || on('gog.com') || on('itch.io')) {
     return MediaCategory.game;
   }
+  if (on('youtube.com') || on('youtu.be') || on('vimeo.com') ||
+      on('tiktok.com') || on('dailymotion.com') || on('dai.ly')) {
+    return MediaCategory.video;
+  }
   if (on('letterboxd.com') || on('boxd.it')) return MediaCategory.movie;
   if (on('tvmaze.com') || on('trakt.tv') && path.startsWith('/shows')) {
     return MediaCategory.series;

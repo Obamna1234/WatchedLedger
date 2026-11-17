@@ -16,9 +16,11 @@ Only these things are ever sent. Each is sent only while **"Look up titles autom
 
 | What is sent | To whom | When |
 |---|---|---|
-| The title text you typed | **Movies:** Wikipedia (Wikimedia Foundation), then iTunes. **Series:** TVmaze, then iTunes if TVmaze finds nothing. **Books:** Open Library (Internet Archive), then Google Books. **Audiobooks:** iTunes, then Open Library. **Podcasts:** iTunes; Wikipedia only if the name looks misspelled. | When you add a title, import a list (one title at a time), or tap **Look up details** on the Edit screen |
+| The title text you typed | **Movies:** Wikipedia (Wikimedia Foundation), then iTunes. **Series:** TVmaze, then iTunes if TVmaze finds nothing. **Books:** Open Library (Internet Archive), then Google Books.  **Games:** Wikipedia. **Audiobooks:** iTunes, then Open Library. **Podcasts:** iTunes; Wikipedia only if the name looks misspelled. | When you add a title, import a list (one title at a time), or tap **Look up details** on the Edit screen |
 | A person's name (director, author or host) | **Movies:** Wikipedia. **Series:** TVmaze. **Books:** Open Library. **Audiobooks and podcasts:** iTunes. | Only when you tap **More by…** on the Edit screen |
 | The TVmaze number of a show | TVmaze | When you open a show's **Episodes** screen, and, only if **New episode reminders** is on, about once a day for the shows you **follow** |
+| A link you paste or share into the app | The site it points to, at its public oEmbed address: YouTube, Vimeo, TikTok, Dailymotion, Spotify, SoundCloud or Reddit. Facebook, Instagram and other sites are **not** contacted. | When you add a link, to get its title and thumbnail |
+| The title you type (last resort) | Wikidata (Wikimedia Foundation) | Only when the main services find nothing |
 | A request for a cover image | Those services' image servers (`*.mzstatic.com`, `static.tvmaze.com`, `covers.openlibrary.org` → `*.archive.org`, `books.google.com`, `upload.wikimedia.org`) | The first time a cover is shown. After that it is cached on the device. |
 
 **Mobile data:** by default nothing is fetched on mobile data (**Settings → Use mobile data → Wi-Fi only**). Titles added on mobile data are saved as typed and looked up automatically once the phone is back on Wi-Fi. You can allow lookups only, or everything, on mobile data.

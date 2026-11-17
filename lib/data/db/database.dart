@@ -76,6 +76,31 @@ class Items extends Table {
 
   /// Series followed for "new episode" reminders.
   BoolColumn get following => boolean().withDefault(const Constant(false))();
+
+  // ------------------------------------------------ added in schema v3
+
+  /// A web link (YouTube video, store page, ...), opened on tap.
+  TextColumn get link => text().nullable()();
+
+  /// Who recommended it ("Meat Canyon").
+  TextColumn get recommendedBy => text().nullable()();
+
+  /// People to watch it with, as a JSON array of names.
+  TextColumn get watchWith => text().nullable()();
+
+  /// Where to watch / read / play it ("Netflix", "Steam"). Typed by the
+  /// user, never looked up online.
+  TextColumn get whereToWatch => text().nullable()();
+
+  /// Not out yet; [releaseDate] is when it's expected (optional reminder).
+  BoolColumn get upcoming => boolean().withDefault(const Constant(false))();
+  DateTimeColumn get releaseDate => dateTime().nullable()();
+
+  /// Set when moved to "Recently deleted"; emptied after 30 days.
+  DateTimeColumn get deletedAt => dateTime().nullable()();
+
+  /// Hidden unless unlocked (needs the app lock).
+  BoolColumn get isPrivate => boolean().withDefault(const Constant(false))();
 }
 
 /// One "finished" entry in the diary (rewatches/rereads add more). v2.
@@ -140,7 +165,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase(super.e);
 
   @override
-  int get schemaVersion => 2;
+  int get schemaVersion => 3;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -162,6 +187,16 @@ class AppDatabase extends _$AppDatabase {
             await customStatement(
                 'UPDATE items SET uid = lower(hex(randomblob(16))) '
                 'WHERE uid IS NULL');
+          }
+          if (from < 3) {
+            await m.addColumn(items, items.link);
+            await m.addColumn(items, items.recommendedBy);
+            await m.addColumn(items, items.watchWith);
+            await m.addColumn(items, items.whereToWatch);
+            await m.addColumn(items, items.upcoming);
+            await m.addColumn(items, items.releaseDate);
+            await m.addColumn(items, items.deletedAt);
+            await m.addColumn(items, items.isPrivate);
           }
         },
       );
@@ -198,6 +233,7 @@ class AppDatabase extends _$AppDatabase {
     String? creator,
     String? coverUrl,
     int? pages,
+    String? link,
     String? source,
     String? sourceId,
     MatchState matchState = MatchState.unmatched,
@@ -222,6 +258,7 @@ class AppDatabase extends _$AppDatabase {
       creator: Value(creator),
       coverUrl: Value(coverUrl),
       pages: Value(pages),
+      link: Value(cleanLink(link)),
       source: Value(source),
       sourceId: Value(sourceId),
       matchState: matchState,

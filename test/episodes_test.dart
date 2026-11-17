@@ -55,6 +55,8 @@ void main() {
       genre: kUncategorised,
       matchState: MatchState.matched,
       following: true,
+      upcoming: false,
+      isPrivate: false,
       addedAt: DateTime(2026),
       updatedAt: DateTime(2026),
     );

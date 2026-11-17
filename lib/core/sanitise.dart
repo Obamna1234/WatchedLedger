@@ -114,3 +114,23 @@ bool containsMatch(String? text, String query) =>
   }
   return (out.toString(), starts, ends);
 }
+
+/// A web link that's safe to keep and open: http(s) only, with a host,
+/// no user name/password, at most 2,000 characters. Anything else -> null.
+String? cleanLink(String? raw) {
+  if (raw == null) return null;
+  final t = raw.trim();
+  if (t.isEmpty || t.length > 2000) return null;
+  final u = Uri.tryParse(t);
+  if (u == null || !(u.scheme == 'https' || u.scheme == 'http')) return null;
+  if (u.host.isEmpty || u.userInfo.isNotEmpty) return null;
+  if (RegExp(r'[\s<>"]').hasMatch(t)) return null;
+  return u.toString();
+}
+
+/// A short name like "Netflix" or "Meat Canyon" (or null).
+String? cleanPersonOrPlace(String? raw) {
+  if (raw == null) return null;
+  final c = cleanText(raw, maxLength: 60);
+  return c.isEmpty ? null : c;
+}

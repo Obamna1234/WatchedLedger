@@ -17,6 +17,8 @@ MediaItem item(int id, String title, MediaCategory c, ListStatus s,
       genre: kUncategorised,
       matchState: MatchState.matched,
       following: false,
+      upcoming: false,
+      isPrivate: false,
       addedAt: DateTime(2026, 1, id),
       updatedAt: DateTime(2026, 1, id),
     );

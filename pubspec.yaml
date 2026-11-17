@@ -22,6 +22,7 @@ dependencies:
   cryptography: ^2.9.0              # Argon2id + AES-256-GCM for encrypted backup files
   file_picker: ^13.4.0              # system open/save dialogs (no storage permission needed)
   local_auth: ^3.0.2                # optional fingerprint / Face ID unlock (Flutter team)
+  url_launcher: ^6.3.2              # open saved links in YouTube / NewPipe / browser (Flutter team)
 
 dev_dependencies:
   flutter_test:

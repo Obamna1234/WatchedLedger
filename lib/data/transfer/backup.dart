@@ -9,6 +9,7 @@ import 'package:drift/drift.dart' show Value;
 
 import '../../core/sanitise.dart';
 import '../db/database.dart';
+import '../tags.dart';
 
 /// Encrypted backup files (.wlbackup).
 ///
@@ -248,7 +249,13 @@ MediaItem? _cleanItem(Object? raw) {
   if (raw is! Map<String, Object?>) return null;
   final MediaItem item;
   try {
-    item = MediaItem.fromJson(raw);
+    // Backups from older versions don't have the newer on/off fields.
+    item = MediaItem.fromJson({
+      'following': false,
+      'upcoming': false,
+      'isPrivate': false,
+      ...raw,
+    });
   } catch (_) {
     return null;
   }
@@ -265,6 +272,10 @@ MediaItem? _cleanItem(Object? raw) {
     rating: Value(rating != null && rating >= 1 && rating <= 5 ? rating : null),
     coverFile: const Value(null), // pictures aren't in backups
     uid: Value(item.uid ?? newUid()),
+    link: Value(cleanLink(item.link)),
+    recommendedBy: Value(cleanPersonOrPlace(item.recommendedBy)),
+    whereToWatch: Value(cleanPersonOrPlace(item.whereToWatch)),
+    watchWith: Value(encodeTags(decodeTags(item.watchWith))),
   );
 }
 

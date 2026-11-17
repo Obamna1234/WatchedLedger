@@ -51,22 +51,31 @@ class LookupService {
         MediaCategory.movie => [
             WikipediaProvider(net, WikiKind.film),
             ItunesProvider(net, ItunesMedia.movie),
+            WikidataProvider(net),
           ],
         MediaCategory.series => [
             TvmazeProvider(net),
             ItunesProvider(net, ItunesMedia.tvShow),
+            WikidataProvider(net),
           ],
         MediaCategory.book => [
             OpenLibraryProvider(net),
             GoogleBooksProvider(net),
+            WikidataProvider(net),
           ],
         MediaCategory.audiobook => [
             ItunesProvider(net, ItunesMedia.audiobook),
             OpenLibraryProvider(net),
+            WikidataProvider(net),
           ],
         MediaCategory.podcast => [ItunesProvider(net, ItunesMedia.podcast)],
         // Wikipedia covers games on every console and copes with typos.
-        MediaCategory.game => [WikipediaProvider(net, WikiKind.game)],
+        MediaCategory.game => [
+            WikipediaProvider(net, WikiKind.game),
+            WikidataProvider(net),
+          ],
+        // Online videos are added by pasting their link (see LinkLookup).
+        MediaCategory.video => const <LookupProvider>[],
       };
 
   /// Tries each source in turn until one returns results.
@@ -76,11 +85,15 @@ class LookupService {
     if (query.text.isEmpty) return const LookupResult([], []);
     final tried = <String>[];
     Object? lastError;
+    // If any source answered (even with nothing), it's "no matches", not
+    // "couldn't reach".
+    var answered = false;
     var found = <LookupCandidate>[];
     for (final provider in chainFor(category)) {
       tried.add(provider.displayName);
       try {
         found = await provider.search(query.text, category);
+        answered = true;
         if (found.isNotEmpty) break;
       } on OfflineException {
         rethrow;
@@ -102,7 +115,9 @@ class LookupService {
       }
     }
 
-    if (found.isEmpty) return LookupResult(const [], tried, error: lastError);
+    if (found.isEmpty) {
+      return LookupResult(const [], tried, error: answered ? null : lastError);
+    }
     return LookupResult(rank(query, found), tried);
   }
 

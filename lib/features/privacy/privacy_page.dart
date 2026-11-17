@@ -85,6 +85,13 @@ class PrivacyPage extends StatelessWidget {
             service('Audiobooks', 'iTunes Search, then Open Library'),
             service('Podcasts', 'iTunes Search; Wikipedia only to fix a '
                 'misspelled show name'),
+            service('Games', 'Wikipedia'),
+            service('Niche titles', 'Wikidata, only if the services above '
+                'find nothing'),
+            service('Links', 'Only the link you paste, sent to the site it '
+                'points to (YouTube, Vimeo, TikTok, Dailymotion, Spotify, '
+                'SoundCloud, Reddit) to get the title and thumbnail. '
+                'Facebook and Instagram are not contacted.'),
             service('Covers', 'The same services’ image servers '
                 '(mzstatic.com, static.tvmaze.com, covers.openlibrary.org / '
                 'archive.org, books.google.com, upload.wikimedia.org)'),

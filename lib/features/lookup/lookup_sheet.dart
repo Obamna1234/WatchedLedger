@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 
 import '../../core/app_scope.dart';
 import '../../core/net/net_client.dart';
+import '../../core/open_link.dart';
 import '../../core/sanitise.dart';
 import '../../data/lookup/candidate.dart';
 import '../../data/lookup/lookup_service.dart';
@@ -21,8 +22,12 @@ class PickedCandidate extends LookupChoice {
 
 /// Keep the title exactly as typed (free text, no lookup data).
 class SaveAsTyped extends LookupChoice {
-  const SaveAsTyped(this.text);
+  const SaveAsTyped(this.text, {this.fillInDetails = false});
   final String text;
+
+  /// Open the Edit screen straight away to fill in year, genre, where to
+  /// watch, a link and so on by hand.
+  final bool fillInDetails;
 }
 
 /// Shows matches for [query]. The user can pick one, keep typing and search
@@ -118,10 +123,10 @@ class _LookupSheetState extends State<_LookupSheet> {
     }
   }
 
-  void _saveAsTyped() {
+  void _saveAsTyped({bool fillIn = false}) {
     final text = cleanTitle(_text.text);
     if (text.isEmpty) return;
-    Navigator.pop(context, SaveAsTyped(text));
+    Navigator.pop(context, SaveAsTyped(text, fillInDetails: fillIn));
   }
 
   @override
@@ -213,7 +218,7 @@ class _LookupSheetState extends State<_LookupSheet> {
             ),
             const Divider(height: 1),
             Padding(
-              padding: const EdgeInsets.all(12),
+              padding: const EdgeInsets.fromLTRB(12, 12, 12, 4),
               child: FilledButton.tonalIcon(
                 onPressed: typed.isEmpty ? null : _saveAsTyped,
                 icon: const Icon(Icons.edit_note),
@@ -222,6 +227,28 @@ class _LookupSheetState extends State<_LookupSheet> {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
+              ),
+            ),
+            if (widget.category == MediaCategory.video)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(12, 0, 12, 4),
+                child: OutlinedButton.icon(
+                  onPressed: typed.isEmpty
+                      ? null
+                      : () => searchYouTube(context, typed),
+                  icon: const Icon(Icons.smart_display_outlined),
+                  label:
+                      const Text('Search YouTube, then share the video here'),
+                ),
+              ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+              child: TextButton.icon(
+                onPressed:
+                    typed.isEmpty ? null : () => _saveAsTyped(fillIn: true),
+                icon: const Icon(Icons.tune),
+                label: const Text(
+                    'Not listed? Save and fill in the details yourself'),
               ),
             ),
           ],

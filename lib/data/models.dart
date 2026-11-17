@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 /// IMPORTANT: these enums are stored in the database by their index.
 /// Only ever ADD new values at the end. Never reorder or remove.
-enum MediaCategory { movie, series, book, audiobook, podcast, game }
+enum MediaCategory { movie, series, book, audiobook, podcast, game, video }
 
 enum ListStatus { todo, done }
 
@@ -26,6 +26,7 @@ extension MediaCategoryLabels on MediaCategory {
         MediaCategory.audiobook => 'Audiobooks',
         MediaCategory.podcast => 'Podcasts',
         MediaCategory.game => 'Games',
+        MediaCategory.video => 'Videos',
       };
 
   String get singular => switch (this) {
@@ -35,11 +36,15 @@ extension MediaCategoryLabels on MediaCategory {
         MediaCategory.audiobook => 'audiobook',
         MediaCategory.podcast => 'podcast',
         MediaCategory.game => 'game',
+        MediaCategory.video => 'video',
       };
 
   /// "To Watch" / "To Read" / "To Listen"
   String get todoLabel => switch (this) {
-        MediaCategory.movie || MediaCategory.series => 'To Watch',
+        MediaCategory.movie ||
+        MediaCategory.series ||
+        MediaCategory.video =>
+          'To Watch',
         MediaCategory.book => 'To Read',
         MediaCategory.audiobook || MediaCategory.podcast => 'To Listen',
         MediaCategory.game => 'To Play',
@@ -47,7 +52,10 @@ extension MediaCategoryLabels on MediaCategory {
 
   /// "Watched" / "Read" / "Listened"
   String get doneLabel => switch (this) {
-        MediaCategory.movie || MediaCategory.series => 'Watched',
+        MediaCategory.movie ||
+        MediaCategory.series ||
+        MediaCategory.video =>
+          'Watched',
         MediaCategory.book => 'Read',
         MediaCategory.audiobook || MediaCategory.podcast => 'Listened',
         MediaCategory.game => 'Played',
@@ -63,6 +71,7 @@ extension MediaCategoryLabels on MediaCategory {
         MediaCategory.audiobook => Icons.headphones_outlined,
         MediaCategory.podcast => Icons.podcasts_outlined,
         MediaCategory.game => Icons.sports_esports_outlined,
+        MediaCategory.video => Icons.smart_display_outlined,
       };
 }
 

@@ -8,6 +8,8 @@ import '../../core/net/net_client.dart';
 import '../../core/sanitise.dart';
 import '../../data/db/database.dart';
 import '../../data/lookup/candidate.dart';
+import '../../data/lookup/link_lookup.dart';
+import 'add_link.dart';
 import '../../data/lookup/lookup_service.dart';
 import '../../data/models.dart';
 import '../lookup/lookup_sheet.dart';
@@ -59,7 +61,21 @@ class _QuickAddBarState extends State<QuickAddBar> {
   /// Add flow: duplicate check → lookup → auto-file if clear, otherwise
   /// "Did you mean…?" (where the user can also keep typing and save as
   /// typed) → save → fetch the cover in the background.
+  Future<void> _addLink(Uri link) async {
+    if (_busy) return;
+    setState(() => _busy = true);
+    try {
+      final added = await addLinkItem(context, link,
+          fallback: _category, status: _status);
+      if (added && mounted) _controller.clear();
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
   Future<void> _submit() async {
+    final link = LinkLookup.asLink(_controller.text);
+    if (link != null) return _addLink(link);
     final typed = cleanTitle(_controller.text);
     if (typed.isEmpty || _busy) return;
     setState(() => _busy = true);
@@ -73,6 +89,7 @@ class _QuickAddBarState extends State<QuickAddBar> {
       String? asTyped;
       var matchState = MatchState.unmatched;
       String? note;
+      var fillIn = false;
 
       if (scope.settings.offlineMode) {
         asTyped = typed;
@@ -110,9 +127,10 @@ class _QuickAddBarState extends State<QuickAddBar> {
             switch (choice) {
               case PickedCandidate(:final candidate):
                 picked = candidate;
-              case SaveAsTyped(:final text):
+              case SaveAsTyped(:final text, :final fillInDetails):
                 asTyped = text;
                 matchState = MatchState.manual;
+                fillIn = fillInDetails;
             }
           }
         }
@@ -153,6 +171,10 @@ class _QuickAddBarState extends State<QuickAddBar> {
 
       if (!mounted) return;
       _controller.clear();
+      if (fillIn) {
+        await openNewItemEditor(context, scope.db, id);
+        return;
+      }
       final year = picked?.year;
       final label = year == null ? title : '$title ($year)';
       ScaffoldMessenger.of(context)

@@ -19,6 +19,8 @@ MediaItem item(String title, {String? creator, String? note}) {
     note: note,
     matchState: MatchState.unmatched,
     following: false,
+    upcoming: false,
+    isPrivate: false,
     addedAt: t,
     updatedAt: t,
   );
