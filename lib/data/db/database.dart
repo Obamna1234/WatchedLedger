@@ -127,8 +127,6 @@ class SettingsEntries extends Table {
   Set<Column<Object>> get primaryKey => {settingKey};
 }
 
-@DriftDatabase(
-    tables: [Items, SettingsEntries, WatchEvents, EpisodeMarks, Tombstones])
 /// A diary entry with its item.
 class DiaryEntry {
   const DiaryEntry(this.event, this.item);
@@ -136,6 +134,8 @@ class DiaryEntry {
   final MediaItem item;
 }
 
+@DriftDatabase(
+    tables: [Items, SettingsEntries, WatchEvents, EpisodeMarks, Tombstones])
 class AppDatabase extends _$AppDatabase {
   AppDatabase(super.e);
 
