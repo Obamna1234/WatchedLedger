@@ -50,7 +50,6 @@ class _EpisodesPageState extends State<EpisodesPage> {
     }
   }
 
-  @override
   bool get _hasEpisodeList =>
       widget.item.source == 'tvmaze' && widget.item.sourceId != null;
 
