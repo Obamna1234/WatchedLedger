@@ -47,6 +47,7 @@ class WatchedLedgerApp extends StatelessWidget {
       lookup: services.lookup,
       covers: services.covers,
       network: services.network,
+      matcher: services.matcher,
       child: ListenableBuilder(
         listenable: settings,
         builder: (context, _) {

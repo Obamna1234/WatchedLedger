@@ -87,7 +87,7 @@ class SettingsPage extends StatelessWidget {
             section('Your data'),
             ListTile(
               leading: const Icon(Icons.save_alt),
-              title: const Text('Export, backup and restore'),
+              title: const Text('Import, export and backup'),
               trailing: const Icon(Icons.chevron_right),
               onTap: () => Navigator.of(context).push(
                 MaterialPageRoute<void>(builder: (_) => const DataPage()),

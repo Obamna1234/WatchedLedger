@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import '../../core/app_scope.dart';
 import '../../data/transfer/backup.dart';
 import '../../data/transfer/export.dart';
+import '../import/import_page.dart';
 
 /// Settings > Your data: export, encrypted backup and restore.
 class DataPage extends StatefulWidget {
@@ -99,6 +100,14 @@ class _DataPageState extends State<DataPage> {
     if (bytes == null || !mounted) return;
     await _save('WatchedLedger-${_today()}.wlbackup', bytes,
         'application/octet-stream');
+  }
+
+  Future<void> _import() async {
+    final added = await Navigator.of(context).push<int>(
+      MaterialPageRoute(builder: (_) => const ImportPage()),
+    );
+    if (added == null || !mounted) return;
+    _toast(added == 1 ? 'Added 1 title' : 'Added $added titles');
   }
 
   Future<void> _restore() async {
@@ -201,6 +210,13 @@ class _DataPageState extends State<DataPage> {
         children: [
           ListView(
             children: [
+              ListTile(
+                leading: const Icon(Icons.playlist_add),
+                title: const Text('Import titles'),
+                subtitle: const Text('Paste a list, Samsung Notes checklist, '
+                    'or a file from Letterboxd, Goodreads, IMDb or Trakt.'),
+                onTap: _busy ? null : _import,
+              ),
               ListTile(
                 leading: const Icon(Icons.ios_share),
                 title: const Text('Export list'),
