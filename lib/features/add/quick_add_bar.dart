@@ -15,9 +15,12 @@ import '../lookup/lookup_sheet.dart';
 /// Text box at the top of the main screen. The category follows the open tab
 /// but can be changed for a single add.
 class QuickAddBar extends StatefulWidget {
-  const QuickAddBar({super.key, required this.category});
+  const QuickAddBar({super.key, required this.category, this.focusNode});
 
   final MediaCategory category;
+
+  /// Lets the home screen widget's "+" jump straight into typing.
+  final FocusNode? focusNode;
 
   @override
   State<QuickAddBar> createState() => _QuickAddBarState();
@@ -25,7 +28,8 @@ class QuickAddBar extends StatefulWidget {
 
 class _QuickAddBarState extends State<QuickAddBar> {
   final _controller = TextEditingController();
-  final _focus = FocusNode();
+  final _ownFocus = FocusNode();
+  FocusNode get _focus => widget.focusNode ?? _ownFocus;
   late MediaCategory _category = widget.category;
   ListStatus _status = ListStatus.todo;
   bool _busy = false;
@@ -41,7 +45,7 @@ class _QuickAddBarState extends State<QuickAddBar> {
   @override
   void dispose() {
     _controller.dispose();
-    _focus.dispose();
+    _ownFocus.dispose();
     super.dispose();
   }
 

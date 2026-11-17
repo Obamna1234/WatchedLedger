@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../core/app_scope.dart';
+import '../../core/home_widget_sync.dart';
 import '../../core/share_receiver.dart';
 import '../../data/db/database.dart';
 import '../../data/models.dart';
@@ -37,6 +38,8 @@ class _HomePageState extends State<HomePage>
   final ListSearch _search = ListSearch();
   final TextEditingController _searchText = TextEditingController();
   final FocusNode _searchFocus = FocusNode();
+  final FocusNode _addFocus = FocusNode();
+  HomeWidgetSync? _widgetSync;
 
   MediaCategory get _current => MediaCategory.values[_tabs.index];
 
@@ -73,6 +76,26 @@ class _HomePageState extends State<HomePage>
       ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Added "${shared.title}"')));
     }));
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final scope = AppScope.of(context);
+    // Real app only: screen tests run without the background services.
+    if (_widgetSync == null && scope.matcher != null) {
+      _widgetSync = HomeWidgetSync(scope.db, scope.lock)
+        ..start(onQuickAdd: _quickAdd);
+    }
+  }
+
+  /// The widget's "+" was tapped: jump into the add box.
+  void _quickAdd() {
+    if (!mounted) return;
+    if (_search.active) _closeSearch();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _addFocus.requestFocus();
+    });
   }
 
   void _onTabChanged() {
@@ -114,6 +137,8 @@ class _HomePageState extends State<HomePage>
     _search.dispose();
     _searchText.dispose();
     _searchFocus.dispose();
+    _addFocus.dispose();
+    _widgetSync?.dispose();
     super.dispose();
   }
 
@@ -235,7 +260,7 @@ class _HomePageState extends State<HomePage>
                   onShow: _showList,
                 )
               else
-                QuickAddBar(category: _current),
+                QuickAddBar(category: _current, focusNode: _addFocus),
               const Divider(height: 1),
               Expanded(
                 child: TabBarView(

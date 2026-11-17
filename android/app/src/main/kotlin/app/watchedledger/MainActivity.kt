@@ -11,17 +11,27 @@ import io.flutter.plugin.common.MethodChannel
 class MainActivity : FlutterFragmentActivity() {
     private var shareChannel: MethodChannel? = null
     private var pendingShare: String? = null
+    private var widgetChannel: MethodChannel? = null
+    private var pendingQuickAdd = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         // Only a fresh launch carries a share; a restored activity would
         // replay the old one.
-        if (savedInstanceState == null) pendingShare = sharedText(intent)
+        if (savedInstanceState == null) {
+            pendingShare = sharedText(intent)
+            pendingQuickAdd = intent?.action == NextUpWidget.ACTION_QUICK_ADD
+        }
     }
 
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
+        if (intent.action == NextUpWidget.ACTION_QUICK_ADD) {
+            pendingQuickAdd = true
+            widgetChannel?.invokeMethod("quickAdd", null)
+            return
+        }
         val text = sharedText(intent) ?: return
         pendingShare = text
         shareChannel?.invokeMethod("shared", null)
@@ -48,6 +58,10 @@ class MainActivity : FlutterFragmentActivity() {
                 }
             }
 
+        widgetChannel = MethodChannel(messenger, "watchedledger/widget").apply {
+            setMethodCallHandler(widgetHandler())
+        }
+
         // Share-to-app: Dart asks for the text shared from another app.
         shareChannel = MethodChannel(messenger, "watchedledger/share").apply {
             setMethodCallHandler { call, result ->
@@ -59,6 +73,28 @@ class MainActivity : FlutterFragmentActivity() {
                     else -> result.notImplemented()
                 }
             }
+        }
+    }
+
+    private fun widgetHandler() = MethodChannel.MethodCallHandler { call, result ->
+        when (call.method) {
+            "update" -> {
+                val args = call.arguments as? Map<*, *>
+                val lines = (args?.get("lines") as? List<*>)?.filterIsInstance<String>() ?: emptyList()
+                val locked = args?.get("locked") == true
+                if (NextUpWidget.hasWidgets(this)) {
+                    NextUpWidget.save(this, lines, locked)
+                } else {
+                    // No widget on the home screen: keep no titles outside the database.
+                    getSharedPreferences(NextUpWidget.PREFS, MODE_PRIVATE).edit().clear().apply()
+                }
+                result.success(null)
+            }
+            "takeQuickAdd" -> {
+                result.success(pendingQuickAdd)
+                pendingQuickAdd = false
+            }
+            else -> result.notImplemented()
         }
     }
 
