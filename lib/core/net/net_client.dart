@@ -66,6 +66,15 @@ class NetClient {
     'books.google.com',
     'books.googleusercontent.com',
     'en.wikipedia.org',
+    'www.wikidata.org', // last-resort title search
+    // Pasted links: title + thumbnail via each site's public oEmbed.
+    'www.youtube.com',
+    'vimeo.com',
+    'www.tiktok.com',
+    'www.dailymotion.com',
+    'open.spotify.com',
+    'soundcloud.com',
+    'www.reddit.com',
   };
 
   /// Image CDNs that the services above redirect cover downloads to.
@@ -73,6 +82,14 @@ class NetClient {
     '.mzstatic.com', // Apple artwork
     '.archive.org', // Open Library covers
     '.wikimedia.org', // Wikipedia images (upload.wikimedia.org)
+    '.ytimg.com', // YouTube thumbnails
+    '.vimeocdn.com', // Vimeo thumbnails
+    '.tiktokcdn.com', // TikTok thumbnails
+    '.tiktokcdn-us.com',
+    '.dmcdn.net', // Dailymotion thumbnails
+    '.scdn.co', // Spotify artwork
+    '.spotifycdn.com',
+    '.sndcdn.com', // SoundCloud artwork
   ];
 
   static const Duration timeout = Duration(seconds: 12);

@@ -30,6 +30,11 @@ const List<String> _gameGenres = [
   'Shooter', 'Simulation', 'Sports', 'Strategy', 'Survival',
 ];
 
+const List<String> _videoGenres = [
+  'Comedy', 'Documentary', 'Education', 'Entertainment', 'Gaming', //
+  'How-to', 'Music', 'News', 'Science & Tech', 'Sports', 'Travel', 'Vlog',
+];
+
 List<String> curatedGenres(MediaCategory category) => switch (category) {
       MediaCategory.movie => _screenGenres,
       MediaCategory.series => const [
@@ -42,6 +47,7 @@ List<String> curatedGenres(MediaCategory category) => switch (category) {
       MediaCategory.book || MediaCategory.audiobook => _bookGenres,
       MediaCategory.podcast => _podcastGenres,
       MediaCategory.game => _gameGenres,
+      MediaCategory.video => _videoGenres,
     };
 
 /// Genres sorted A–Z with "Uncategorised" always last.

@@ -51,22 +51,31 @@ class LookupService {
         MediaCategory.movie => [
             WikipediaProvider(net, WikiKind.film),
             ItunesProvider(net, ItunesMedia.movie),
+            WikidataProvider(net),
           ],
         MediaCategory.series => [
             TvmazeProvider(net),
             ItunesProvider(net, ItunesMedia.tvShow),
+            WikidataProvider(net),
           ],
         MediaCategory.book => [
             OpenLibraryProvider(net),
             GoogleBooksProvider(net),
+            WikidataProvider(net),
           ],
         MediaCategory.audiobook => [
             ItunesProvider(net, ItunesMedia.audiobook),
             OpenLibraryProvider(net),
+            WikidataProvider(net),
           ],
         MediaCategory.podcast => [ItunesProvider(net, ItunesMedia.podcast)],
         // Wikipedia covers games on every console and copes with typos.
-        MediaCategory.game => [WikipediaProvider(net, WikiKind.game)],
+        MediaCategory.game => [
+            WikipediaProvider(net, WikiKind.game),
+            WikidataProvider(net),
+          ],
+        // Online videos are added by pasting their link (see LinkLookup).
+        MediaCategory.video => const <LookupProvider>[],
       };
 
   /// Tries each source in turn until one returns results.

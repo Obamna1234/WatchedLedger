@@ -20,6 +20,7 @@ class MoreByService {
 
   static bool available(MediaCategory category, String? creator) =>
       category != MediaCategory.game &&
+      category != MediaCategory.video &&
       creator != null &&
       primaryName(creator).length >= 3;
 
@@ -42,7 +43,7 @@ class MoreByService {
                   attribute: 'authorTerm', limit: 50)
               .search(name, category),
           name),
-      MediaCategory.game => const <LookupCandidate>[],
+      MediaCategory.game || MediaCategory.video => const <LookupCandidate>[],
     };
     final seen = <String>{};
     final unique = [

@@ -352,3 +352,85 @@ class WikipediaProvider extends LookupProvider {
     );
   }
 }
+
+/// Wikidata: the last resort for niche titles (small foreign films, indie
+/// games, local shows). Keyless; only the typed title is sent. No covers.
+class WikidataProvider extends LookupProvider {
+  const WikidataProvider(super.net);
+
+  @override
+  String get displayName => 'Wikidata';
+
+  static final RegExp _year = RegExp(r'\b((?:18|19|20)\d{2})\b');
+  static final RegExp _by = RegExp(r'\bby ([^,;()]{2,80})');
+  static final RegExp _id = RegExp(r'^Q\d{1,12}$');
+
+  static final Map<MediaCategory, (RegExp, RegExp?)> _kinds = {
+    MediaCategory.movie: (
+      RegExp(r'\b(?:film|movie)\b', caseSensitive: false),
+      RegExp(r'film (?:series|director|producer|festival|studio|company)|'
+          r'franchise|filmmaker|actor|actress',
+          caseSensitive: false),
+    ),
+    MediaCategory.series: (
+      RegExp(r'television (?:series|programme|program|show)|tv (?:series|show)|'
+          r'web series|miniseries|mini-series|sitcom|anime series|docuseries',
+          caseSensitive: false),
+      RegExp(r'episode of|season of|character', caseSensitive: false),
+    ),
+    MediaCategory.book: (
+      RegExp(r'\b(?:novel|novella|book|memoir|literary work|written work|'
+          r'short story collection|graphic novel|non-fiction)\b',
+          caseSensitive: false),
+      RegExp(r'book series|publisher|bookshop|bookstore|edition of',
+          caseSensitive: false),
+    ),
+    MediaCategory.audiobook: (
+      RegExp(r'\b(?:audiobook|novel|novella|book|memoir|literary work)\b',
+          caseSensitive: false),
+      RegExp(r'book series|publisher|edition of', caseSensitive: false),
+    ),
+    MediaCategory.podcast: (RegExp(r'\bpodcast\b', caseSensitive: false), null),
+    MediaCategory.game: (
+      RegExp(r'\bvideo ?game\b', caseSensitive: false),
+      RegExp(r'video game (?:series|franchise|developer|publisher|company|'
+          r'character|console|engine)',
+          caseSensitive: false),
+    ),
+  };
+
+  @override
+  Future<List<LookupCandidate>> search(
+      String query, MediaCategory category) async {
+    final kind = _kinds[category];
+    if (kind == null) return const [];
+    final (wanted, unwanted) = kind;
+    final json = asMap(await net.getJson(Uri.https('www.wikidata.org', '/w/api.php', {
+      'action': 'wbsearchentities',
+      'search': query,
+      'language': 'en',
+      'uselang': 'en',
+      'type': 'item',
+      'limit': '20',
+      'format': 'json',
+    })));
+    final out = <LookupCandidate>[];
+    for (final raw in asList(json?['search'])) {
+      final m = asMap(raw);
+      final id = str(m, 'id');
+      final label = str(m, 'label');
+      final description = str(m, 'description') ?? '';
+      if (id == null || label == null || !_id.hasMatch(id)) continue;
+      if (!wanted.hasMatch(description)) continue;
+      if (unwanted != null && unwanted.hasMatch(description)) continue;
+      out.add(LookupCandidate(
+        title: label,
+        year: yearOf(_year.firstMatch(description)?.group(1)),
+        creator: _by.firstMatch(description)?.group(1)?.trim(),
+        source: 'wikidata',
+        sourceId: id,
+      ));
+    }
+    return out;
+  }
+}

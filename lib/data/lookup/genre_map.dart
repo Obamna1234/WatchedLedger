@@ -111,6 +111,7 @@ String mapGenre(MediaCategory category, Iterable<String> raw) {
     MediaCategory.book || MediaCategory.audiobook => _bookRules,
     MediaCategory.podcast => const <_Rule>[],
     MediaCategory.game => _gameRules,
+    MediaCategory.video => const <_Rule>[],
   };
   final normalised = [for (final n in names) _normalise(n)];
   for (final (keywords, genre) in rules) {

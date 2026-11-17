@@ -7,8 +7,10 @@ import '../../core/app_scope.dart';
 import '../../core/home_widget_sync.dart';
 import '../../core/share_receiver.dart';
 import '../../data/db/database.dart';
+import '../../data/lookup/link_lookup.dart';
 import '../../data/models.dart';
 import '../../data/share_parser.dart';
+import '../add/add_link.dart';
 import '../add/quick_add_bar.dart';
 import '../import/import_page.dart';
 import '../lists/category_page.dart';
@@ -55,6 +57,18 @@ class _HomePageState extends State<HomePage>
   /// Something was shared into the app: look it up and confirm.
   void _onShared(String text) {
     if (!mounted) return;
+    // Video and music links (YouTube, NewPipe, TikTok, Spotify...) are added
+    // from the link itself, with title, channel and thumbnail.
+    for (final m in RegExp(r'https?://[^\s<>"]+').allMatches(text)) {
+      final link = LinkLookup.asLink(m.group(0)!);
+      if (link != null &&
+          (LinkLookup.endpointFor(link) != null ||
+              LinkLookup.categoryFor(link) != null)) {
+        unawaited(addLinkItem(context, link,
+            fallback: _current, status: ListStatus.todo));
+        return;
+      }
+    }
     final shared = parseShared(text);
     if (shared == null) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(

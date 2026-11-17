@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../core/app_scope.dart';
+import '../../core/open_link.dart';
 import '../../core/sanitise.dart';
 import '../../data/db/database.dart';
 import '../../data/genres.dart';
@@ -51,6 +52,8 @@ class _EditItemPageState extends State<EditItemPage> {
       TextEditingController(text: widget.item.genre);
   late final TextEditingController _creator =
       TextEditingController(text: widget.item.creator ?? '');
+  late final TextEditingController _link =
+      TextEditingController(text: widget.item.link ?? '');
   late final TextEditingController _note =
       TextEditingController(text: widget.item.note ?? '');
 
@@ -83,6 +86,7 @@ class _EditItemPageState extends State<EditItemPage> {
     _genre.dispose();
     _creator.dispose();
     _note.dispose();
+    _link.dispose();
     super.dispose();
   }
 
@@ -124,6 +128,7 @@ class _EditItemPageState extends State<EditItemPage> {
       creator: Value(creator.isEmpty ? null : creator),
       rating: Value(_rating),
       note: Value(note.isEmpty ? null : note),
+      link: Value(cleanLink(_link.text)),
       season: Value(isSeries ? _season : null),
       episode: Value(isSeries ? _episode : null),
       completedAt: Value(completedAt),
@@ -272,6 +277,7 @@ class _EditItemPageState extends State<EditItemPage> {
       MediaCategory.audiobook => 'Author / narrator',
       MediaCategory.podcast => 'Host',
       MediaCategory.game => 'Developer',
+      MediaCategory.video => 'Channel',
     };
 
     return Scaffold(
@@ -497,6 +503,26 @@ class _EditItemPageState extends State<EditItemPage> {
               ],
             ),
             gap,
+            TextFormField(
+              controller: _link,
+              keyboardType: TextInputType.url,
+              autocorrect: false,
+              decoration: InputDecoration(
+                labelText: 'Link (optional)',
+                hintText: 'https://…',
+                border: const OutlineInputBorder(),
+                suffixIcon: IconButton(
+                  tooltip: 'Open link',
+                  icon: const Icon(Icons.open_in_new),
+                  onPressed: () => openLink(context, _link.text),
+                ),
+              ),
+              validator: (v) => v == null || v.trim().isEmpty || cleanLink(v) != null
+                  ? null
+                  : 'That doesn\u2019t look like a web link',
+              inputFormatters: [LengthLimitingTextInputFormatter(2000)],
+            ),
+            gap,
             TagEditor(
               tags: _tags,
               onChanged: (t) => setState(() => _tags = t),
@@ -633,6 +659,8 @@ String _sourceLabel(String source) => switch (source) {
       'tvmaze' => 'TVmaze',
       'openlibrary' => 'Open Library',
       'googlebooks' => 'Google Books',
-      'wikipedia' => 'Wikipedia',
+      'wikipedia' || 'wikipedia-game' => 'Wikipedia',
+      'wikidata' => 'Wikidata',
+      'link' => 'the link',
       _ => source,
     };

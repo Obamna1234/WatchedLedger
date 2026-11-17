@@ -346,7 +346,10 @@ class DiarySection extends StatelessWidget {
     final theme = Theme.of(context);
     final db = AppScope.of(context).db;
     final again = switch (item.category) {
-      MediaCategory.movie || MediaCategory.series => 'Watched again',
+      MediaCategory.movie ||
+      MediaCategory.series ||
+      MediaCategory.video =>
+        'Watched again',
       MediaCategory.book => 'Read again',
       MediaCategory.audiobook || MediaCategory.podcast => 'Listened again',
       MediaCategory.game => 'Played again',

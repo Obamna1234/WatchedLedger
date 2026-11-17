@@ -31,6 +31,8 @@ MediaItem item(
     genre: genre,
     matchState: MatchState.matched,
     following: false,
+    upcoming: false,
+    isPrivate: false,
     runtimeMinutes: runtime,
     pages: pages,
     rating: rating,

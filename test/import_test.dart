@@ -95,6 +95,8 @@ void main() {
           completedAt: s == ListStatus.done ? DateTime(2026, 3, 4) : null,
           updatedAt: DateTime(2026, 1, 1),
           following: false,
+          upcoming: false,
+          isPrivate: false,
         );
 
     final items = [

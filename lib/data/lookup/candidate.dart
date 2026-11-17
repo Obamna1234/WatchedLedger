@@ -14,6 +14,7 @@ class LookupCandidate {
     this.creator,
     this.coverUrl,
     this.pages,
+    this.link,
   });
 
   final String title;
@@ -24,6 +25,9 @@ class LookupCandidate {
 
   /// Page count (books), when the source gives one.
   final int? pages;
+
+  /// The pasted link this came from (online videos and the like).
+  final String? link;
 
   /// Short source name, e.g. "itunes", "tvmaze", "openlibrary".
   final String source;
@@ -46,6 +50,7 @@ MediaItem applyCandidate(MediaItem item, LookupCandidate c, DateTime now) {
         ? const Value(null)
         : Value(item.coverFile),
     pages: Value(c.pages ?? item.pages),
+    link: Value(c.link ?? item.link),
     source: Value(c.source),
     sourceId: Value(c.sourceId),
     matchState: MatchState.matched,

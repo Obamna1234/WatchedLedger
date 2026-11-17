@@ -6,6 +6,7 @@ import '../lookup/remote_thumb.dart';
 import '../search/list_search.dart';
 import '../../data/tags.dart';
 import '../edit/edit_sections.dart' show progressLabel;
+import '../../core/open_link.dart';
 
 enum _SwipeAction { edit, delete }
 
@@ -124,10 +125,21 @@ class ItemTile extends StatelessWidget {
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
             ),
-      trailing: Checkbox(
-        value: _done,
-        onChanged: (_) => onToggle(),
-        semanticLabel: _done ? 'Mark as not done' : 'Mark as done',
+      trailing: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (item.link != null)
+            IconButton(
+              tooltip: 'Open link',
+              icon: const Icon(Icons.play_circle_outline),
+              onPressed: () => openLink(context, item.link!),
+            ),
+          Checkbox(
+            value: _done,
+            onChanged: (_) => onToggle(),
+            semanticLabel: _done ? 'Mark as not done' : 'Mark as done',
+          ),
+        ],
       ),
       onTap: onEdit,
     );

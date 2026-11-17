@@ -180,6 +180,9 @@ MediaCategory? _categoryFrom(String s) {
     return MediaCategory.series;
   }
   if (v.contains('game')) return MediaCategory.game;
+  if (v.startsWith('video') || v.contains('youtube')) {
+    return MediaCategory.video;
+  }
   if (v.startsWith('audio')) return MediaCategory.audiobook;
   if (v.startsWith('book') || v.startsWith('novel')) return MediaCategory.book;
   if (v.startsWith('podcast')) return MediaCategory.podcast;
@@ -627,6 +630,8 @@ MediaCategory? _categoryInText(String text) {
     if (RegExp(r'(?<!audio ?)\bbooks?\b').hasMatch(t)) MediaCategory.book,
     if (RegExp(r'\bpodcasts?\b').hasMatch(t)) MediaCategory.podcast,
     if (RegExp(r'\bgames?\b').hasMatch(t)) MediaCategory.game,
+    if (RegExp(r'\b(?:videos?|youtube)\b(?! ?games?)').hasMatch(t))
+      MediaCategory.video,
   };
   return hits.length == 1 ? hits.single : null;
 }
