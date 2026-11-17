@@ -58,8 +58,8 @@ class PrivacyPage extends StatelessWidget {
             body(
               'Only two things, and only when lookups are on and Offline mode '
               'is off:\n'
-              '1. The title you type, sent when you add a title or tap '
-              '"Look up details".\n'
+              '1. The title you type, sent when you add a title, import a '
+              'list (one title at a time) or tap "Look up details".\n'
               '2. A request for a cover picture, the first time a cover is '
               'shown. After that it is kept on this device.\n\n'
               'Nothing else is sent: no account, no device ID, no list '

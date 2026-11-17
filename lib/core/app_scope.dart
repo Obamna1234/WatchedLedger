@@ -2,6 +2,7 @@ import 'package:flutter/widgets.dart';
 
 import '../data/covers/cover_cache.dart';
 import '../data/db/database.dart';
+import '../data/lookup/background_matcher.dart';
 import '../data/lookup/lookup_service.dart';
 import 'net/net_client.dart';
 import 'net/network_status.dart';
@@ -17,6 +18,7 @@ class AppScope extends InheritedWidget {
     required this.lookup,
     required this.covers,
     required this.network,
+    this.matcher,
     required super.child,
   });
 
@@ -26,6 +28,9 @@ class AppScope extends InheritedWidget {
   final LookupService lookup;
   final CoverCache covers;
   final NetworkStatus network;
+
+  /// Matches titles saved as typed once lookups are possible (null in tests).
+  final BackgroundMatcher? matcher;
 
   static AppScope of(BuildContext context) {
     final scope = context.dependOnInheritedWidgetOfExactType<AppScope>();
@@ -40,5 +45,6 @@ class AppScope extends InheritedWidget {
       net != oldWidget.net ||
       lookup != oldWidget.lookup ||
       covers != oldWidget.covers ||
-      network != oldWidget.network;
+      network != oldWidget.network ||
+      matcher != oldWidget.matcher;
 }
