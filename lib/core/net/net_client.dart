@@ -151,6 +151,55 @@ class NetClient {
     throw http.ClientException('Too many redirects', url);
   }
 
+  /// Phone-to-phone sync on the home network. Only plain addresses inside
+  /// the private ranges (192.168.x.x, 10.x.x.x, 172.16-31.x.x) are allowed,
+  /// and Offline mode blocks it like everything else. The body is already
+  /// end-to-end encrypted by the caller.
+  static bool isLocalSyncAddress(Uri url) {
+    if (url.scheme != 'http' || url.path != '/sync') return false;
+    if (url.hasQuery || url.hasFragment || url.userInfo.isNotEmpty) {
+      return false;
+    }
+    final parts = url.host.split('.');
+    if (parts.length != 4) return false;
+    final n = [for (final p in parts) int.tryParse(p) ?? -1];
+    if (n.any((x) => x < 0 || x > 255)) return false;
+    return n[0] == 10 ||
+        (n[0] == 192 && n[1] == 168) ||
+        (n[0] == 172 && n[1] >= 16 && n[1] <= 31);
+  }
+
+  static const Duration localTimeout = Duration(seconds: 90);
+  static const int maxLocalBytes = 64 * 1024 * 1024;
+
+  Future<Uint8List> postLocal(Uri url, List<int> body) =>
+      _postLocal(url, body).timeout(localTimeout);
+
+  Future<Uint8List> _postLocal(Uri url, List<int> body) async {
+    if (_isOffline()) throw const OfflineException();
+    if (!isLocalSyncAddress(url)) {
+      throw BlockedRequestException('${url.scheme}://${url.host}');
+    }
+    final request = http.Request('POST', url)
+      ..followRedirects = false
+      ..headers['User-Agent'] = userAgent
+      ..headers['Content-Type'] = 'application/octet-stream'
+      ..bodyBytes = body;
+    final response = await _inner.send(request);
+    if (response.statusCode != 200) {
+      await response.stream.drain<void>();
+      throw http.ClientException('HTTP ${response.statusCode}', url);
+    }
+    final builder = BytesBuilder(copy: false);
+    await for (final chunk in response.stream) {
+      builder.add(chunk);
+      if (builder.length > maxLocalBytes) {
+        throw http.ClientException('Response too large', url);
+      }
+    }
+    return builder.takeBytes();
+  }
+
   /// Fetches and decodes JSON. Returns `null` for an empty body.
   Future<Object?> getJson(Uri url, {int maxBytes = maxJsonBytes}) async {
     final bytes = await getBytes(url, maxBytes: maxBytes);

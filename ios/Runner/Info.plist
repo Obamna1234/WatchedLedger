@@ -68,5 +68,7 @@
 	</array>
 	<key>NSFaceIDUsageDescription</key>
 	<string>Unlock WatchedLedger with Face ID if you turn on the app lock.</string>
+	<key>NSLocalNetworkUsageDescription</key>
+	<string>Sync your lists with another phone on your home Wi-Fi, only when you start a sync.</string>
 </dict>
 </plist>

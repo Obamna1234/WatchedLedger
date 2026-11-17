@@ -106,6 +106,12 @@ class PrivacyPage extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             body(
+              'Phone-to-phone sync: only when you start it, and only on '
+              'your home network (never the internet). Everything sent is '
+              'encrypted with the one-time code shown on the other phone.',
+            ),
+            const SizedBox(height: 8),
+            body(
               'Home screen widget (Android): if you add it, the few titles it '
               "shows are kept in the app's private storage so the widget can "
               'draw them. Remove the widget and they are deleted. While the '

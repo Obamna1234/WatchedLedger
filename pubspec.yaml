@@ -3,7 +3,7 @@ description: Private, offline-first tracker for movies, series, books, audiobook
 publish_to: none
 
 # Version is overridden in CI from the git tag (vX.Y.Z) and a time-based build number.
-version: 0.3.0+1
+version: 1.0.0+1
 
 environment:
   sdk: ^3.10.0

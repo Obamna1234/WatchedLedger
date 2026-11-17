@@ -7,6 +7,7 @@ import '../../core/theme.dart';
 import '../data/data_page.dart';
 import '../lock/lock_settings_page.dart';
 import '../privacy/privacy_page.dart';
+import '../sync/sync_page.dart';
 
 class SettingsPage extends StatelessWidget {
   const SettingsPage({super.key});
@@ -133,6 +134,16 @@ class SettingsPage extends StatelessWidget {
               trailing: const Icon(Icons.chevron_right),
               onTap: () => Navigator.of(context).push(
                 MaterialPageRoute<void>(builder: (_) => const DataPage()),
+              ),
+            ),
+            ListTile(
+              leading: const Icon(Icons.sync),
+              title: const Text('Sync with another phone'),
+              subtitle: const Text('Over your home Wi-Fi, encrypted, no '
+                  'account or server.'),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => Navigator.of(context).push(
+                MaterialPageRoute<void>(builder: (_) => const SyncPage()),
               ),
             ),
             section('About'),

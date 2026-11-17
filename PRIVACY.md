@@ -56,6 +56,8 @@ Backups are encrypted files that you create yourself and save wherever you choos
 
 **Home screen widget (Android, optional):** if you add it, the titles it shows are kept in the app's private storage (outside the encrypted database) so the widget can draw them. Remove the widget and they're deleted. While the app lock is on, the widget shows only "Locked".
 
+**Phone-to-phone sync (optional):** only when you start it, and only on your home network. One phone shows a one-time code; everything sent between the phones is encrypted with it (Argon2id + AES-256-GCM). It talks only to private network addresses (192.168.x.x, 10.x.x.x, 172.16–31.x.x), never the internet, and stops listening after one sync or 5 minutes. Offline mode blocks it too.
+
 **Episode reminders (optional, off by default):** the phone schedules its own notifications for the air dates. There is no push server, account or device token. On a locked screen the notification only says "New episode".
 
 **App lock (optional):** your PIN is stored only as a salted hash (PBKDF2) in the phone's secure storage, never in the database or in backups.
@@ -69,5 +71,6 @@ Backups are encrypted files that you create yourself and save wherever you choos
 | Android | `POST_NOTIFICATIONS` | Only for "new episode" reminders, asked when you switch them on. |
 | Android | `RECEIVE_BOOT_COMPLETED` | Puts reminders back after the phone restarts. |
 | Android | `USE_BIOMETRIC` | Only used if you turn on fingerprint unlock for the app lock. The fingerprint never reaches the app; Android just says yes or no. |
+| iOS | Local Network | Asked the first time you sync with another phone. |
 | iOS | Notifications | Asked only when you switch on "new episode" reminders. |
 | iOS | Face ID | Asked only if you turn on Face ID for the app lock. The app only learns yes or no. |
