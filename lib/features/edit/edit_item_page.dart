@@ -7,9 +7,11 @@ import '../../core/sanitise.dart';
 import '../../data/db/database.dart';
 import '../../data/genres.dart';
 import '../../data/lookup/candidate.dart';
+import '../../data/lookup/more_by.dart';
 import '../../data/models.dart';
 import '../lookup/lookup_sheet.dart';
 import '../lookup/remote_thumb.dart';
+import '../more_by/more_by_page.dart';
 
 /// What happened on the edit screen, so the list can offer Undo.
 sealed class EditOutcome {
@@ -408,6 +410,28 @@ class _EditItemPageState extends State<EditItemPage> {
               inputFormatters: [
                 LengthLimitingTextInputFormatter(kMaxTitleLength),
               ],
+            ),
+            ListenableBuilder(
+              listenable: _creator,
+              builder: (context, _) {
+                final name = cleanText(_creator.text);
+                if (!MoreByService.available(_category, name)) {
+                  return const SizedBox.shrink();
+                }
+                return Align(
+                  alignment: Alignment.centerLeft,
+                  child: TextButton.icon(
+                    icon: const Icon(Icons.person_search_outlined),
+                    label: Text('More by ${MoreByService.primaryName(name)}'),
+                    onPressed: () => Navigator.of(context).push(
+                      MaterialPageRoute<void>(
+                        builder: (_) =>
+                            MoreByPage(creator: name, category: _category),
+                      ),
+                    ),
+                  ),
+                );
+              },
             ),
             gap,
             Text('Your rating', style: theme.textTheme.titleSmall),
