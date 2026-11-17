@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import 'core/app_scope.dart';
 import 'core/lock/app_lock.dart';
+import 'core/reminders.dart';
 import 'core/net/net_client.dart';
 import 'core/net/network_status.dart';
 import 'core/settings.dart';
@@ -24,6 +25,7 @@ class AppServices {
     required this.network,
     required this.matcher,
     this.lock,
+    this.reminders,
   });
 
   final AppDatabase db;
@@ -34,6 +36,7 @@ class AppServices {
   final NetworkStatus network;
   final BackgroundMatcher matcher;
   final AppLock? lock;
+  final ReminderService? reminders;
 }
 
 class WatchedLedgerApp extends StatelessWidget {
@@ -53,6 +56,7 @@ class WatchedLedgerApp extends StatelessWidget {
       network: services.network,
       matcher: services.matcher,
       lock: services.lock,
+      reminders: services.reminders,
       child: ListenableBuilder(
         listenable: settings,
         builder: (context, _) {

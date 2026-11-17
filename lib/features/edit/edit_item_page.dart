@@ -13,6 +13,7 @@ import '../../data/tags.dart';
 import '../lookup/lookup_sheet.dart';
 import '../lookup/remote_thumb.dart';
 import '../more_by/more_by_page.dart';
+import '../episodes/episodes_page.dart';
 import 'edit_sections.dart';
 
 /// What happened on the edit screen, so the list can offer Undo.
@@ -59,6 +60,7 @@ class _EditItemPageState extends State<EditItemPage> {
   late int? _season = widget.item.season;
   late int? _episode = widget.item.episode;
   late List<String> _tags = itemTags(widget.item);
+  late bool _following = widget.item.following;
   late ProgressUnit? _progressUnit = widget.item.progressUnit;
   late int? _progressCurrent = widget.item.progressCurrent;
   late int? _progressTotal = widget.item.progressTotal ??
@@ -126,6 +128,7 @@ class _EditItemPageState extends State<EditItemPage> {
       episode: Value(isSeries ? _episode : null),
       completedAt: Value(completedAt),
       tags: Value(encodeTags(_tags)),
+      following: _following,
       progressUnit: Value(hasProgress ? _progressUnitFor(_category, _progressUnit) : null),
       progressCurrent: Value(hasProgress ? _progressCurrent : null),
       progressTotal: Value(hasProgress ? _progressTotal : null),
@@ -140,6 +143,20 @@ class _EditItemPageState extends State<EditItemPage> {
     await AppScope.of(context).db.updateItem(updated);
     if (!mounted) return;
     Navigator.of(context).pop(EditSaved(previous, updated));
+  }
+
+  /// Episode ticks move the S/E counters; pick those up when coming back.
+  Future<void> _openEpisodes() async {
+    final db = AppScope.of(context).db;
+    await Navigator.of(context).push(MaterialPageRoute<void>(
+        builder: (_) => EpisodesPage(item: widget.item)));
+    final fresh = await db.itemById(widget.item.id);
+    if (!mounted || fresh == null) return;
+    setState(() {
+      _season = fresh.season;
+      _episode = fresh.episode;
+      _following = fresh.following;
+    });
   }
 
   Future<void> _lookUp() async {
@@ -510,6 +527,22 @@ class _EditItemPageState extends State<EditItemPage> {
               }),
             ),
             if (_category == MediaCategory.series) ...[
+              gap,
+              if (widget.item.source == 'tvmaze' && widget.item.sourceId != null)
+                OutlinedButton.icon(
+                  icon: const Icon(Icons.format_list_numbered),
+                  label: Text(_following
+                      ? 'Episodes (following)'
+                      : 'Episodes and reminders'),
+                  onPressed: _openEpisodes,
+                )
+              else
+                Text(
+                  'To tick single episodes and get "new episode" '
+                  'reminders, match this show with TVmaze using "Look up '
+                  'details" above.',
+                  style: theme.textTheme.bodySmall,
+                ),
               gap,
               Text('Progress', style: theme.textTheme.titleSmall),
               const SizedBox(height: 8),

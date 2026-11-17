@@ -373,6 +373,66 @@ class AppDatabase extends _$AppDatabase {
     });
   }
 
+  // ------------------------------------------------------------ episodes
+
+  Stream<List<EpisodeMark>> watchMarks(int itemId) =>
+      (select(episodeMarks)..where((m) => m.itemId.equals(itemId))).watch();
+
+  /// Ticks or unticks episodes, then moves the series' S/E counters to the
+  /// latest ticked episode.
+  Future<void> setEpisodesWatched(
+      int itemId, List<(int, int)> episodes, bool watched,
+      {DateTime? now}) async {
+    final ts = now ?? DateTime.now();
+    await transaction(() async {
+      for (final (season, number) in episodes) {
+        if (watched) {
+          await into(episodeMarks).insertOnConflictUpdate(
+              EpisodeMarksCompanion.insert(
+                  itemId: itemId,
+                  season: season,
+                  number: number,
+                  watchedAt: ts));
+        } else {
+          await (delete(episodeMarks)
+                ..where((m) =>
+                    m.itemId.equals(itemId) &
+                    m.season.equals(season) &
+                    m.number.equals(number)))
+              .go();
+        }
+      }
+      final latest = await (select(episodeMarks)
+            ..where((m) => m.itemId.equals(itemId))
+            ..orderBy([
+              (m) => OrderingTerm.desc(m.season),
+              (m) => OrderingTerm.desc(m.number),
+            ])
+            ..limit(1))
+          .getSingleOrNull();
+      await (update(items)..where((t) => t.id.equals(itemId))).write(
+          ItemsCompanion(
+              season: Value(latest?.season),
+              episode: Value(latest?.number),
+              updatedAt: Value(ts)));
+    });
+  }
+
+  Future<void> setFollowing(int itemId, bool following) async {
+    await (update(items)..where((t) => t.id.equals(itemId))).write(
+        ItemsCompanion(
+            following: Value(following), updatedAt: Value(DateTime.now())));
+  }
+
+  /// Followed series that have a TVmaze ID.
+  Future<List<MediaItem>> followedShows() => (select(items)
+        ..where((t) =>
+            t.following.equals(true) &
+            t.category.equalsValue(MediaCategory.series) &
+            t.source.equals('tvmaze') &
+            t.sourceId.isNotNull()))
+      .get();
+
   // ------------------------------------------------------- tags and goals
 
   /// Every tag used in [category] (or everywhere), sorted.

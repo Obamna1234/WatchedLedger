@@ -96,6 +96,36 @@ class SettingsPage extends StatelessWidget {
                 MaterialPageRoute<void>(builder: (_) => const PrivacyPage()),
               ),
             ),
+            if (scope.reminders case final reminders?) ...[
+              section('Notifications'),
+              SwitchListTile(
+                title: const Text('New episode reminders'),
+                subtitle: const Text(
+                  'For shows you follow (Series → Edit → Episodes). About '
+                  'once a day the app asks TVmaze for their episode lists; '
+                  'the phone then reminds you on the air date.',
+                ),
+                value: settings.episodeReminders,
+                onChanged: (on) async {
+                  if (!on) {
+                    await settings.setEpisodeReminders(false);
+                    await reminders.cancelAll();
+                    return;
+                  }
+                  final allowed = await reminders.requestPermission();
+                  if (!allowed) {
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+                          content: Text('Notifications are blocked for this '
+                              'app in your phone settings.')));
+                    }
+                    return;
+                  }
+                  await settings.setEpisodeReminders(true);
+                  await reminders.run(force: true);
+                },
+              ),
+            ],
             section('Your data'),
             ListTile(
               leading: const Icon(Icons.save_alt),

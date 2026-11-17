@@ -6,6 +6,7 @@ import '../data/lookup/background_matcher.dart';
 import '../data/lookup/lookup_service.dart';
 import 'lock/app_lock.dart';
 import 'net/net_client.dart';
+import 'reminders.dart';
 import 'net/network_status.dart';
 import 'settings.dart';
 
@@ -21,6 +22,7 @@ class AppScope extends InheritedWidget {
     required this.network,
     this.matcher,
     this.lock,
+    this.reminders,
     required super.child,
   });
 
@@ -37,6 +39,9 @@ class AppScope extends InheritedWidget {
   /// Optional PIN / biometric lock (null in tests).
   final AppLock? lock;
 
+  /// "New episode" reminders (null in tests).
+  final ReminderService? reminders;
+
   static AppScope of(BuildContext context) {
     final scope = context.dependOnInheritedWidgetOfExactType<AppScope>();
     assert(scope != null, 'No AppScope above this widget');
@@ -52,5 +57,6 @@ class AppScope extends InheritedWidget {
       covers != oldWidget.covers ||
       network != oldWidget.network ||
       matcher != oldWidget.matcher ||
-      lock != oldWidget.lock;
+      lock != oldWidget.lock ||
+      reminders != oldWidget.reminders;
 }

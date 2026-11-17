@@ -1,8 +1,12 @@
 package app.watchedledger
 
+import android.Manifest
 import android.content.Intent
+import android.content.pm.PackageManager
+import android.os.Build
 import android.os.Bundle
 import android.view.WindowManager
+import androidx.activity.result.contract.ActivityResultContracts
 import io.flutter.embedding.android.FlutterFragmentActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
@@ -13,6 +17,14 @@ class MainActivity : FlutterFragmentActivity() {
     private var pendingShare: String? = null
     private var widgetChannel: MethodChannel? = null
     private var pendingQuickAdd = false
+    private var pendingPermission: MethodChannel.Result? = null
+
+    // Asked only when the user switches episode reminders on.
+    private val notificationPermission =
+        registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+            pendingPermission?.success(granted)
+            pendingPermission = null
+        }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -60,6 +72,33 @@ class MainActivity : FlutterFragmentActivity() {
 
         widgetChannel = MethodChannel(messenger, "watchedledger/widget").apply {
             setMethodCallHandler(widgetHandler())
+        }
+
+        MethodChannel(messenger, "watchedledger/reminders").setMethodCallHandler { call, result ->
+            when (call.method) {
+                "requestPermission" -> {
+                    if (Build.VERSION.SDK_INT < 33 ||
+                        checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) ==
+                        PackageManager.PERMISSION_GRANTED
+                    ) {
+                        result.success(true)
+                    } else {
+                        pendingPermission?.success(false)
+                        pendingPermission = result
+                        notificationPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
+                    }
+                }
+                "schedule" -> {
+                    val list = (call.arguments as? List<*>)?.filterIsInstance<Map<*, *>>() ?: emptyList()
+                    Reminders.schedule(this, list)
+                    result.success(null)
+                }
+                "cancelAll" -> {
+                    Reminders.cancelAll(this)
+                    result.success(null)
+                }
+                else -> result.notImplemented()
+            }
         }
 
         // Share-to-app: Dart asks for the text shared from another app.

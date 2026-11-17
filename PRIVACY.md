@@ -18,6 +18,7 @@ Only these things are ever sent. Each is sent only while **"Look up titles autom
 |---|---|---|
 | The title text you typed | **Movies:** Wikipedia (Wikimedia Foundation), then iTunes. **Series:** TVmaze, then iTunes if TVmaze finds nothing. **Books:** Open Library (Internet Archive), then Google Books. **Audiobooks:** iTunes, then Open Library. **Podcasts:** iTunes; Wikipedia only if the name looks misspelled. | When you add a title, import a list (one title at a time), or tap **Look up details** on the Edit screen |
 | A person's name (director, author or host) | **Movies:** Wikipedia. **Series:** TVmaze. **Books:** Open Library. **Audiobooks and podcasts:** iTunes. | Only when you tap **More by…** on the Edit screen |
+| The TVmaze number of a show | TVmaze | When you open a show's **Episodes** screen, and, only if **New episode reminders** is on, about once a day for the shows you **follow** |
 | A request for a cover image | Those services' image servers (`*.mzstatic.com`, `static.tvmaze.com`, `covers.openlibrary.org` → `*.archive.org`, `books.google.com`, `upload.wikimedia.org`) | The first time a cover is shown. After that it is cached on the device. |
 
 **Mobile data:** by default nothing is fetched on mobile data (**Settings → Use mobile data → Wi-Fi only**). Titles added on mobile data are saved as typed and looked up automatically once the phone is back on Wi-Fi. You can allow lookups only, or everything, on mobile data.
@@ -55,6 +56,8 @@ Backups are encrypted files that you create yourself and save wherever you choos
 
 **Home screen widget (Android, optional):** if you add it, the titles it shows are kept in the app's private storage (outside the encrypted database) so the widget can draw them. Remove the widget and they're deleted. While the app lock is on, the widget shows only "Locked".
 
+**Episode reminders (optional, off by default):** the phone schedules its own notifications for the air dates. There is no push server, account or device token. On a locked screen the notification only says "New episode".
+
 **App lock (optional):** your PIN is stored only as a salted hash (PBKDF2) in the phone's secure storage, never in the database or in backups.
 
 ## Permissions
@@ -63,5 +66,8 @@ Backups are encrypted files that you create yourself and save wherever you choos
 |---|---|---|
 | Android | `INTERNET` | Title lookup and covers. Offline mode switches this use off inside the app. |
 | Android | `ACCESS_NETWORK_STATE` | To tell Wi-Fi from mobile data for the "Use mobile data" setting. It only reads the connection type; no prompt. |
+| Android | `POST_NOTIFICATIONS` | Only for "new episode" reminders, asked when you switch them on. |
+| Android | `RECEIVE_BOOT_COMPLETED` | Puts reminders back after the phone restarts. |
 | Android | `USE_BIOMETRIC` | Only used if you turn on fingerprint unlock for the app lock. The fingerprint never reaches the app; Android just says yes or no. |
+| iOS | Notifications | Asked only when you switch on "new episode" reminders. |
 | iOS | Face ID | Asked only if you turn on Face ID for the app lock. The app only learns yes or no. |
