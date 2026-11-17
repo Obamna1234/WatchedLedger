@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="widget_title">Up next</string>
+    <string name="widget_add">Add a title</string>
+    <string name="widget_description">Your next few titles and a quick add button</string>
+
+    <style name="WidgetRow">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:paddingTop">4dp</item>
+        <item name="android:ellipsize">end</item>
+        <item name="android:maxLines">1</item>
+        <item name="android:textColor">#E6FFFFFF</item>
+        <item name="android:textSize">13sp</item>
+    </style>
+</resources>
