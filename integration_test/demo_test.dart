@@ -136,19 +136,36 @@ void main() {
     await hideKeyboard(t);
     await tap(t, find.text('Save'), after: 1600);
 
-    mark('Search highlights every match, across all your lists.');
+    mark('Not sure what to watch? Pick something from your own list.');
     await tap(t, listSwitch('To Watch'), after: 700);
+    await tap(t, find.byTooltip('Pick something for me'), after: 900);
+    await tap(t, find.text('Pick for me'), after: 1800);
+    await tap(t, find.byTooltip('Back'), after: 700);
+
+    mark('Stats, yearly goals and a diary of everything you finished.');
+    await tap(t, find.byTooltip('Stats'), after: 1600);
+    await tap(t, find.byTooltip('Diary'), after: 1600);
+    await tap(t, find.byTooltip('Back'), after: 500);
+    await tap(t, find.byTooltip('Back'), after: 700);
+
+    mark('Search highlights every match, across all your lists.');
     await tap(t, find.byTooltip('Search'), after: 500);
     await type(t, addField, 'in');
     await hideKeyboard(t);
     await idle(t, 1500);
     await tap(t, find.byTooltip('Close search'), after: 700);
 
-    mark('Light, dark and AMOLED black themes.');
+    mark('Themes, app lock, backups and Wi-Fi sync between phones.');
     await tap(t, find.byTooltip('Settings'), after: 900);
-    await tap(t, find.text('AMOLED black'), after: 1500);
+    await tap(t, find.text('AMOLED black'), after: 1200);
+    await t.timedDrag(visible(find.byType(ListView)).first,
+        const Offset(0, -500), const Duration(milliseconds: 900));
+    await idle(t, 1200);
 
     mark('Private by design: offline mode, no accounts, no tracking.');
+    await t.timedDrag(visible(find.byType(ListView)).first,
+        const Offset(0, 500), const Duration(milliseconds: 600));
+    await idle(t, 400);
     await tap(t, find.text('What leaves this device'), after: 1200);
     await t.timedDrag(visible(find.byType(ListView)).first,
         const Offset(0, -450), const Duration(milliseconds: 900));
