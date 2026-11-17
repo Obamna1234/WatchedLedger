@@ -149,7 +149,7 @@ Future<SyncResult> mergeSync(
       await db.into(db.watchEvents).insert(WatchEventsCompanion.insert(
             itemId: mine.id,
             date: e.date,
-            rating: Value(e.rating == null ? null : e.rating!.clamp(1, 5)),
+            rating: Value(e.rating?.clamp(1, 5)),
             note: Value(e.note),
             uid: Value(e.uid ?? newUid()),
           ));
