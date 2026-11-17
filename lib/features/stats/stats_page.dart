@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../../core/app_scope.dart';
 import '../../data/db/database.dart';
 import '../../data/models.dart';
 import '../../data/stats.dart';
+import '../diary/diary_page.dart';
 
 const _months = ['J', 'F', 'M', 'A', 'M', 'J', 'J', 'A', 'S', 'O', 'N', 'D'];
 
@@ -21,53 +23,240 @@ class _StatsPageState extends State<StatsPage> {
   Widget build(BuildContext context) {
     final db = AppScope.of(context).db;
     return Scaffold(
-      appBar: AppBar(title: const Text('Stats')),
+      appBar: AppBar(
+        title: const Text('Stats'),
+        actions: [
+          IconButton(
+            tooltip: 'Diary',
+            icon: const Icon(Icons.event_note_outlined),
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute<void>(builder: (_) => const DiaryPage()),
+            ),
+          ),
+        ],
+      ),
       body: StreamBuilder<List<MediaItem>>(
         stream: db.watchAll(),
-        builder: (context, snap) {
-          final items = snap.data ?? const <MediaItem>[];
-          final stats = LibraryStats.from(items, year: _year);
-          final years = {DateTime.now().year, ...stats.years}.toList()
-            ..sort((a, b) => b.compareTo(a));
-          return ListView(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
+        builder: (context, snap) => StreamBuilder<List<WatchEvent>>(
+          stream: db.watchAllEvents(),
+          builder: (context, eventSnap) => _body(
+            context,
+            snap.data ?? const <MediaItem>[],
+            eventSnap.data,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _body(
+      BuildContext context, List<MediaItem> items, List<WatchEvent>? events) {
+    final stats = LibraryStats.from(items, year: _year, events: events);
+    final years = {DateTime.now().year, ...stats.years}.toList()
+      ..sort((a, b) => b.compareTo(a));
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
+      children: [
+        SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: Row(
             children: [
-              SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                child: Row(
-                  children: [
-                    for (final y in <int?>[...years, null])
-                      Padding(
-                        padding: const EdgeInsets.only(right: 8),
-                        child: ChoiceChip(
-                          label: Text(y == null ? 'All time' : '$y'),
-                          selected: _year == y,
-                          onSelected: (_) => setState(() => _year = y),
-                        ),
-                      ),
+              for (final y in <int?>[...years, null])
+                Padding(
+                  padding: const EdgeInsets.only(right: 8),
+                  child: ChoiceChip(
+                    label: Text(y == null ? 'All time' : '$y'),
+                    selected: _year == y,
+                    onSelected: (_) => setState(() => _year = y),
+                  ),
+                ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 12),
+        _Headline(stats: stats),
+        if (stats.year != null) ...[
+          const SizedBox(height: 12),
+          _Goals(year: stats.year!, stats: stats),
+        ],
+        const SizedBox(height: 12),
+        _CategoryCounts(stats: stats),
+        if (stats.year != null) ...[
+          const SizedBox(height: 12),
+          _MonthBars(months: stats.finishedByMonth),
+        ],
+        if (stats.topGenres.isNotEmpty) ...[
+          const SizedBox(height: 12),
+          _TopGenres(stats: stats),
+        ],
+        if (stats.year == null && stats.finishedByYear.isNotEmpty) ...[
+          const SizedBox(height: 12),
+          _PerYear(stats: stats),
+        ],
+      ],
+    );
+  }
+}
+
+/// Yearly goals per category ("24 books in 2027").
+class _Goals extends StatefulWidget {
+  const _Goals({required this.year, required this.stats});
+  final int year;
+  final LibraryStats stats;
+
+  @override
+  State<_Goals> createState() => _GoalsState();
+}
+
+class _GoalsState extends State<_Goals> {
+  Map<MediaCategory, int>? _goals;
+  int? _loadedFor;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _load();
+  }
+
+  @override
+  void didUpdateWidget(_Goals old) {
+    super.didUpdateWidget(old);
+    if (old.year != widget.year) _load();
+  }
+
+  Future<void> _load() async {
+    final year = widget.year;
+    if (_loadedFor == year && _goals != null) return;
+    _loadedFor = year;
+    final goals = await AppScope.of(context).db.goalsFor(year);
+    if (mounted && widget.year == year) setState(() => _goals = goals);
+  }
+
+  Future<void> _edit() async {
+    final db = AppScope.of(context).db;
+    final result = await showDialog<Map<MediaCategory, int?>>(
+      context: context,
+      builder: (_) => _GoalDialog(year: widget.year, goals: _goals ?? {}),
+    );
+    if (result == null) return;
+    for (final e in result.entries) {
+      await db.setGoal(e.key, widget.year, e.value);
+    }
+    _loadedFor = null;
+    if (mounted) await _load();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final goals = _goals ?? const {};
+    return _Section(
+      title: 'Goals for ${widget.year}',
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (goals.isEmpty)
+            Text('Set a goal, like "24 books this year".',
+                style: theme.textTheme.bodyMedium),
+          for (final e in goals.entries)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 6),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    '${widget.stats.finishedByCategory[e.key]} of ${e.value} '
+                    '${e.key.tabLabel.toLowerCase()}',
+                    style: theme.textTheme.bodyMedium,
+                  ),
+                  const SizedBox(height: 4),
+                  LinearProgressIndicator(
+                    value: (widget.stats.finishedByCategory[e.key]! / e.value)
+                        .clamp(0.0, 1.0),
+                    minHeight: 8,
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                ],
+              ),
+            ),
+          Align(
+            alignment: Alignment.centerRight,
+            child: TextButton.icon(
+              icon: const Icon(Icons.flag_outlined),
+              label: Text(goals.isEmpty ? 'Set goals' : 'Change goals'),
+              onPressed: _edit,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _GoalDialog extends StatefulWidget {
+  const _GoalDialog({required this.year, required this.goals});
+  final int year;
+  final Map<MediaCategory, int> goals;
+
+  @override
+  State<_GoalDialog> createState() => _GoalDialogState();
+}
+
+class _GoalDialogState extends State<_GoalDialog> {
+  late final Map<MediaCategory, TextEditingController> _fields = {
+    for (final c in MediaCategory.values)
+      c: TextEditingController(text: widget.goals[c]?.toString() ?? ''),
+  };
+
+  @override
+  void dispose() {
+    for (final f in _fields.values) {
+      f.dispose();
+    }
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: Text('Goals for ${widget.year}'),
+      content: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            for (final c in MediaCategory.values)
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 4),
+                child: TextField(
+                  controller: _fields[c],
+                  keyboardType: TextInputType.number,
+                  inputFormatters: [
+                    FilteringTextInputFormatter.digitsOnly,
+                    LengthLimitingTextInputFormatter(4),
                   ],
+                  decoration: InputDecoration(
+                    labelText: c.tabLabel,
+                    hintText: 'No goal',
+                    prefixIcon: Icon(c.icon),
+                    border: const OutlineInputBorder(),
+                  ),
                 ),
               ),
-              const SizedBox(height: 12),
-              _Headline(stats: stats),
-              const SizedBox(height: 12),
-              _CategoryCounts(stats: stats),
-              if (stats.year != null) ...[
-                const SizedBox(height: 12),
-                _MonthBars(months: stats.finishedByMonth),
-              ],
-              if (stats.topGenres.isNotEmpty) ...[
-                const SizedBox(height: 12),
-                _TopGenres(stats: stats),
-              ],
-              if (stats.year == null && stats.finishedByYear.isNotEmpty) ...[
-                const SizedBox(height: 12),
-                _PerYear(stats: stats),
-              ],
-            ],
-          );
-        },
+          ],
+        ),
       ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Cancel'),
+        ),
+        FilledButton(
+          onPressed: () => Navigator.pop(context, {
+            for (final e in _fields.entries) e.key: int.tryParse(e.value.text),
+          }),
+          child: const Text('Save'),
+        ),
+      ],
     );
   }
 }

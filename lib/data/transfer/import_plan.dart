@@ -1,5 +1,3 @@
-import 'dart:convert';
-
 import 'package:drift/drift.dart' show Value;
 
 import '../../core/net/net_client.dart';
@@ -8,6 +6,7 @@ import '../db/database.dart';
 import '../lookup/candidate.dart';
 import '../lookup/lookup_service.dart';
 import '../models.dart';
+import '../tags.dart';
 import 'import_parsers.dart';
 
 /// One line on the review screen: what was read, what the lookup found,
@@ -146,7 +145,7 @@ Future<int> saveImport(AppDatabase db, List<ImportEntry> entries,
                 Value(e.category == MediaCategory.series ? r.episode : null),
             runtimeMinutes: Value(r.runtimeMinutes),
             pages: Value(r.pages ?? m?.pages),
-            tags: Value(r.tags.isEmpty ? null : jsonEncode(r.tags)),
+            tags: Value(encodeTags(r.tags)),
             addedAt: ts,
             updatedAt: ts,
             completedAt: Value(done ? (r.finished ?? ts) : null),
@@ -154,5 +153,7 @@ Future<int> saveImport(AppDatabase db, List<ImportEntry> entries,
       added++;
     }
   });
+  // Finished imports get their diary entry on the finished date.
+  await db.backfillDiary();
   return added;
 }

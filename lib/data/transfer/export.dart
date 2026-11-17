@@ -2,7 +2,10 @@ import 'dart:convert';
 
 import '../db/database.dart';
 import '../models.dart';
+import '../tags.dart';
 import 'csv.dart';
+
+export '../tags.dart' show itemTags;
 
 enum ExportFormat { txt, csv, json }
 
@@ -25,15 +28,6 @@ String _date(DateTime? d) => d == null
     : '${d.year.toString().padLeft(4, '0')}-${d.month.toString().padLeft(2, '0')}'
         '-${d.day.toString().padLeft(2, '0')}';
 
-List<String> itemTags(MediaItem i) {
-  final raw = i.tags;
-  if (raw == null || raw.isEmpty) return const [];
-  try {
-    final decoded = jsonDecode(raw);
-    if (decoded is List) return [for (final t in decoded) if (t is String) t];
-  } catch (_) {}
-  return const [];
-}
 
 List<MediaItem> _sorted(List<MediaItem> items) => [...items]
   ..sort((a, b) {

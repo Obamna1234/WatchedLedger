@@ -65,6 +65,7 @@ Future<ListOptions?> showFilterSheet(
   required MediaCategory category,
   required ListStatus status,
   required Set<String> genresInList,
+  Set<String> tagsInList = const {},
   required Set<int> addedYears,
   required Set<int> completedYears,
 }) {
@@ -77,6 +78,7 @@ Future<ListOptions?> showFilterSheet(
       category: category,
       status: status,
       genresInList: genresInList,
+      tagsInList: tagsInList,
       addedYears: addedYears,
       completedYears: completedYears,
     ),
@@ -89,6 +91,7 @@ class _FilterSheet extends StatefulWidget {
     required this.category,
     required this.status,
     required this.genresInList,
+    required this.tagsInList,
     required this.addedYears,
     required this.completedYears,
   });
@@ -97,6 +100,7 @@ class _FilterSheet extends StatefulWidget {
   final MediaCategory category;
   final ListStatus status;
   final Set<String> genresInList;
+  final Set<String> tagsInList;
   final Set<int> addedYears;
   final Set<int> completedYears;
 
@@ -106,6 +110,7 @@ class _FilterSheet extends StatefulWidget {
 
 class _FilterSheetState extends State<_FilterSheet> {
   late Set<String> _genres = {...widget.options.genres};
+  late Set<String> _tags = {...widget.options.tags};
   late int? _minRating = widget.options.minRating;
   late int? _addedYear = widget.options.addedYear;
   late int? _completedYear = widget.options.completedYear;
@@ -123,6 +128,7 @@ class _FilterSheetState extends State<_FilterSheet> {
 
   ListOptions _result() => widget.options.withFilters(
         genres: _genres,
+        tags: _tags,
         minRating: _minRating,
         yearFrom: int.tryParse(_from.text),
         yearTo: int.tryParse(_to.text),
@@ -200,6 +206,33 @@ class _FilterSheetState extends State<_FilterSheet> {
                               _genres.add(g);
                             } else {
                               _genres.remove(g);
+                            }
+                          }),
+                        ),
+                    ],
+                  ),
+                ),
+              ],
+              if (widget.tagsInList.isNotEmpty || _tags.isNotEmpty) ...[
+                _heading('Tag'),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: Wrap(
+                    spacing: 8,
+                    runSpacing: 4,
+                    children: [
+                      for (final t in ({...widget.tagsInList, ..._tags}.toList()
+                        ..sort((a, b) =>
+                            a.toLowerCase().compareTo(b.toLowerCase()))))
+                        FilterChip(
+                          label: Text('#$t'),
+                          selected: _tags.contains(t),
+                          onSelected: (on) => setState(() {
+                            _tags = {..._tags};
+                            if (on) {
+                              _tags.add(t);
+                            } else {
+                              _tags.remove(t);
                             }
                           }),
                         ),

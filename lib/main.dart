@@ -44,6 +44,9 @@ class _BootAppState extends State<BootApp> {
     final result = await openAppDatabase();
     AppServices? services;
     if (result is DbOpened) {
+      // Diary upkeep: entries for older finished items, none left orphaned.
+      await result.db.tidyOrphans();
+      await result.db.backfillDiary();
       final settings = SettingsController(result.db);
       await settings.load();
       final network = NetworkStatus();

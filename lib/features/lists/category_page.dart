@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import '../../core/app_scope.dart';
 import '../../data/db/database.dart';
 import '../../data/models.dart';
+import '../../data/tags.dart';
 import '../edit/edit_item_page.dart';
 import '../search/list_search.dart';
 import 'fast_scroll_bar.dart';
@@ -94,6 +95,7 @@ class _CategoryPageState extends State<CategoryPage>
       // Year filters for "finished in" make no sense on the other list.
       _options = _options.withFilters(
         genres: _options.genres,
+        tags: _options.tags,
         minRating: _options.minRating,
         yearFrom: _options.yearFrom,
         yearTo: _options.yearTo,
@@ -175,6 +177,9 @@ class _CategoryPageState extends State<CategoryPage>
       category: widget.category,
       status: _status,
       genresInList: {for (final i in items) i.genre},
+      tagsInList: {
+        for (final i in items) ...itemTags(i),
+      },
       addedYears: {for (final i in items) i.addedAt.year},
       completedYears: {
         for (final i in items)

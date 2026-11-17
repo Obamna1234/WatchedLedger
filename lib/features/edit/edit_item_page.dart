@@ -9,9 +9,11 @@ import '../../data/genres.dart';
 import '../../data/lookup/candidate.dart';
 import '../../data/lookup/more_by.dart';
 import '../../data/models.dart';
+import '../../data/tags.dart';
 import '../lookup/lookup_sheet.dart';
 import '../lookup/remote_thumb.dart';
 import '../more_by/more_by_page.dart';
+import 'edit_sections.dart';
 
 /// What happened on the edit screen, so the list can offer Undo.
 sealed class EditOutcome {
@@ -56,6 +58,11 @@ class _EditItemPageState extends State<EditItemPage> {
   late int? _rating = widget.item.rating;
   late int? _season = widget.item.season;
   late int? _episode = widget.item.episode;
+  late List<String> _tags = itemTags(widget.item);
+  late ProgressUnit? _progressUnit = widget.item.progressUnit;
+  late int? _progressCurrent = widget.item.progressCurrent;
+  late int? _progressTotal = widget.item.progressTotal ??
+      (widget.item.progressUnit == null ? widget.item.pages : null);
   late DateTime? _completedAt = widget.item.completedAt;
 
   // Lookup data; changed by "Look up details".
@@ -97,6 +104,9 @@ class _EditItemPageState extends State<EditItemPage> {
     final creator = cleanText(_creator.text);
     final note = cleanText(_note.text, maxLength: kMaxNoteLength);
     final isSeries = _category == MediaCategory.series;
+    final hasProgress = (_category == MediaCategory.book ||
+            _category == MediaCategory.audiobook) &&
+        (_progressCurrent != null || _progressTotal != null);
 
     DateTime? completedAt;
     if (_status == ListStatus.done) {
@@ -115,6 +125,10 @@ class _EditItemPageState extends State<EditItemPage> {
       season: Value(isSeries ? _season : null),
       episode: Value(isSeries ? _episode : null),
       completedAt: Value(completedAt),
+      tags: Value(encodeTags(_tags)),
+      progressUnit: Value(hasProgress ? _progressUnitFor(_category, _progressUnit) : null),
+      progressCurrent: Value(hasProgress ? _progressCurrent : null),
+      progressTotal: Value(hasProgress ? _progressTotal : null),
       coverUrl: Value(_coverUrl),
       coverFile: Value(_coverFile),
       source: Value(_source),
@@ -462,6 +476,39 @@ class _EditItemPageState extends State<EditItemPage> {
                 LengthLimitingTextInputFormatter(kMaxNoteLength),
               ],
             ),
+            gap,
+            TagEditor(
+              tags: _tags,
+              onChanged: (t) => setState(() => _tags = t),
+            ),
+            if (_category == MediaCategory.book ||
+                _category == MediaCategory.audiobook) ...[
+              gap,
+              ProgressEditor(
+                key: ValueKey(_category),
+                category: _category,
+                unit: _progressUnit,
+                current: _progressCurrent,
+                total: _progressTotal,
+                onChanged: (unit, current, total) => setState(() {
+                  final switched = unit != _progressUnit;
+                  _progressUnit = unit;
+                  _progressCurrent = current;
+                  _progressTotal = switched && unit == ProgressUnit.pages
+                      ? widget.item.pages
+                      : total;
+                }),
+              ),
+            ],
+            gap,
+            DiarySection(
+              item: widget.item,
+              onRewatch: (date) => setState(() {
+                _status = ListStatus.done;
+                final c = _completedAt;
+                if (c == null || date.isAfter(c)) _completedAt = date;
+              }),
+            ),
             if (_category == MediaCategory.series) ...[
               gap,
               Text('Progress', style: theme.textTheme.titleSmall),
@@ -535,6 +582,13 @@ class _Counter extends StatelessWidget {
     );
   }
 }
+
+ProgressUnit _progressUnitFor(MediaCategory c, ProgressUnit? chosen) =>
+    c == MediaCategory.audiobook
+        ? ProgressUnit.minutes
+        : (chosen == ProgressUnit.percent
+            ? ProgressUnit.percent
+            : ProgressUnit.pages);
 
 String _sourceLabel(String source) => switch (source) {
       'itunes' => 'iTunes',
