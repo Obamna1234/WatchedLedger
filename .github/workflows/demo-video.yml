@@ -1,0 +1,72 @@
+# Records the real app on an Android emulator, driven by
+# integration_test/demo_test.dart, and uploads the raw screen recording plus
+# scene timestamps. Run it by hand or when the demo test changes.
+name: Demo video
+
+on:
+  push:
+    paths:
+      - 'integration_test/**'
+      - 'tool/demo/**'
+      - '.github/workflows/demo-video.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  record:
+    name: Record demo on Android emulator
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # publishes the recording to the demo-recordings branch
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6.1.0
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2.23.0
+        with:
+          channel: stable
+          flutter-version: '3.47.x'
+          cache: true
+      - name: Bootstrap project
+        run: bash tool/bootstrap.sh
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - name: Run the demo on an emulator and record it
+        uses: ReactiveCircus/android-emulator-runner@c9c93e6ba9c4194322e114c40970d5983d9a07cc # v2.38.0
+        with:
+          api-level: 34
+          target: google_apis
+          arch: x86_64
+          profile: pixel_6
+          disable-animations: false
+          emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim
+          script: bash tool/demo/record.sh
+      - name: Cut the 30-second captioned video
+        if: always()
+        continue-on-error: true
+        run: |
+          command -v ffmpeg || (sudo apt-get update -q && sudo apt-get install -y -q ffmpeg fonts-dejavu-core)
+          python3 -I tool/demo/make_video.py demo-out demo-out/WatchedLedger-demo.mp4
+      - name: Publish to the demo-recordings branch
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          cd demo-out
+          git init -q -b demo-recordings
+          git add -A
+          git -c user.name='github-actions[bot]' \
+              -c user.email='41898282+github-actions[bot]@users.noreply.github.com' \
+              commit -qm "Demo recording from ${GITHUB_SHA::7}"
+          git push -q -f "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" demo-recordings
