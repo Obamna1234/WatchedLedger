@@ -67,6 +67,11 @@ class PrivacyPage extends StatelessWidget {
               'name. Like any internet request, the service can see your IP '
               'address.',
             ),
+            body(
+              'Mobile data: by default nothing is fetched on mobile data '
+              '(Settings > Use mobile data). Titles added then are saved as '
+              'typed and looked up once you are back on Wi-Fi.',
+            ),
             heading('Who receives it'),
             service('Movies', 'Wikipedia (Wikimedia Foundation), then iTunes'),
             service('Series', 'TVmaze, then iTunes Search if needed'),

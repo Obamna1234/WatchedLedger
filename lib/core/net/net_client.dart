@@ -10,6 +10,18 @@ class OfflineException implements Exception {
   String toString() => 'Offline mode is on';
 }
 
+/// Thrown when the phone is on mobile data and the "Use mobile data"
+/// setting doesn't allow this kind of request. Nothing was sent.
+class NotOnWifiException extends OfflineException {
+  const NotOnWifiException();
+  @override
+  String toString() => 'Not on Wi-Fi';
+}
+
+/// What a request is for, so the mobile data setting can allow lookups
+/// (tiny) while holding back cover images (bigger).
+enum NetPurpose { lookup, image }
+
 /// Thrown when a request is refused before sending (not HTTPS, or a host
 /// that isn't on the allowlist).
 class BlockedRequestException implements Exception {
@@ -30,11 +42,18 @@ class BlockedRequestException implements Exception {
 /// Every host here must also be listed on the in-app Privacy page and in
 /// PRIVACY.md.
 class NetClient {
-  NetClient({required bool Function() isOffline, http.Client? inner})
-      : _isOffline = isOffline,
+  NetClient({
+    required bool Function() isOffline,
+    bool Function(NetPurpose purpose)? mayUseConnection,
+    http.Client? inner,
+  })  : _isOffline = isOffline,
+        _mayUseConnection = mayUseConnection ?? _always,
         _inner = inner ?? http.Client();
 
+  static bool _always(NetPurpose _) => true;
+
   final bool Function() _isOffline;
+  final bool Function(NetPurpose purpose) _mayUseConnection;
   final http.Client _inner;
 
   static const Set<String> allowedHosts = {
@@ -64,6 +83,9 @@ class NetClient {
 
   bool get isOffline => _isOffline();
 
+  /// True if a request for [purpose] would be allowed right now.
+  bool mayUse(NetPurpose purpose) => !_isOffline() && _mayUseConnection(purpose);
+
   static bool isAllowed(Uri url) {
     if (url.scheme != 'https') return false;
     if (url.userInfo.isNotEmpty) return false;
@@ -79,13 +101,16 @@ class NetClient {
     Uri url, {
     int maxBytes = maxJsonBytes,
     String accept = 'application/json',
+    NetPurpose purpose = NetPurpose.lookup,
   }) =>
-      _fetch(url, maxBytes, accept).timeout(timeout);
+      _fetch(url, maxBytes, accept, purpose).timeout(timeout);
 
-  Future<Uint8List> _fetch(Uri url, int maxBytes, String accept) async {
+  Future<Uint8List> _fetch(
+      Uri url, int maxBytes, String accept, NetPurpose purpose) async {
     var current = url;
     for (var hop = 0; hop <= _maxRedirects; hop++) {
       if (_isOffline()) throw const OfflineException();
+      if (!_mayUseConnection(purpose)) throw const NotOnWifiException();
       if (!isAllowed(current)) {
         throw BlockedRequestException('${current.scheme}://${current.host}');
       }

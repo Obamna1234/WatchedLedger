@@ -1,11 +1,15 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import 'app.dart';
 import 'core/net/net_client.dart';
+import 'core/net/network_status.dart';
 import 'core/settings.dart';
 import 'core/theme.dart';
 import 'data/covers/cover_cache.dart';
 import 'data/db/open.dart';
+import 'data/lookup/background_matcher.dart';
 import 'data/lookup/lookup_service.dart';
 import 'features/recovery/recovery_page.dart';
 
@@ -40,13 +44,35 @@ class _BootAppState extends State<BootApp> {
     if (result is DbOpened) {
       final settings = SettingsController(result.db);
       await settings.load();
-      final net = NetClient(isOffline: () => settings.offlineMode);
+      final network = NetworkStatus();
+      await network.start();
+      final net = NetClient(
+        isOffline: () => settings.offlineMode,
+        // Wi-Fi is always fine; on mobile data the setting decides.
+        mayUseConnection: (purpose) =>
+            !network.isMetered || settings.mobileData.allows(purpose),
+      );
+      final lookup = LookupService(net);
+      final covers = await CoverCache.open(net);
+      final matcher = BackgroundMatcher(
+        db: result.db,
+        lookup: lookup,
+        covers: covers,
+        net: net,
+        settings: settings,
+      );
+      // Fill in details/covers when the connection or settings allow it.
+      network.addListener(matcher.run);
+      settings.addListener(matcher.run);
+      unawaited(Future<void>.delayed(const Duration(seconds: 3), matcher.run));
       services = AppServices(
         db: result.db,
         settings: settings,
         net: net,
-        lookup: LookupService(net),
-        covers: await CoverCache.open(net),
+        lookup: lookup,
+        covers: covers,
+        network: network,
+        matcher: matcher,
       );
     }
     if (!mounted) return;

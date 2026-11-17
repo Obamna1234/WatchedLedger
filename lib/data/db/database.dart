@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:drift/drift.dart';
 
 import '../../core/sanitise.dart';
@@ -48,6 +50,71 @@ class Items extends Table {
   DateTimeColumn get addedAt => dateTime()();
   DateTimeColumn get completedAt => dateTime().nullable()();
   DateTimeColumn get updatedAt => dateTime()();
+
+  // ------------------------------------------------ added in schema v2
+
+  /// Stable random id, used by phone-to-phone sync.
+  TextColumn get uid => text().nullable()();
+
+  /// When an automatic "match later" lookup was last tried.
+  DateTimeColumn get lookupAttemptedAt => dateTime().nullable()();
+
+  /// Running time (films, episodes, audiobooks) in minutes.
+  IntColumn get runtimeMinutes => integer().nullable()();
+
+  /// Page count (books).
+  IntColumn get pages => integer().nullable()();
+
+  /// Reading / listening progress, e.g. 120 of 310 pages.
+  IntColumn get progressCurrent => integer().nullable()();
+  IntColumn get progressTotal => integer().nullable()();
+  IntColumn get progressUnit => intEnum<ProgressUnit>().nullable()();
+
+  /// Custom tags as a JSON array of strings.
+  TextColumn get tags => text().nullable()();
+
+  /// Series followed for "new episode" reminders.
+  BoolColumn get following => boolean().withDefault(const Constant(false))();
+}
+
+/// One "finished" entry in the diary (rewatches/rereads add more). v2.
+@DataClassName('WatchEvent')
+class WatchEvents extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  IntColumn get itemId => integer()();
+  DateTimeColumn get date => dateTime()();
+  IntColumn get rating => integer().nullable()();
+  TextColumn get note => text().nullable()();
+  TextColumn get uid => text().nullable()();
+}
+
+/// Episodes ticked off for a series. v2.
+@DataClassName('EpisodeMark')
+class EpisodeMarks extends Table {
+  IntColumn get itemId => integer()();
+  IntColumn get season => integer()();
+  IntColumn get number => integer()();
+  DateTimeColumn get watchedAt => dateTime()();
+
+  @override
+  Set<Column<Object>> get primaryKey => {itemId, season, number};
+}
+
+/// Remembers deleted items so sync can delete them on the other phone. v2.
+@DataClassName('Tombstone')
+class Tombstones extends Table {
+  TextColumn get uid => text()();
+  DateTimeColumn get deletedAt => dateTime()();
+
+  @override
+  Set<Column<Object>> get primaryKey => {uid};
+}
+
+String newUid() {
+  final rnd = Random.secure();
+  return List<int>.generate(16, (_) => rnd.nextInt(256))
+      .map((b) => b.toRadixString(16).padLeft(2, '0'))
+      .join();
 }
 
 @DataClassName('SettingEntry')
@@ -59,16 +126,36 @@ class SettingsEntries extends Table {
   Set<Column<Object>> get primaryKey => {settingKey};
 }
 
-@DriftDatabase(tables: [Items, SettingsEntries])
+@DriftDatabase(
+    tables: [Items, SettingsEntries, WatchEvents, EpisodeMarks, Tombstones])
 class AppDatabase extends _$AppDatabase {
   AppDatabase(super.e);
 
   @override
-  int get schemaVersion => 1;
+  int get schemaVersion => 2;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
         onCreate: (m) => m.createAll(),
+        onUpgrade: (m, from, to) async {
+          if (from < 2) {
+            await m.addColumn(items, items.uid);
+            await m.addColumn(items, items.lookupAttemptedAt);
+            await m.addColumn(items, items.runtimeMinutes);
+            await m.addColumn(items, items.pages);
+            await m.addColumn(items, items.progressCurrent);
+            await m.addColumn(items, items.progressTotal);
+            await m.addColumn(items, items.progressUnit);
+            await m.addColumn(items, items.tags);
+            await m.addColumn(items, items.following);
+            await m.createTable(watchEvents);
+            await m.createTable(episodeMarks);
+            await m.createTable(tombstones);
+            await customStatement(
+                'UPDATE items SET uid = lower(hex(randomblob(16))) '
+                'WHERE uid IS NULL');
+          }
+        },
       );
 
   // ---------------------------------------------------------------- items
@@ -119,6 +206,7 @@ class AppDatabase extends _$AppDatabase {
       sortTitle: sortKey(clean),
       matchKey: matchKey(clean),
       typedTitle: Value(typedTitle),
+      uid: Value(newUid()),
       year: Value(year),
       genre: genre == null ? const Value.absent() : Value(genre),
       creator: Value(creator),
@@ -162,6 +250,34 @@ class AppDatabase extends _$AppDatabase {
           ..where((t) => t.category.equalsValue(category)))
         .get();
     return {for (final r in rows) r.genre};
+  }
+
+  Future<MediaItem?> itemById(int id) =>
+      (select(items)..where((t) => t.id.equals(id))).getSingleOrNull();
+
+  /// Unmatched titles that haven't been retried since [notSince].
+  Future<List<MediaItem>> unmatchedToRetry(DateTime notSince, {int limit = 15}) {
+    return (select(items)
+          ..where((t) =>
+              t.matchState.equalsValue(MatchState.unmatched) &
+              (t.lookupAttemptedAt.isNull() |
+                  t.lookupAttemptedAt.isSmallerThanValue(notSince)))
+          ..orderBy([(t) => OrderingTerm.desc(t.addedAt)])
+          ..limit(limit))
+        .get();
+  }
+
+  Future<void> markLookupAttempt(int id, DateTime when) async {
+    await (update(items)..where((t) => t.id.equals(id)))
+        .write(ItemsCompanion(lookupAttemptedAt: Value(when)));
+  }
+
+  /// Items with a cover address but no downloaded cover yet.
+  Future<List<MediaItem>> missingCovers({int limit = 40}) {
+    return (select(items)
+          ..where((t) => t.coverUrl.isNotNull() & t.coverFile.isNull())
+          ..limit(limit))
+        .get();
   }
 
   /// Records the cached cover file for an item (or clears it).

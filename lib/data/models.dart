@@ -8,6 +8,9 @@ enum ListStatus { todo, done }
 
 enum MatchState { unmatched, matched, manual }
 
+/// How reading/listening progress is counted.
+enum ProgressUnit { pages, percent, minutes }
+
 const String kUncategorised = 'Uncategorised';
 
 const List<String> _monthNames = [

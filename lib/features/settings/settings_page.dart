@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../core/app_scope.dart';
 import '../../core/build_info.dart';
+import '../../core/settings.dart';
 import '../../core/theme.dart';
 import '../privacy/privacy_page.dart';
 
@@ -10,7 +11,8 @@ class SettingsPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final settings = AppScope.of(context).settings;
+    final scope = AppScope.of(context);
+    final settings = scope.settings;
     final theme = Theme.of(context);
 
     Widget section(String title) => Padding(
@@ -25,7 +27,7 @@ class SettingsPage extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(title: const Text('Settings')),
       body: ListenableBuilder(
-        listenable: settings,
+        listenable: Listenable.merge([settings, scope.network]),
         builder: (context, _) => ListView(
           children: [
             section('Appearance'),
@@ -36,6 +38,23 @@ class SettingsPage extends StatelessWidget {
                     ? Icon(Icons.check, color: theme.colorScheme.primary)
                     : null,
                 onTap: () => settings.setThemeMode(mode),
+              ),
+            section('Use mobile data'),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 4),
+              child: Text(
+                'Right now: ${scope.network.label}',
+                style: theme.textTheme.bodySmall,
+              ),
+            ),
+            for (final option in MobileDataUse.values)
+              ListTile(
+                title: Text(option.label),
+                subtitle: Text(option.description),
+                trailing: settings.mobileData == option
+                    ? Icon(Icons.check, color: theme.colorScheme.primary)
+                    : null,
+                onTap: () => settings.setMobileData(option),
               ),
             section('Privacy'),
             SwitchListTile(
