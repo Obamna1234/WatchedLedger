@@ -4,6 +4,7 @@ import '../../core/app_scope.dart';
 import '../../core/net/net_client.dart';
 import '../../data/db/database.dart';
 import '../../data/lookup/episodes.dart';
+import 'seasons_view.dart';
 
 /// Tick individual episodes of a series (episode list from TVmaze) and
 /// follow it for "new episode" reminders.
@@ -26,6 +27,7 @@ class _EpisodesPageState extends State<EpisodesPage> {
   }
 
   Future<List<Episode>> _load() {
+    if (!_hasEpisodeList) return Future.value(const <Episode>[]);
     final scope = AppScope.of(context);
     if (!scope.settings.lookupsEnabled) {
       return Future.error(const _LookupsOff());
@@ -49,7 +51,21 @@ class _EpisodesPageState extends State<EpisodesPage> {
   }
 
   @override
+  bool get _hasEpisodeList =>
+      widget.item.source == 'tvmaze' && widget.item.sourceId != null;
+
+  @override
   Widget build(BuildContext context) {
+    if (!_hasEpisodeList) {
+      return Scaffold(
+        appBar: AppBar(title: Text(widget.item.title)),
+        body: ManualSeasons(item: widget.item),
+      );
+    }
+    return _buildTvmaze(context);
+  }
+
+  Widget _buildTvmaze(BuildContext context) {
     final db = AppScope.of(context).db;
     final theme = Theme.of(context);
     return Scaffold(
@@ -103,7 +119,10 @@ class _EpisodesPageState extends State<EpisodesPage> {
               }
               final episodes = snap.data ?? const <Episode>[];
               final now = DateTime.now().toUtc();
-              final rows = <Widget>[header];
+              final rows = <Widget>[
+                WholeShowTile(itemId: widget.item.id),
+                header,
+              ];
               int? season;
               for (var k = 0; k < episodes.length; k++) {
                 final e = episodes[k];

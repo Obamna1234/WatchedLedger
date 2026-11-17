@@ -156,6 +156,8 @@ class _EditItemPageState extends State<EditItemPage> {
       _season = fresh.season;
       _episode = fresh.episode;
       _following = fresh.following;
+      _status = fresh.status;
+      _completedAt = fresh.completedAt;
     });
   }
 
@@ -529,20 +531,22 @@ class _EditItemPageState extends State<EditItemPage> {
             ),
             if (_category == MediaCategory.series) ...[
               gap,
-              if (widget.item.source == 'tvmaze' && widget.item.sourceId != null)
-                OutlinedButton.icon(
-                  icon: const Icon(Icons.format_list_numbered),
-                  label: Text(_following
-                      ? 'Episodes (following)'
-                      : 'Episodes and reminders'),
-                  onPressed: _openEpisodes,
-                )
-              else
-                Text(
-                  'To tick single episodes and get "new episode" '
-                  'reminders, match this show with TVmaze using "Look up '
-                  'details" above.',
-                  style: theme.textTheme.bodySmall,
+              OutlinedButton.icon(
+                icon: const Icon(Icons.format_list_numbered),
+                label: Text(_following
+                    ? 'Seasons & episodes (following)'
+                    : 'Seasons & episodes'),
+                onPressed: _openEpisodes,
+              ),
+              if (widget.item.source != 'tvmaze')
+                Padding(
+                  padding: const EdgeInsets.only(top: 4),
+                  child: Text(
+                    'Tick seasons and episodes by hand. Matching the show '
+                    'with TVmaze ("Look up details") adds the real episode '
+                    'list and "new episode" reminders.',
+                    style: theme.textTheme.bodySmall,
+                  ),
                 ),
               gap,
               Text('Progress', style: theme.textTheme.titleSmall),

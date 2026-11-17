@@ -97,6 +97,26 @@ void main() {
       expect(await db.watchMarks(id).first, hasLength(2));
     });
 
+    test('whole seasons can be ticked without an episode list', () async {
+      final id = await db.addItem(
+          category: MediaCategory.series,
+          status: ListStatus.todo,
+          title: 'Mo');
+      await db.setSeasonWatched(id, 1, true);
+      var item = (await db.itemById(id))!;
+      expect((item.season, item.episode), (1, null));
+
+      await db.setEpisodesWatched(id, [(2, 3)], true);
+      item = (await db.itemById(id))!;
+      expect((item.season, item.episode), (2, 3));
+
+      // Unticking a season clears its episodes too.
+      await db.setSeasonWatched(id, 2, false);
+      item = (await db.itemById(id))!;
+      expect((item.season, item.episode), (1, null));
+      expect(await db.watchMarks(id).first, hasLength(1));
+    });
+
     test('followed shows need a TVmaze match', () async {
       final a = await db.addItem(
           category: MediaCategory.series,
