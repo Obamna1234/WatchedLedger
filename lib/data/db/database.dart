@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:math';
 
 import 'package:drift/drift.dart';
@@ -96,9 +97,6 @@ class Items extends Table {
   BoolColumn get upcoming => boolean().withDefault(const Constant(false))();
   DateTimeColumn get releaseDate => dateTime().nullable()();
 
-  /// Set when moved to "Recently deleted"; emptied after 30 days.
-  DateTimeColumn get deletedAt => dateTime().nullable()();
-
   /// Hidden unless unlocked (needs the app lock).
   BoolColumn get isPrivate => boolean().withDefault(const Constant(false))();
 }
@@ -136,6 +134,20 @@ class Tombstones extends Table {
   Set<Column<Object>> get primaryKey => {uid};
 }
 
+/// "Recently deleted": a full copy of each deleted item (with its diary
+/// entries and episode ticks), kept for 30 days so it can be restored. v3.
+@DataClassName('TrashEntry')
+class Trash extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  IntColumn get itemId => integer()();
+  TextColumn get title => text()();
+  IntColumn get category => intEnum<MediaCategory>()();
+  DateTimeColumn get deletedAt => dateTime()();
+
+  /// JSON: {"item": ..., "events": [...], "marks": [...]}
+  TextColumn get payload => text()();
+}
+
 String newUid() {
   final rnd = Random.secure();
   return List<int>.generate(16, (_) => rnd.nextInt(256))
@@ -160,7 +172,14 @@ class DiaryEntry {
 }
 
 @DriftDatabase(
-    tables: [Items, SettingsEntries, WatchEvents, EpisodeMarks, Tombstones])
+    tables: [
+      Items,
+      SettingsEntries,
+      WatchEvents,
+      EpisodeMarks,
+      Tombstones,
+      Trash,
+    ])
 class AppDatabase extends _$AppDatabase {
   AppDatabase(super.e);
 
@@ -195,8 +214,8 @@ class AppDatabase extends _$AppDatabase {
             await m.addColumn(items, items.whereToWatch);
             await m.addColumn(items, items.upcoming);
             await m.addColumn(items, items.releaseDate);
-            await m.addColumn(items, items.deletedAt);
             await m.addColumn(items, items.isPrivate);
+            await m.createTable(trash);
           }
         },
       );
@@ -658,9 +677,28 @@ class AppDatabase extends _$AppDatabase {
   /// Deletes an item. Its diary entries are kept so Undo can bring the
   /// whole thing back; they are hidden while the item is gone and tidied up
   /// at the next start. A tombstone lets sync delete it on other phones.
-  Future<int> deleteItem(int id) async {
+  Future<int> deleteItem(int id, {DateTime? now}) async {
     return transaction(() async {
       final item = await itemById(id);
+      if (item != null) {
+        final events = await (select(watchEvents)
+              ..where((e) => e.itemId.equals(id)))
+            .get();
+        final marks = await (select(episodeMarks)
+              ..where((m) => m.itemId.equals(id)))
+            .get();
+        await into(trash).insert(TrashCompanion.insert(
+          itemId: id,
+          title: item.title,
+          category: item.category,
+          deletedAt: now ?? DateTime.now(),
+          payload: jsonEncode({
+            'item': item.toJson(),
+            'events': [for (final e in events) e.toJson()],
+            'marks': [for (final m in marks) m.toJson()],
+          }),
+        ));
+      }
       final n = await (delete(items)..where((t) => t.id.equals(id))).go();
       final uid = item?.uid;
       if (n > 0 && uid != null) {
@@ -676,12 +714,95 @@ class AppDatabase extends _$AppDatabase {
     await transaction(() async {
       final current = await itemById(item.id);
       await into(items).insertOnConflictUpdate(item);
+      // Undo of a delete: it's no longer in "Recently deleted".
+      await (delete(trash)..where((t) => t.itemId.equals(item.id))).go();
       if (current != null) await _diaryFollows(current, item);
       final uid = item.uid;
       if (uid != null) {
         await (delete(tombstones)..where((t) => t.uid.equals(uid))).go();
       }
     });
+  }
+
+  // ---------------------------------------------------- recently deleted
+
+  static const Duration keepDeleted = Duration(days: 30);
+
+  Stream<List<TrashEntry>> watchTrash() => (select(trash)
+        ..orderBy([(t) => OrderingTerm.desc(t.deletedAt)]))
+      .watch();
+
+  /// Puts a deleted item back, with its diary entries and episode ticks.
+  /// Returns the item, or null if the entry was unreadable.
+  Future<MediaItem?> restoreFromTrash(int trashId) async {
+    return transaction(() async {
+      final entry = await (select(trash)..where((t) => t.id.equals(trashId)))
+          .getSingleOrNull();
+      if (entry == null) return null;
+      await (delete(trash)..where((t) => t.id.equals(trashId))).go();
+      final Map<String, Object?> data;
+      final MediaItem item;
+      try {
+        data = (jsonDecode(entry.payload) as Map).cast<String, Object?>();
+        item = MediaItem.fromJson({
+          'following': false,
+          'upcoming': false,
+          'isPrivate': false,
+          ...(data['item'] as Map).cast<String, Object?>(),
+        });
+      } catch (_) {
+        return null;
+      }
+      // The id may have been reused by then (unlikely): insert as new.
+      final taken = await itemById(item.id) != null;
+      final id = taken
+          ? await into(items)
+              .insert(item.toCompanion(true).copyWith(id: const Value.absent()))
+          : (await into(items).insertOnConflictUpdate(item), item.id).$2;
+      final uid = item.uid;
+      if (uid != null) {
+        await (delete(tombstones)..where((t) => t.uid.equals(uid))).go();
+      }
+      final events = data['events'];
+      for (final raw in events is List ? events : const []) {
+        try {
+          final e = WatchEvent.fromJson((raw as Map).cast<String, Object?>());
+          final exists = await (select(watchEvents)
+                ..where((x) => x.itemId.equals(id) & x.date.equals(e.date)))
+              .get();
+          if (exists.isEmpty) {
+            await into(watchEvents).insert(WatchEventsCompanion.insert(
+              itemId: id,
+              date: e.date,
+              rating: Value(e.rating),
+              note: Value(e.note),
+              uid: Value(e.uid),
+            ));
+          }
+        } catch (_) {}
+      }
+      final marks = data['marks'];
+      for (final raw in marks is List ? marks : const []) {
+        try {
+          final m = EpisodeMark.fromJson((raw as Map).cast<String, Object?>());
+          await into(episodeMarks)
+              .insertOnConflictUpdate(m.copyWith(itemId: id));
+        } catch (_) {}
+      }
+      return itemById(id);
+    });
+  }
+
+  Future<void> deleteFromTrash(int trashId) =>
+      (delete(trash)..where((t) => t.id.equals(trashId))).go();
+
+  Future<void> emptyTrash() => delete(trash).go();
+
+  /// Forgets deleted items older than 30 days.
+  Future<int> purgeTrash({DateTime? now}) {
+    final cutoff = (now ?? DateTime.now()).subtract(keepDeleted);
+    return (delete(trash)..where((t) => t.deletedAt.isSmallerThanValue(cutoff)))
+        .go();
   }
 
   /// Removes diary entries and episode ticks whose item no longer exists.

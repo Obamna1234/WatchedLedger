@@ -901,7 +901,7 @@ String _titleCase(String s) => s
 
 /// Fills "recommended by", "watch with", "where to watch" and "not out
 /// yet" from the item's note, e.g. "(meat canyon recommendation)",
-/// "(watch with sofia)", "(on plex)", "(waiting to get released)".
+/// "(watch with sam)", "(on plex)", "(waiting to get released)".
 /// The note itself is kept as written.
 ImportRow readHints(ImportRow r) {
   final note = r.note;

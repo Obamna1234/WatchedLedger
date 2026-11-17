@@ -8,6 +8,7 @@ import '../../core/app_scope.dart';
 import '../../data/transfer/backup.dart';
 import '../../data/transfer/export.dart';
 import '../import/import_page.dart';
+import 'backup_reminder.dart';
 
 /// Settings > Your data: export, encrypted backup and restore.
 class DataPage extends StatefulWidget {
@@ -50,15 +51,16 @@ class _DataPageState extends State<DataPage> {
     }
   }
 
-  Future<void> _save(String fileName, Uint8List bytes, String mime) async {
+  Future<bool> _save(String fileName, Uint8List bytes, String mime) async {
     final where = await FilePicker.saveFile(
       fileName: fileName,
       bytes: bytes,
       mimeType: mime,
       dialogTitle: 'Save $fileName',
     );
-    if (!mounted) return;
+    if (!mounted) return false;
     _toast(where == null ? 'Not saved' : 'Saved $fileName');
+    return where != null;
   }
 
   Future<void> _export() async {
@@ -98,8 +100,9 @@ class _DataPageState extends State<DataPage> {
       return encryptBackup(await buildSnapshot(db), password);
     });
     if (bytes == null || !mounted) return;
-    await _save('WatchedLedger-${_today()}.wlbackup', bytes,
+    final saved = await _save('WatchedLedger-${_today()}.wlbackup', bytes,
         'application/octet-stream');
+    if (saved) await markBackedUp(db);
   }
 
   Future<void> _import() async {

@@ -106,10 +106,11 @@ void main() {
         category: MediaCategory.movie, status: ListStatus.done, title: 'Heat');
     for (final c in [
       'link', 'recommended_by', 'watch_with', 'where_to_watch', 'upcoming', //
-      'release_date', 'deleted_at', 'is_private',
+      'release_date', 'is_private',
     ]) {
       await db.customStatement('ALTER TABLE items DROP COLUMN $c');
     }
+    await db.customStatement('DROP TABLE trash');
     await db.customStatement('PRAGMA user_version = 2');
     await db.close();
 

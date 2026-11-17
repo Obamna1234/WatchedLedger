@@ -60,6 +60,7 @@ class _EditItemPageState extends State<EditItemPage> {
       TextEditingController(text: widget.item.recommendedBy ?? '');
   late List<String> _watchWith = decodeTags(widget.item.watchWith);
   late bool _upcoming = widget.item.upcoming;
+  late bool _private = widget.item.isPrivate;
   late DateTime? _releaseDate = widget.item.releaseDate;
   late final TextEditingController _link =
       TextEditingController(text: widget.item.link ?? '');
@@ -144,6 +145,7 @@ class _EditItemPageState extends State<EditItemPage> {
       recommendedBy: Value(cleanPersonOrPlace(_recommendedBy.text)),
       watchWith: Value(encodeTags(_watchWith)),
       upcoming: _upcoming,
+      isPrivate: _private,
       releaseDate: Value(_upcoming ? _releaseDate : null),
       season: Value(isSeries ? _season : null),
       episode: Value(isSeries ? _episode : null),
@@ -606,6 +608,24 @@ class _EditItemPageState extends State<EditItemPage> {
                   },
                 ),
               ),
+            Builder(builder: (context) {
+              final lock = AppScope.of(context).lock;
+              final lockOn = lock?.enabled ?? false;
+              return SwitchListTile(
+                contentPadding: EdgeInsets.zero,
+                secondary: const Icon(Icons.visibility_off_outlined),
+                title: const Text('Private'),
+                subtitle: Text(lockOn
+                    ? 'Hidden until you choose "Show private items" in '
+                        'Settings > App lock (needs your PIN). Never shown '
+                        'in the widget or in shared folders.'
+                    : 'Turn on the app lock first (Settings > App lock).'),
+                value: _private,
+                onChanged: lockOn || _private
+                    ? (v) => setState(() => _private = v)
+                    : null,
+              );
+            }),
             gap,
             TagEditor(
               tags: _tags,

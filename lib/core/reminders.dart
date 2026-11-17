@@ -109,8 +109,7 @@ class ReminderService {
         for (final i in items)
           if (i.upcoming &&
               i.releaseDate != null &&
-              i.releaseDate!.isAfter(now) &&
-              i.deletedAt == null)
+              i.releaseDate!.isAfter(now))
             Reminder(
               0x40000000 | (i.id & 0x3fffffff),
               i.releaseDate!.toUtc(),

@@ -13,6 +13,8 @@ import '../../data/share_parser.dart';
 import '../../data/transfer/folder_share.dart';
 import '../add/add_link.dart';
 import '../add/quick_add_bar.dart';
+import '../data/backup_reminder.dart';
+import '../data/data_page.dart';
 import '../folders/folders_page.dart';
 import '../import/import_page.dart';
 import '../lists/category_page.dart';
@@ -44,6 +46,7 @@ class _HomePageState extends State<HomePage>
   final FocusNode _searchFocus = FocusNode();
   final FocusNode _addFocus = FocusNode();
   HomeWidgetSync? _widgetSync;
+  bool _backupChecked = false;
 
   MediaCategory get _current => MediaCategory.values[_tabs.index];
 
@@ -106,6 +109,16 @@ class _HomePageState extends State<HomePage>
     super.didChangeDependencies();
     final scope = AppScope.of(context);
     // Real app only: screen tests run without the background services.
+    if (!_backupChecked && scope.matcher != null) {
+      _backupChecked = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        unawaited(maybeShowBackupReminder(context, scope.db, () {
+          Navigator.of(context).push(
+              MaterialPageRoute<void>(builder: (_) => const DataPage()));
+        }));
+      });
+    }
     if (_widgetSync == null && scope.matcher != null) {
       _widgetSync = HomeWidgetSync(scope.db, scope.lock)
         ..start(onQuickAdd: _quickAdd);
@@ -364,6 +377,7 @@ class _ElsewhereBarState extends State<_ElsewhereBar> {
         builder: (context, snapshot) {
           final counts = <(MediaCategory, ListStatus), int>{};
           for (final item in snapshot.data ?? const <MediaItem>[]) {
+            if (!AppScope.of(context).isVisible(item)) continue;
             if (item.category == category && item.status == currentStatus) {
               continue;
             }

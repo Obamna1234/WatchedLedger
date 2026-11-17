@@ -29,7 +29,7 @@ class HomeWidgetSync {
   static List<String> linesFor(List<MediaItem> items) {
     final todo = [
       for (final i in items)
-        if (i.status == ListStatus.todo) i,
+        if (i.status == ListStatus.todo && !i.isPrivate) i,
     ]..sort((a, b) => b.addedAt.compareTo(a.addedAt));
     return [
       for (final i in todo.take(rows))

@@ -117,6 +117,21 @@ class LockSettingsPage extends StatelessWidget {
                       : null,
                   onTap: () => lock.setLockAfter(a),
                 ),
+              SwitchListTile(
+                secondary: const Icon(Icons.visibility_outlined),
+                title: const Text('Show private items'),
+                subtitle: const Text('Items marked "Private" stay hidden until '
+                    'you enter your PIN here, and hide again when the app '
+                    'locks.'),
+                value: lock.privateVisible,
+                onChanged: (on) async {
+                  if (!on) {
+                    lock.hidePrivate();
+                  } else if (await _confirmCurrent(context)) {
+                    lock.revealPrivate();
+                  }
+                },
+              ),
               ListTile(
                 leading: const Icon(Icons.lock_clock_outlined),
                 title: const Text('Lock now'),

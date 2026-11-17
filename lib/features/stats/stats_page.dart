@@ -41,7 +41,10 @@ class _StatsPageState extends State<StatsPage> {
           stream: db.watchAllEvents(),
           builder: (context, eventSnap) => _body(
             context,
-            snap.data ?? const <MediaItem>[],
+            [
+              for (final i in snap.data ?? const <MediaItem>[])
+                if (AppScope.of(context).isVisible(i)) i,
+            ],
             eventSnap.data,
           ),
         ),

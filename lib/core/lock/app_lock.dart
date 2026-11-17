@@ -88,9 +88,24 @@ class AppLock extends ChangeNotifier {
   int _fails = 0;
   DateTime? _blockedUntil;
   bool _locked = false;
+  bool _privateVisible = false;
   DateTime? _backgroundedAt;
 
   bool get enabled => _pinRecord != null;
+
+  /// Private items show only after the PIN is entered again ("Show private
+  /// items"), and hide again whenever the app locks.
+  bool get privateVisible => !enabled || _privateVisible;
+
+  void revealPrivate() {
+    _privateVisible = true;
+    notifyListeners();
+  }
+
+  void hidePrivate() {
+    _privateVisible = false;
+    notifyListeners();
+  }
   bool get locked => enabled && _locked;
   LockAfter get lockAfter => _after;
   bool get useBiometrics => _useBiometrics && _biometricsAvailable;
@@ -236,6 +251,7 @@ class AppLock extends ChangeNotifier {
   void lockNow() {
     if (!enabled) return;
     _locked = true;
+    _privateVisible = false;
     notifyListeners();
   }
 
@@ -251,6 +267,7 @@ class AppLock extends ChangeNotifier {
     if (!enabled || since == null) return;
     if (_clock().difference(since) >= _after.duration) {
       _locked = true;
+      _privateVisible = false;
       notifyListeners();
     }
   }

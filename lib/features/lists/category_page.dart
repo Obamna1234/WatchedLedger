@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 
+import 'package:drift/drift.dart' show Value;
 import 'package:flutter/material.dart';
 
 import '../../core/app_scope.dart';
@@ -92,6 +93,7 @@ class _CategoryPageState extends State<CategoryPage>
     if (!mounted) return;
     setState(() {
       _hidden.clear();
+      _selected.clear();
       // Year filters for "finished in" make no sense on the other list.
       _options = _options.withFilters(
         genres: _options.genres,
@@ -135,6 +137,163 @@ class _CategoryPageState extends State<CategoryPage>
     await AppScope.of(context).db.setStatus(item.id, target);
     if (!mounted) return;
     _showUndo('Moved to ${widget.category.labelFor(target)}', item);
+  }
+
+  // ---------------------------------------------------- select several
+
+  final Set<int> _selected = {};
+  List<MediaItem> _shown = const [];
+
+  void _toggleSelected(int id) => setState(() {
+        if (!_selected.remove(id)) _selected.add(id);
+      });
+
+  List<MediaItem> get _selectedItems =>
+      [for (final i in _shown) if (_selected.contains(i.id)) i];
+
+  void _doneSelecting(String message, List<MediaItem> before) {
+    setState(_selected.clear);
+    final db = AppScope.of(context).db;
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(
+        content: Text(message),
+        persist: false,
+        action: SnackBarAction(
+          label: 'Undo',
+          onPressed: () async {
+            for (final i in before) {
+              await db.restoreItem(i);
+            }
+          },
+        ),
+      ));
+  }
+
+  Future<void> _bulkMove() async {
+    final items = _selectedItems;
+    final to = _status == ListStatus.todo ? ListStatus.done : ListStatus.todo;
+    final db = AppScope.of(context).db;
+    for (final i in items) {
+      await db.setStatus(i.id, to);
+    }
+    if (!mounted) return;
+    _doneSelecting(
+        'Moved ${items.length} to ${widget.category.labelFor(to)}', items);
+  }
+
+  Future<void> _bulkDelete() async {
+    final items = _selectedItems;
+    final db = AppScope.of(context).db;
+    for (final i in items) {
+      await db.deleteItem(i.id);
+    }
+    if (!mounted) return;
+    _doneSelecting('Deleted ${items.length} (in Recently deleted for 30 days)',
+        items);
+  }
+
+  Future<void> _bulkCategory() async {
+    final picked = await showModalBottomSheet<MediaCategory>(
+      context: context,
+      showDragHandle: true,
+      builder: (context) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            for (final c in MediaCategory.values)
+              if (c != widget.category)
+                ListTile(
+                  leading: Icon(c.icon),
+                  title: Text('Move to ${c.tabLabel}'),
+                  onTap: () => Navigator.pop(context, c),
+                ),
+          ],
+        ),
+      ),
+    );
+    if (picked == null || !mounted) return;
+    final items = _selectedItems;
+    final db = AppScope.of(context).db;
+    final now = DateTime.now();
+    for (final i in items) {
+      await db.updateItem(i.copyWith(category: picked, updatedAt: now));
+    }
+    if (!mounted) return;
+    _doneSelecting('Moved ${items.length} to ${picked.tabLabel}', items);
+  }
+
+  Future<void> _bulkFolder() async {
+    final db = AppScope.of(context).db;
+    final existing = await db.tagsInUse();
+    if (!mounted) return;
+    final folder = await showDialog<String>(
+      context: context,
+      builder: (_) => _FolderDialog(existing: existing),
+    );
+    if (folder == null || cleanTag(folder).isEmpty || !mounted) return;
+    final items = _selectedItems;
+    final now = DateTime.now();
+    for (final i in items) {
+      await db.updateItem(i.copyWith(
+          tags: Value(encodeTags([...itemTags(i), folder])), updatedAt: now));
+    }
+    if (!mounted) return;
+    _doneSelecting('Added ${items.length} to "${cleanTag(folder)}"', items);
+  }
+
+  Widget _selectionBar(BuildContext context) {
+    final n = _selected.length;
+    final other = widget.category.labelFor(
+        _status == ListStatus.todo ? ListStatus.done : ListStatus.todo);
+    return Material(
+      elevation: 6,
+      color: Theme.of(context).colorScheme.surfaceContainerHigh,
+      child: SafeArea(
+        top: false,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(8, 4, 8, 4),
+          child: Row(
+            children: [
+              IconButton(
+                tooltip: 'Cancel',
+                icon: const Icon(Icons.close),
+                onPressed: () => setState(_selected.clear),
+              ),
+              Expanded(child: Text('$n selected')),
+              IconButton(
+                tooltip: 'Select all',
+                icon: const Icon(Icons.select_all),
+                onPressed: () => setState(
+                    () => _selected.addAll([for (final i in _shown) i.id])),
+              ),
+              IconButton(
+                tooltip: 'Move to $other',
+                icon: Icon(_status == ListStatus.todo
+                    ? Icons.check_circle_outline
+                    : Icons.undo),
+                onPressed: _bulkMove,
+              ),
+              IconButton(
+                tooltip: 'Add to a folder',
+                icon: const Icon(Icons.create_new_folder_outlined),
+                onPressed: _bulkFolder,
+              ),
+              IconButton(
+                tooltip: 'Change category',
+                icon: const Icon(Icons.drive_file_move_outline),
+                onPressed: _bulkCategory,
+              ),
+              IconButton(
+                tooltip: 'Delete',
+                icon: const Icon(Icons.delete_outline),
+                onPressed: _bulkDelete,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   Future<void> _delete(MediaItem item) async {
@@ -291,10 +450,15 @@ class _CategoryPageState extends State<CategoryPage>
               if (snapshot.hasError) {
                 return Center(child: Text('Error: ${snapshot.error}'));
               }
-              final all = snapshot.data;
-              if (all == null) {
+              final raw = snapshot.data;
+              if (raw == null) {
                 return const Center(child: CircularProgressIndicator());
               }
+              final scope = AppScope.of(context);
+              final all = [
+                for (final i in raw)
+                  if (scope.isVisible(i)) i,
+              ];
               final ids = {for (final i in all) i.id};
               _hidden.removeWhere((id) => !ids.contains(id));
               final visible = [
@@ -302,6 +466,8 @@ class _CategoryPageState extends State<CategoryPage>
                   if (!_hidden.contains(i.id)) i,
               ];
               _latest = visible;
+              _shown = visible;
+              _selected.removeWhere((id) => !ids.contains(id));
               if (visible.isEmpty) {
                 _syncSearch(search, const [], const [], itemExtent);
                 return _EmptyState(category: widget.category, status: _status);
@@ -378,6 +544,11 @@ class _CategoryPageState extends State<CategoryPage>
                                         query: query,
                                         isCurrentMatch: widget.isActive &&
                                             index == currentRow,
+                                        selecting: _selected.isNotEmpty,
+                                        selected:
+                                            _selected.contains(r.item.id),
+                                        onSelect: () =>
+                                            _toggleSelected(r.item.id),
                                       ),
                                   },
                                 ),
@@ -403,6 +574,75 @@ class _CategoryPageState extends State<CategoryPage>
               );
             },
           ),
+        ),
+        if (_selected.isNotEmpty) _selectionBar(context),
+      ],
+    );
+  }
+}
+
+/// Asks which folder to add the selected items to.
+class _FolderDialog extends StatefulWidget {
+  const _FolderDialog({required this.existing});
+  final List<String> existing;
+
+  @override
+  State<_FolderDialog> createState() => _FolderDialogState();
+}
+
+class _FolderDialogState extends State<_FolderDialog> {
+  final _name = TextEditingController();
+
+  @override
+  void dispose() {
+    _name.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('Add to a folder'),
+      content: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            TextField(
+              controller: _name,
+              autofocus: widget.existing.isEmpty,
+              maxLength: kMaxTagLength,
+              decoration: const InputDecoration(
+                labelText: 'New folder name',
+                border: OutlineInputBorder(),
+              ),
+              onSubmitted: (v) => Navigator.pop(context, v),
+            ),
+            if (widget.existing.isNotEmpty) ...[
+              const SizedBox(height: 8),
+              Wrap(
+                spacing: 8,
+                runSpacing: 4,
+                children: [
+                  for (final t in widget.existing)
+                    ActionChip(
+                      label: Text(t),
+                      onPressed: () => Navigator.pop(context, t),
+                    ),
+                ],
+              ),
+            ],
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Cancel'),
+        ),
+        FilledButton(
+          onPressed: () => Navigator.pop(context, _name.text),
+          child: const Text('Add'),
         ),
       ],
     );

@@ -46,6 +46,7 @@ class _BootAppState extends State<BootApp> {
     AppServices? services;
     if (result is DbOpened) {
       // Diary upkeep: entries for older finished items, none left orphaned.
+      await result.db.purgeTrash();
       await result.db.tidyOrphans();
       await result.db.backfillDiary();
       final settings = SettingsController(result.db);

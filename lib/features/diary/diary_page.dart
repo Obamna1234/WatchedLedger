@@ -31,7 +31,11 @@ class _DiaryPageState extends State<DiaryPage> {
       body: StreamBuilder<List<DiaryEntry>>(
         stream: db.watchDiary(),
         builder: (context, snap) {
-          final all = snap.data ?? const <DiaryEntry>[];
+          final scope = AppScope.of(context);
+          final all = [
+            for (final e in snap.data ?? const <DiaryEntry>[])
+              if (scope.isVisible(e.item)) e,
+          ];
           // Which entries are re-watches: count earlier entries per item.
           final seen = <int, int>{};
           final rewatch = <int>{};
