@@ -1,10 +1,15 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../core/app_scope.dart';
+import '../../core/share_receiver.dart';
 import '../../data/db/database.dart';
 import '../../data/models.dart';
+import '../../data/share_parser.dart';
 import '../add/quick_add_bar.dart';
+import '../import/import_page.dart';
 import '../lists/category_page.dart';
 import '../picker/picker_page.dart';
 import '../search/list_search.dart';
@@ -41,6 +46,33 @@ class _HomePageState extends State<HomePage>
     for (final n in _statuses.values) {
       n.addListener(_onListSwitched);
     }
+    ShareReceiver.listen(_onShared);
+  }
+
+  /// Something was shared into the app: look it up and confirm.
+  void _onShared(String text) {
+    if (!mounted) return;
+    final shared = parseShared(text);
+    if (shared == null) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text("Couldn't find a title in what was shared.")));
+      return;
+    }
+    final year = shared.year;
+    unawaited(Navigator.of(context)
+        .push<int>(MaterialPageRoute(
+          builder: (_) => ImportPage(
+            initialText:
+                year == null ? shared.title : '${shared.title} ($year)',
+            initialCategory: shared.category ?? _current,
+            autoStart: true,
+          ),
+        ))
+        .then((added) {
+      if (added == null || added == 0 || !mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Added "${shared.title}"')));
+    }));
   }
 
   void _onTabChanged() {

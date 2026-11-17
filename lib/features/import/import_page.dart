@@ -18,10 +18,21 @@ const int _maxImportFileBytes = 10 * 1024 * 1024;
 /// Paste or pick a file -> look titles up -> review -> save.
 /// Pops with the number of titles added.
 class ImportPage extends StatefulWidget {
-  const ImportPage({super.key, this.initialText});
+  const ImportPage({
+    super.key,
+    this.initialText,
+    this.initialCategory,
+    this.autoStart = false,
+  });
 
   /// Text to start with (e.g. something shared into the app).
   final String? initialText;
+
+  /// Category for titles that don't say which one they are.
+  final MediaCategory? initialCategory;
+
+  /// Go straight to lookup + review (used by share-to-app).
+  final bool autoStart;
 
   @override
   State<ImportPage> createState() => _ImportPageState();
@@ -32,7 +43,8 @@ enum _Phase { input, lookingUp, review }
 class _ImportPageState extends State<ImportPage> {
   late final TextEditingController _text =
       TextEditingController(text: widget.initialText ?? '');
-  MediaCategory _category = MediaCategory.movie;
+  late MediaCategory _category =
+      widget.initialCategory ?? MediaCategory.movie;
   _Phase _phase = _Phase.input;
   ImportFormat? _format;
   List<ImportEntry> _entries = [];
@@ -41,6 +53,17 @@ class _ImportPageState extends State<ImportPage> {
   bool _onlyToCheck = false;
   bool _saving = false;
   String? _lookupNote;
+
+  @override
+  void initState() {
+    super.initState();
+    final text = widget.initialText;
+    if (widget.autoStart && text != null && text.trim().isNotEmpty) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) unawaited(_start(text));
+      });
+    }
+  }
 
   @override
   void dispose() {
