@@ -13,6 +13,7 @@ class LookupCandidate {
     this.genre = kUncategorised,
     this.creator,
     this.coverUrl,
+    this.pages,
   });
 
   final String title;
@@ -20,6 +21,9 @@ class LookupCandidate {
   final String genre;
   final String? creator;
   final String? coverUrl;
+
+  /// Page count (books), when the source gives one.
+  final int? pages;
 
   /// Short source name, e.g. "itunes", "tvmaze", "openlibrary".
   final String source;
@@ -41,6 +45,7 @@ MediaItem applyCandidate(MediaItem item, LookupCandidate c, DateTime now) {
     coverFile: coverChanged && c.coverUrl != null
         ? const Value(null)
         : Value(item.coverFile),
+    pages: Value(c.pages ?? item.pages),
     source: Value(c.source),
     sourceId: Value(c.sourceId),
     matchState: MatchState.matched,

@@ -161,7 +161,8 @@ class OpenLibraryProvider extends LookupProvider {
         await net.getJson(Uri.https('openlibrary.org', '/search.json', {
       'q': query,
       'limit': '$_limit',
-      'fields': 'key,title,author_name,first_publish_year,cover_i,subject',
+      'fields': 'key,title,author_name,first_publish_year,cover_i,subject,'
+          'number_of_pages_median',
     }));
     final out = <LookupCandidate>[];
     for (final raw in asList(asMap(json)?['docs'])) {
@@ -179,6 +180,7 @@ class OpenLibraryProvider extends LookupProvider {
         coverUrl: coverId is int && coverId > 0
             ? 'https://covers.openlibrary.org/b/id/$coverId-M.jpg'
             : null,
+        pages: pageCount(d['number_of_pages_median']),
         source: 'openlibrary',
         sourceId: id,
       ));
@@ -223,6 +225,7 @@ class GoogleBooksProvider extends LookupProvider {
         coverUrl: safeImageUrl(images?['thumbnail'])
                 ?.replaceAll('&edge=curl', '') ??
             safeImageUrl(images?['smallThumbnail']),
+        pages: pageCount(info['pageCount']),
         source: 'googlebooks',
         sourceId: id,
       ));

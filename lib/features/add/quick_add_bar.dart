@@ -134,6 +134,7 @@ class _QuickAddBarState extends State<QuickAddBar> {
         genre: picked?.genre,
         creator: picked?.creator,
         coverUrl: picked?.coverUrl,
+        pages: picked?.pages,
         source: picked?.source,
         sourceId: picked?.sourceId,
         matchState: picked != null ? MatchState.matched : matchState,

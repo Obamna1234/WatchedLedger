@@ -6,8 +6,10 @@ import '../../data/db/database.dart';
 import '../../data/models.dart';
 import '../add/quick_add_bar.dart';
 import '../lists/category_page.dart';
+import '../picker/picker_page.dart';
 import '../search/list_search.dart';
 import '../settings/settings_page.dart';
+import '../stats/stats_page.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -102,6 +104,22 @@ class _HomePageState extends State<HomePage>
             tooltip: 'Search',
             icon: const Icon(Icons.search),
             onPressed: _openSearch,
+          ),
+          IconButton(
+            tooltip: 'Pick something for me',
+            icon: const Icon(Icons.casino_outlined),
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute<void>(
+                builder: (_) => PickerPage(startCategory: _current),
+              ),
+            ),
+          ),
+          IconButton(
+            tooltip: 'Stats',
+            icon: const Icon(Icons.bar_chart),
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute<void>(builder: (_) => const StatsPage()),
+            ),
           ),
           IconButton(
             tooltip: 'Settings',
