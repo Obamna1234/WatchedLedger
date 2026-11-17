@@ -89,7 +89,12 @@ Future<Uint8List> encryptBackup(
 
 /// Decrypts a backup file. Throws [BackupPasswordException] for a wrong
 /// password (or a modified file) and [BackupFormatException] otherwise.
-Future<Map<String, Object?>> decryptBackup(Uint8List bytes, String password) {
+Future<Map<String, Object?>> decryptBackup(
+  Uint8List bytes,
+  String password, {
+  int maxMemoryKiB = 262144,
+  int maxIterations = 10,
+}) {
   return Isolate.run(() async {
     final magic = utf8.encode(_magic);
     if (bytes.length < magic.length + 32 ||
@@ -114,7 +119,12 @@ Future<Map<String, Object?>> decryptBackup(Uint8List bytes, String password) {
     }
     final m = header['m'], t = header['t'];
     // Refuse absurd settings so a crafted file can't freeze the phone.
-    if (m is! int || t is! int || m < 1024 || m > 262144 || t < 1 || t > 10) {
+    if (m is! int ||
+        t is! int ||
+        m < 1024 ||
+        m > maxMemoryKiB ||
+        t < 1 ||
+        t > maxIterations) {
       throw const BackupFormatException('bad key settings');
     }
     final List<int> salt, nonce;
@@ -232,6 +242,8 @@ class RestoreResult {
 }
 
 /// Checks and cleans one item from a backup; null if it is unusable.
+MediaItem? cleanSnapshotItem(Object? raw) => _cleanItem(raw);
+
 MediaItem? _cleanItem(Object? raw) {
   if (raw is! Map<String, Object?>) return null;
   final MediaItem item;
@@ -255,6 +267,11 @@ MediaItem? _cleanItem(Object? raw) {
     uid: Value(item.uid ?? newUid()),
   );
 }
+
+/// Reads a list of rows from a snapshot, skipping anything malformed.
+List<T> snapshotList<T>(
+        Object? raw, T Function(Map<String, Object?>) fromJson) =>
+    _list(raw, fromJson);
 
 List<T> _list<T>(Object? raw, T Function(Map<String, Object?>) fromJson) {
   if (raw is! List) return const [];
