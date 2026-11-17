@@ -76,6 +76,10 @@ class _QuickAddBarState extends State<QuickAddBar> {
       } else if (!scope.settings.lookupsEnabled) {
         asTyped = typed;
         matchState = MatchState.manual;
+      } else if (!scope.net.mayUse(NetPurpose.lookup)) {
+        asTyped = typed;
+        note = "You're on mobile data, so it was saved as typed. Details "
+            'will be filled in when you are back on Wi-Fi.';
       } else {
         LookupResult? result;
         try {
@@ -87,7 +91,7 @@ class _QuickAddBarState extends State<QuickAddBar> {
         if (result == null || result.couldNotReach) {
           asTyped = typed;
           note = "Couldn't reach the lookup service, so it was saved as "
-              'typed. You can match it later from Edit.';
+              'typed. It will be matched automatically later.';
         } else {
           picked = LookupService.confidentMatch(typed, result.candidates);
           if (picked == null) {

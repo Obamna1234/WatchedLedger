@@ -10,6 +10,7 @@ import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:watchedledger/core/app_scope.dart';
 import 'package:watchedledger/core/net/net_client.dart';
+import 'package:watchedledger/core/net/network_status.dart';
 import 'package:watchedledger/core/settings.dart';
 import 'package:watchedledger/data/covers/cover_cache.dart';
 import 'package:watchedledger/data/db/database.dart';
@@ -112,6 +113,7 @@ Future<Harness> pumpAddBar(WidgetTester tester, MediaCategory category) async {
     net: net,
     lookup: LookupService(net),
     covers: CoverCache(net, Directory.systemTemp),
+    network: NetworkStatus(),
     child: MaterialApp(
       home: Scaffold(body: QuickAddBar(category: category)),
     ),

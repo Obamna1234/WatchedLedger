@@ -27,6 +27,7 @@ MediaItem item(
     year: year,
     genre: genre,
     matchState: MatchState.unmatched,
+    following: false,
     rating: rating,
     addedAt: t,
     completedAt: completed,

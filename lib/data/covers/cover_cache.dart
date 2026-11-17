@@ -78,6 +78,7 @@ class CoverCache {
         uri,
         maxBytes: NetClient.maxImageBytes,
         accept: 'image/*',
+        purpose: NetPurpose.image,
       );
       if (!looksLikeImage(bytes)) return null;
       final tmp = File('${file.path}.part');
@@ -85,7 +86,7 @@ class CoverCache {
       await tmp.rename(file.path);
       return name;
     } on OfflineException {
-      // Try again later, once Offline mode is switched off.
+      // Try again later (Offline mode switched off / back on Wi-Fi).
       _inFlight.remove(url)?.ignore();
       return null;
     } catch (_) {

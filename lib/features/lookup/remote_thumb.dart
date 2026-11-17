@@ -77,7 +77,10 @@ class _RemoteThumbState extends State<RemoteThumb> {
     if (uri == null) return;
     AppScope.of(context)
         .net
-        .getBytes(uri, maxBytes: NetClient.maxImageBytes, accept: 'image/*')
+        .getBytes(uri,
+            maxBytes: NetClient.maxImageBytes,
+            accept: 'image/*',
+            purpose: NetPurpose.image)
         .then((bytes) {
       if (!CoverCache.looksLikeImage(bytes)) return;
       if (_memory.length > 80) _memory.clear();
@@ -147,7 +150,9 @@ class _ItemCoverState extends State<ItemCover> {
     final url = item.coverUrl;
     if (url == null || item.coverFile != null || _requestedFor == url) return;
     final scope = AppScope.of(context);
-    if (scope.settings.offlineMode) return;
+    // On mobile data with "Wi-Fi only": leave it; the background matcher
+    // downloads missing covers once back on Wi-Fi.
+    if (!scope.net.mayUse(NetPurpose.image)) return;
     _requestedFor = url;
     scope.covers.ensure(url).then((name) {
       if (name != null) scope.db.setCoverFile(item.id, name);

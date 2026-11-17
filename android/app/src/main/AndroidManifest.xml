@@ -1,13 +1,16 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
-    <!-- The ONLY permission: network access for title lookups and covers
+    <!-- Network access for title lookups and covers
          (which the in-app Offline mode can switch off entirely). -->
     <uses-permission android:name="android.permission.INTERNET" />
 
+    <!-- Lets the app tell Wi-Fi from mobile data for the "Use mobile data"
+         setting. Reads the phone's connection state only; no prompt. -->
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+
     <!-- Make sure no library quietly adds tracking-related permissions. -->
     <uses-permission android:name="com.google.android.gms.permission.AD_ID" tools:node="remove" />
-    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" tools:node="remove" />
     <uses-permission android:name="android.permission.READ_PHONE_STATE" tools:node="remove" />
 
     <application

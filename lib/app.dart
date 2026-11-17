@@ -2,10 +2,12 @@ import 'package:flutter/material.dart';
 
 import 'core/app_scope.dart';
 import 'core/net/net_client.dart';
+import 'core/net/network_status.dart';
 import 'core/settings.dart';
 import 'core/theme.dart';
 import 'data/covers/cover_cache.dart';
 import 'data/db/database.dart';
+import 'data/lookup/background_matcher.dart';
 import 'data/lookup/lookup_service.dart';
 import 'features/home/home_page.dart';
 
@@ -17,6 +19,8 @@ class AppServices {
     required this.net,
     required this.lookup,
     required this.covers,
+    required this.network,
+    required this.matcher,
   });
 
   final AppDatabase db;
@@ -24,6 +28,8 @@ class AppServices {
   final NetClient net;
   final LookupService lookup;
   final CoverCache covers;
+  final NetworkStatus network;
+  final BackgroundMatcher matcher;
 }
 
 class WatchedLedgerApp extends StatelessWidget {
@@ -40,6 +46,7 @@ class WatchedLedgerApp extends StatelessWidget {
       net: services.net,
       lookup: services.lookup,
       covers: services.covers,
+      network: services.network,
       child: ListenableBuilder(
         listenable: settings,
         builder: (context, _) {

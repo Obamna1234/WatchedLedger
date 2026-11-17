@@ -4,6 +4,7 @@ import '../data/covers/cover_cache.dart';
 import '../data/db/database.dart';
 import '../data/lookup/lookup_service.dart';
 import 'net/net_client.dart';
+import 'net/network_status.dart';
 import 'settings.dart';
 
 /// Makes the app's services available to every screen.
@@ -15,6 +16,7 @@ class AppScope extends InheritedWidget {
     required this.net,
     required this.lookup,
     required this.covers,
+    required this.network,
     required super.child,
   });
 
@@ -23,6 +25,7 @@ class AppScope extends InheritedWidget {
   final NetClient net;
   final LookupService lookup;
   final CoverCache covers;
+  final NetworkStatus network;
 
   static AppScope of(BuildContext context) {
     final scope = context.dependOnInheritedWidgetOfExactType<AppScope>();
@@ -36,5 +39,6 @@ class AppScope extends InheritedWidget {
       settings != oldWidget.settings ||
       net != oldWidget.net ||
       lookup != oldWidget.lookup ||
-      covers != oldWidget.covers;
+      covers != oldWidget.covers ||
+      network != oldWidget.network;
 }

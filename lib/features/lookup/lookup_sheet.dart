@@ -102,6 +102,11 @@ class _LookupSheetState extends State<_LookupSheet> {
               'Check your connection, or save the title as typed.';
         }
       });
+    } on NotOnWifiException {
+      if (mounted) {
+        setState(() => _problem = "You're on mobile data and lookups are set "
+            'to Wi-Fi only (Settings > Use mobile data).');
+      }
     } on OfflineException {
       if (mounted) {
         setState(() => _problem = 'Offline mode is on, so nothing was looked up.');
