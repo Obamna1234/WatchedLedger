@@ -133,8 +133,8 @@ Agreed staging. Workflows were built first, so every stage produces installable 
 | **2 Title lookup** ✅ | Single network gate (offline mode, HTTPS, host allowlist), TMDB/Open Library/Google Books/iTunes/TVmaze, "Did you mean…?", cover cache, match-later, full privacy page |
 | **3 Search** ✅ | Highlight-all, up/down, "3 of 12", tick from results |
 | **4 Import/export + protection** | Paste/txt/csv import, Samsung Notes helper, review screen, txt/csv/json export, encrypted backup/restore, app lock (PIN/biometric) |
-| **5 Extras** | Random picker, stats, home-screen widgets, share-to-app, AltStore/SideStore source feed |
-| **6 Tracking & sync** (added 2026-11-17) | Rewatch/reread diary, reading & listening progress with yearly goals, custom lists & tags, phone-to-phone sync over home Wi-Fi |
+| **5 Extras** | Smart "Pick something for me", "More by this director/author", stats, home-screen widgets, share-to-app, AltStore/SideStore source feed |
+| **6 Tracking & sync** (added 2026-11-17) | Rewatch/reread diary, reading & listening progress with yearly goals, custom lists & tags, episode tracking with "new episode" reminders, phone-to-phone sync over home Wi-Fi |
 
 ### 12a. Features added 2026-11-17 (owner's choice)
 
@@ -178,9 +178,48 @@ Agreed staging. Workflows were built first, so every stage produces installable 
 - **Permissions:** needs iOS "Local Network" permission and Android local-network access, asked only when sync is turned on.
 - **Caveat:** this is the most complex feature and needs both phones. It is built last.
 
-**Under discussion** (not yet agreed):
-- a smarter "Pick something for me" (length/mood filters)
-- "new episode" alerts
+**Smart "Pick something for me"** (Stage 5)
+- Picks at random from **your own To Watch list only**, entirely on the phone. It is not a recommendation engine: nothing is sent and nothing is profiled.
+- **Filters:**
+  - category
+  - genre
+  - length (e.g. "under 2 hours", "short book", "under 10 hours")
+  - mood: "something light" = comedy, animation, family; "something tense" = thriller, horror, mystery; and similar mappings from genre
+- **Length data:**
+  - Running time, page count and audiobook length are saved during the normal lookup:
+    - Wikipedia/iTunes for films
+    - TVmaze for episode length
+    - Open Library/Google Books for pages
+    - iTunes for audiobook duration
+  - This needs a new `runtimeMinutes` / `pages` column, added by a schema migration with a test.
+  - Existing items are filled in the next time they are looked up.
+- "Pick again" re-rolls the choice, and a picked item can be opened or ticked straight away.
+
+**"More by this director / author"** (Stage 5)
+- On an item's screen, a button lists other works by the same creator:
+  - Wikipedia for directors
+  - Open Library for authors
+  - iTunes for podcast hosts and narrators
+- Only the creator's name is sent; never your list or history.
+- Any result can be added to To Watch in one tap.
+- It is never automatic, and it is listed on the privacy page.
+
+**Episode tracking + "new episode" reminders** (Stage 6)
+- **Following:** follow a series and the app stores its TVmaze show ID.
+- **Episode tracking:**
+  - Tick individual episodes; the season/episode counters update from this.
+  - The full episode list comes from TVmaze (`/shows/{id}/episodes`, no key).
+- **Reminders:**
+  - When the app is opened (and the network setting allows), it asks TVmaze for upcoming episodes of followed shows only.
+  - It then schedules **local notifications** on the phone for those air dates.
+  - There is no push server, no account and no device token. Reminders are set by the phone for itself and fire even if the app isn't opened again before the air date.
+- **Opt-in:**
+  - Off by default.
+  - Notification permission is asked only when it is switched on.
+  - Respects Offline mode and the mobile data setting.
+- **Privacy page:** must state that TVmaze receives the IDs of followed shows (plus the phone's IP address, as with any request), at most about once a day.
+- **Limitation:** if a show announces a surprise release date, it is only noticed the next time the app is opened.
+- **New dependency** (decided when built): `flutter_local_notifications`, or a small native channel instead.
 
 ---
 

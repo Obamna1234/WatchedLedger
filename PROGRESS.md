@@ -67,11 +67,17 @@ Maintained by Claude. Updated at the end of every stage, in the same pull reques
   - encrypted backup and restore
   - app lock (PIN or fingerprint/Face ID)
   - **mobile data setting: Wi-Fi only by default** (new)
-- **Stage 5, extras:** random picker, stats, widgets, share-to-app.
+- **Stage 5, extras:**
+  - smart "Pick something for me" (from your list only; length and mood filters)
+  - "More by this director/author"
+  - stats
+  - widgets
+  - share-to-app
 - **Stage 6, tracking and sync** (new):
   - rewatch/reread diary
   - reading and listening progress, with yearly goals
   - custom lists and tags
+  - episode tracking with "new episode" reminders (local notifications, no account)
   - phone-to-phone sync over home Wi-Fi
 
 ## Waiting on me (owner)
@@ -95,6 +101,10 @@ Maintained by Claude. Updated at the end of every stage, in the same pull reques
 - **2026-11-04 Sort and filter choices** are kept while the app is open and reset when it restarts. They can be made to stick later if wanted.
 - **2026-11-04 Tapping an item opens Edit.** Only the tick box (or a swipe right) ticks it, so you can't tick by accident.
 - **2026-11-04 Repo name** is `Obamna1234/WatchedLedger`. The internal package name stays lowercase `watchedledger`, which Flutter requires.
+- **2026-11-17 Also added:**
+  - **Smart picker** (Stage 5): picks from your own list, on the phone only.
+  - **"More by this director/author"** (Stage 5): only the creator's name is sent.
+  - **Episode tracking and reminders** (Stage 6): opt-in, phone-scheduled reminders, TVmaze sees only followed show IDs.
 - **2026-11-17 New features chosen by the owner:**
   - Stage 4: the mobile data setting (default Wi-Fi only) and imports from Letterboxd, Goodreads, Trakt and IMDb.
   - New Stage 6: rewatch diary, progress and goals, tags, and Wi-Fi phone sync.
