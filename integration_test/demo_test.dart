@@ -163,8 +163,8 @@ void main() {
     await idle(t, 1200);
 
     mark('Private by design: offline mode, no accounts, no tracking.');
-    await t.timedDrag(visible(find.byType(ListView)).first,
-        const Offset(0, 500), const Duration(milliseconds: 600));
+    await t.dragUntilVisible(find.text('What leaves this device'),
+        visible(find.byType(ListView)).first, const Offset(0, 250));
     await idle(t, 400);
     await tap(t, find.text('What leaves this device'), after: 1200);
     await t.timedDrag(visible(find.byType(ListView)).first,
