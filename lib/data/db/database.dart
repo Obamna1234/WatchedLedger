@@ -375,6 +375,9 @@ class AppDatabase extends _$AppDatabase {
 
   // ------------------------------------------------------------ episodes
 
+  Stream<MediaItem?> watchItem(int id) =>
+      (select(items)..where((t) => t.id.equals(id))).watchSingleOrNull();
+
   Stream<List<EpisodeMark>> watchMarks(int itemId) =>
       (select(episodeMarks)..where((m) => m.itemId.equals(itemId))).watch();
 
@@ -402,20 +405,54 @@ class AppDatabase extends _$AppDatabase {
               .go();
         }
       }
-      final latest = await (select(episodeMarks)
-            ..where((m) => m.itemId.equals(itemId))
-            ..orderBy([
-              (m) => OrderingTerm.desc(m.season),
-              (m) => OrderingTerm.desc(m.number),
-            ])
-            ..limit(1))
-          .getSingleOrNull();
-      await (update(items)..where((t) => t.id.equals(itemId))).write(
-          ItemsCompanion(
-              season: Value(latest?.season),
-              episode: Value(latest?.number),
-              updatedAt: Value(ts)));
+      await _countersFollowMarks(itemId, ts);
     });
+  }
+
+  /// Episode number 0 means "the whole season".
+  static const int wholeSeason = 0;
+
+  /// Ticks or unticks a whole season (without needing an episode list).
+  Future<void> setSeasonWatched(int itemId, int season, bool watched,
+      {DateTime? now}) async {
+    final ts = now ?? DateTime.now();
+    await transaction(() async {
+      if (watched) {
+        await into(episodeMarks).insertOnConflictUpdate(
+            EpisodeMarksCompanion.insert(
+                itemId: itemId,
+                season: season,
+                number: wholeSeason,
+                watchedAt: ts));
+      } else {
+        // Unticking a season clears its episodes too.
+        await (delete(episodeMarks)
+              ..where((m) => m.itemId.equals(itemId) & m.season.equals(season)))
+            .go();
+      }
+      await _countersFollowMarks(itemId, ts);
+    });
+  }
+
+  /// The series' S/E counters show the latest season (and episode) ticked.
+  Future<void> _countersFollowMarks(int itemId, DateTime ts) async {
+    final marks = await (select(episodeMarks)
+          ..where((m) => m.itemId.equals(itemId)))
+        .get();
+    int? season, episode;
+    for (final m in marks) {
+      if (season == null || m.season > season) {
+        season = m.season;
+        episode = null;
+      }
+      if (m.season == season && m.number != wholeSeason &&
+          (episode == null || m.number > episode)) {
+        episode = m.number;
+      }
+    }
+    await (update(items)..where((t) => t.id.equals(itemId))).write(
+        ItemsCompanion(
+            season: Value(season), episode: Value(episode), updatedAt: Value(ts)));
   }
 
   Future<void> setFollowing(int itemId, bool following) async {
