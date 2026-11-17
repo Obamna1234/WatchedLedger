@@ -726,11 +726,13 @@ List<ImportRow> rowsFromNote(List<NoteLine> lines) {
       category = MediaCategory.series;
     }
 
-    final status = done ?? groupStatus ?? ListStatus.todo;
+    final status = done == null
+        ? (groupStatus ?? ListStatus.todo)
+        : (done ? ListStatus.done : ListStatus.todo);
     rows.add(ImportRow(
       title: title,
       category: category,
-      status: done == true ? ListStatus.done : status,
+      status: status,
       note: _note(note),
       group: group,
       statusSure: done != null || dash || groupStatus != null,
