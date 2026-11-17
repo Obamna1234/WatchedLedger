@@ -49,6 +49,15 @@ class ItemTile extends StatelessWidget {
           if (item.episode != null) 'E${item.episode}',
         ].join(' '),
       if (item.status == ListStatus.todo) ?progressLabel(item),
+      if (item.upcoming)
+        item.releaseDate == null
+            ? 'not out yet'
+            : 'out ${item.releaseDate!.day}/${item.releaseDate!.month}/'
+                '${item.releaseDate!.year}',
+      if (item.whereToWatch != null) 'on ${item.whereToWatch}',
+      if (decodeTags(item.watchWith) case final w when w.isNotEmpty)
+        'with ${w.join(', ')}',
+      if (item.recommendedBy != null) 'rec. ${item.recommendedBy}',
       if (item.rating != null) '★' * item.rating!,
       if (item.status == ListStatus.done && item.completedAt != null)
         completedLabel(item.category, item.completedAt!),

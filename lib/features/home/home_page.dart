@@ -10,8 +10,10 @@ import '../../data/db/database.dart';
 import '../../data/lookup/link_lookup.dart';
 import '../../data/models.dart';
 import '../../data/share_parser.dart';
+import '../../data/transfer/folder_share.dart';
 import '../add/add_link.dart';
 import '../add/quick_add_bar.dart';
+import '../folders/folders_page.dart';
 import '../import/import_page.dart';
 import '../lists/category_page.dart';
 import '../picker/picker_page.dart';
@@ -57,6 +59,13 @@ class _HomePageState extends State<HomePage>
   /// Something was shared into the app: look it up and confirm.
   void _onShared(String text) {
     if (!mounted) return;
+    // A folder someone shared from WatchedLedger: check it, then add it.
+    if (text.contains(kFolderShareMark)) {
+      unawaited(Navigator.of(context).push<int>(MaterialPageRoute(
+        builder: (_) => ImportPage(initialText: text, autoStart: true),
+      )));
+      return;
+    }
     // Video and music links (YouTube, NewPipe, TikTok, Spotify...) are added
     // from the link itself, with title, channel and thumbnail.
     for (final m in RegExp(r'https?://[^\s<>"]+').allMatches(text)) {
@@ -183,6 +192,13 @@ class _HomePageState extends State<HomePage>
               MaterialPageRoute<void>(
                 builder: (_) => PickerPage(startCategory: _current),
               ),
+            ),
+          ),
+          IconButton(
+            tooltip: 'Folders',
+            icon: const Icon(Icons.folder_outlined),
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute<void>(builder: (_) => const FoldersPage()),
             ),
           ),
           IconButton(

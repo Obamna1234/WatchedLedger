@@ -109,6 +109,15 @@ class MainActivity : FlutterFragmentActivity() {
                         result.success(pendingShare)
                         pendingShare = null
                     }
+                    // Share a folder as plain text through the phone's share menu.
+                    "shareText" -> {
+                        val text = (call.arguments as? String ?: "").take(200000)
+                        val send = Intent(Intent.ACTION_SEND)
+                            .setType("text/plain")
+                            .putExtra(Intent.EXTRA_TEXT, text)
+                        startActivity(Intent.createChooser(send, null))
+                        result.success(null)
+                    }
                     else -> result.notImplemented()
                 }
             }

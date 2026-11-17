@@ -24,10 +24,16 @@ class ImportRow {
     this.episode,
     this.group,
     this.statusSure = true,
+    this.recommendedBy,
+    this.whereToWatch,
+    this.upcoming = false,
+    this.link,
+    List<String>? watchWith,
     List<String>? tags,
     Map<int, bool>? seasons,
   })  : tags = tags ?? [],
-        seasons = seasons ?? {};
+        seasons = seasons ?? {},
+        watchWith = watchWith ?? [];
 
   String title;
   MediaCategory? category;
@@ -50,6 +56,12 @@ class ImportRow {
   /// heading); the check screen asks the user to confirm those.
   bool statusSure;
 
+  String? recommendedBy;
+  String? whereToWatch;
+  String? link;
+  bool upcoming;
+  final List<String> watchWith;
+
   /// Seasons mentioned for a series ("Mo season 1" ✓) -> watched or not.
   final Map<int, bool> seasons;
 
@@ -70,6 +82,7 @@ enum ImportFormat {
   trakt,
   genericCsv,
   samsungNotes,
+  sharedFolder,
 }
 
 extension ImportFormatLabel on ImportFormat {
@@ -83,6 +96,7 @@ extension ImportFormatLabel on ImportFormat {
         ImportFormat.trakt => 'Trakt export',
         ImportFormat.genericCsv => 'Spreadsheet (CSV)',
         ImportFormat.samsungNotes => 'Samsung Notes file',
+        ImportFormat.sharedFolder => 'Folder shared from WatchedLedger',
       };
 }
 
@@ -98,7 +112,8 @@ const int _maxNote = kMaxNoteLength;
 /// Works out what kind of text/file this is and reads every title from it.
 ImportParseResult parseImport(String text, {String? fileName}) {
   final r = _parseImport(text, fileName: fileName);
-  return ImportParseResult(r.format, mergeSeasons(r.rows));
+  return ImportParseResult(
+      r.format, mergeSeasons([for (final row in r.rows) readHints(row)]));
 }
 
 ImportParseResult _parseImport(String text, {String? fileName}) {
@@ -423,16 +438,70 @@ final RegExp _heading = RegExp(
 final RegExp _ourExtras = RegExp(
     r'(\s*\((?:18|19|20)\d{2}\))?(\s*★{1,5})?(\s+-\s+(?:Watched|Read|Listened|Played) \w+ \d{4})?(\s+-\s+"(.*)")?\s*$');
 
+final RegExp _folderHeader =
+    RegExp(r'^\s*"(.{1,60})"\s*\(from WatchedLedger\)\s*$');
+final RegExp _bareLink = RegExp(r'^https?://\S+$');
+
+/// One line of a shared folder: "• Title (2014) · movie · on Netflix · link".
+ImportRow? _folderLine(String line, String folder) {
+  final t = line.replaceFirst(RegExp(r'^\s*[\u2022*-]\s*'), '');
+  final parts = [for (final p in t.split(' \u00B7 ')) p.trim()];
+  if (parts.isEmpty) return null;
+  var title = parts.first;
+  int? year;
+  final ym = _yearInBrackets.firstMatch(title);
+  if (ym != null) {
+    year = _year(ym.group(1));
+    title = title.substring(0, ym.start);
+  }
+  MediaCategory? category;
+  String? where, link;
+  for (final p in parts.skip(1)) {
+    if (_bareLink.hasMatch(p)) {
+      link = cleanLink(p);
+    } else if (p.startsWith('on ')) {
+      where = cleanText(p.substring(3), maxLength: 60);
+    } else {
+      category ??= MediaCategory.values
+          .where((c) => c.singular == p.toLowerCase())
+          .firstOrNull;
+    }
+  }
+  final clean = cleanTitle(title);
+  if (clean.isEmpty) return null;
+  return ImportRow(
+    title: clean,
+    category: category,
+    year: year,
+    whereToWatch: where,
+    link: link,
+    group: folder,
+    tags: [folder],
+  );
+}
+
 ImportParseResult _fromLines(String text) {
   final rows = <ImportRow>[];
   MediaCategory? category;
   ListStatus? sectionStatus;
   String? group;
   var sawOurHeader = false;
+  String? folder;
   for (final rawLine in const LineSplitter().convert(text)) {
     if (rows.length >= maxImportRows) break;
     var line = rawLine.replaceAll('\t', ' ');
     if (line.trim().isEmpty) continue;
+    final fh = _folderHeader.firstMatch(line);
+    if (fh != null) {
+      folder = cleanText(fh.group(1)!, maxLength: 40);
+      continue;
+    }
+    if (line.startsWith('Shared from WatchedLedger')) continue;
+    if (folder != null) {
+      final row = _folderLine(line, folder);
+      if (row != null) rows.add(row);
+      continue;
+    }
     if (line.startsWith('WatchedLedger export')) {
       sawOurHeader = true;
       continue;
@@ -511,7 +580,11 @@ ImportParseResult _fromLines(String text) {
     ));
   }
   return ImportParseResult(
-    sawOurHeader ? ImportFormat.watchedLedgerText : ImportFormat.lines,
+    folder != null
+        ? ImportFormat.sharedFolder
+        : sawOurHeader
+            ? ImportFormat.watchedLedgerText
+            : ImportFormat.lines,
     rows,
   );
 }
@@ -610,6 +683,10 @@ List<ImportRow> mergeSeasons(List<ImportRow> rows) {
       statusSure: r.statusSure,
       tags: r.tags,
       seasons: {season: r.status == ListStatus.done},
+      recommendedBy: r.recommendedBy,
+      whereToWatch: r.whereToWatch,
+      upcoming: r.upcoming,
+      watchWith: [...r.watchWith],
     );
     byKey[key] = merged;
     out.add(merged);
@@ -729,14 +806,14 @@ List<ImportRow> rowsFromNote(List<NoteLine> lines) {
     final status = done == null
         ? (groupStatus ?? ListStatus.todo)
         : (done ? ListStatus.done : ListStatus.todo);
-    rows.add(ImportRow(
+    rows.add(readHints(ImportRow(
       title: title,
       category: category,
       status: status,
       note: _note(note),
       group: group,
       statusSure: done != null || dash || groupStatus != null,
-    ));
+    )));
   }
   return mergeSeasons(rows);
 }
@@ -789,4 +866,70 @@ String _utf16(Uint8List b, int start, {required bool little}) {
       data.getUint16(i, little ? Endian.little : Endian.big),
   ];
   return String.fromCharCodes(units);
+}
+
+// ------------------------------------------------------ hints in notes
+
+final RegExp _recommendation = RegExp(
+    r'(?:^|[\s,;(])(?:recommended by|suggested by|rec(?:ommended)?\.? by)\s+([^,;()]{2,40})|'
+    r"(?:^|[\s,;(])([A-Za-z][\w' .-]{1,40}?)\s*(?:'s)?\s+(?:recommendation|recommends?|recommended|suggestion)\b",
+    caseSensitive: false);
+final RegExp _watchWith = RegExp(
+    r"\b(?:watch|read|play|listen)(?:ing)? (?:it )?with\s+([A-Za-z][\w'-]{1,30}(?:\s+and\s+[A-Za-z][\w'-]{1,30})?)",
+    caseSensitive: false);
+final RegExp _upcomingWords = RegExp(
+    r'waiting (?:for it )?to (?:get )?(?:be )?release|not (?:out|released) yet|'
+    r'coming soon|unreleased|upcoming|comes out|releas(?:es|ing) (?:in|on|next)',
+    caseSensitive: false);
+const Map<String, String> _services = {
+  'netflix': 'Netflix', 'stan': 'Stan', 'plex': 'Plex', 'binge': 'Binge',
+  'foxtel': 'Foxtel', 'prime video': 'Prime Video', 'amazon prime': 'Prime Video',
+  'disney+': 'Disney+', 'disney plus': 'Disney+', 'youtube': 'YouTube',
+  'steam': 'Steam', 'sbs': 'SBS On Demand', 'abc iview': 'ABC iview',
+  'iview': 'ABC iview', 'apple tv': 'Apple TV+', 'paramount': 'Paramount+',
+  'hbo': 'HBO', 'crunchyroll': 'Crunchyroll', 'shudder': 'Shudder',
+  'svt play': 'SVT Play', '9now': '9Now', '10 play': '10 Play',
+  '10play': '10 Play', '7plus': '7plus', 'kayo': 'Kayo', 'audible': 'Audible',
+  'spotify': 'Spotify', 'kindle': 'Kindle', 'hulu': 'Hulu',
+};
+
+String _titleCase(String s) => s
+    .trim()
+    .split(RegExp(r'\s+'))
+    .map((w) => w.isEmpty ? w : '${w[0].toUpperCase()}${w.substring(1)}')
+    .join(' ');
+
+/// Fills "recommended by", "watch with", "where to watch" and "not out
+/// yet" from the item's note, e.g. "(meat canyon recommendation)",
+/// "(watch with sofia)", "(on plex)", "(waiting to get released)".
+/// The note itself is kept as written.
+ImportRow readHints(ImportRow r) {
+  final note = r.note;
+  if (note == null || note.isEmpty) return r;
+  final rec = _recommendation.firstMatch(note);
+  final name = rec?.group(1) ?? rec?.group(2);
+  if (name != null && r.recommendedBy == null) {
+    final cleaned = cleanText(name, maxLength: 40);
+    if (cleaned.isNotEmpty) r.recommendedBy = _titleCase(cleaned);
+  }
+  final ww = _watchWith.firstMatch(note);
+  if (ww != null) {
+    for (final n in ww.group(1)!.split(RegExp(r'\s+and\s+'))) {
+      final c = cleanText(n, maxLength: 40);
+      if (c.isNotEmpty && !r.watchWith.contains(_titleCase(c))) {
+        r.watchWith.add(_titleCase(c));
+      }
+    }
+  }
+  if (r.whereToWatch == null) {
+    final lower = ' ${note.toLowerCase()} ';
+    for (final MapEntry(key: k, value: v) in _services.entries) {
+      if (RegExp('[^a-z0-9]${RegExp.escape(k)}[^a-z0-9]').hasMatch(lower)) {
+        r.whereToWatch = v;
+        break;
+      }
+    }
+  }
+  if (_upcomingWords.hasMatch(note)) r.upcoming = true;
+  return r;
 }

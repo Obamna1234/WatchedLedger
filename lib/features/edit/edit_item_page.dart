@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:drift/drift.dart' show Value;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -52,6 +54,13 @@ class _EditItemPageState extends State<EditItemPage> {
       TextEditingController(text: widget.item.genre);
   late final TextEditingController _creator =
       TextEditingController(text: widget.item.creator ?? '');
+  late final TextEditingController _where =
+      TextEditingController(text: widget.item.whereToWatch ?? '');
+  late final TextEditingController _recommendedBy =
+      TextEditingController(text: widget.item.recommendedBy ?? '');
+  late List<String> _watchWith = decodeTags(widget.item.watchWith);
+  late bool _upcoming = widget.item.upcoming;
+  late DateTime? _releaseDate = widget.item.releaseDate;
   late final TextEditingController _link =
       TextEditingController(text: widget.item.link ?? '');
   late final TextEditingController _note =
@@ -87,6 +96,8 @@ class _EditItemPageState extends State<EditItemPage> {
     _creator.dispose();
     _note.dispose();
     _link.dispose();
+    _where.dispose();
+    _recommendedBy.dispose();
     super.dispose();
   }
 
@@ -129,6 +140,11 @@ class _EditItemPageState extends State<EditItemPage> {
       rating: Value(_rating),
       note: Value(note.isEmpty ? null : note),
       link: Value(cleanLink(_link.text)),
+      whereToWatch: Value(cleanPersonOrPlace(_where.text)),
+      recommendedBy: Value(cleanPersonOrPlace(_recommendedBy.text)),
+      watchWith: Value(encodeTags(_watchWith)),
+      upcoming: _upcoming,
+      releaseDate: Value(_upcoming ? _releaseDate : null),
       season: Value(isSeries ? _season : null),
       episode: Value(isSeries ? _episode : null),
       completedAt: Value(completedAt),
@@ -145,7 +161,14 @@ class _EditItemPageState extends State<EditItemPage> {
       updatedAt: now,
     );
 
-    await AppScope.of(context).db.updateItem(updated);
+    final scope = AppScope.of(context);
+    await scope.db.updateItem(updated);
+    final reminders = scope.reminders;
+    if (reminders != null &&
+        (updated.upcoming || previous.upcoming) &&
+        updated.releaseDate != previous.releaseDate) {
+      unawaited(reminders.run());
+    }
     if (!mounted) return;
     Navigator.of(context).pop(EditSaved(previous, updated));
   }
@@ -522,6 +545,67 @@ class _EditItemPageState extends State<EditItemPage> {
                   : 'That doesn\u2019t look like a web link',
               inputFormatters: [LengthLimitingTextInputFormatter(2000)],
             ),
+            gap,
+            WhereField(controller: _where),
+            gap,
+            TextFormField(
+              controller: _recommendedBy,
+              textCapitalization: TextCapitalization.words,
+              inputFormatters: [LengthLimitingTextInputFormatter(60)],
+              decoration: const InputDecoration(
+                labelText: 'Recommended by (optional)',
+                prefixIcon: Icon(Icons.record_voice_over_outlined),
+                border: OutlineInputBorder(),
+              ),
+            ),
+            gap,
+            TagEditor(
+              title: 'Watch with',
+              hint: 'Add a name',
+              icon: Icons.group_outlined,
+              tags: _watchWith,
+              suggestions: (db) => db.peopleInUse(),
+              onChanged: (t) => setState(() => _watchWith = t),
+            ),
+            gap,
+            SwitchListTile(
+              contentPadding: EdgeInsets.zero,
+              secondary: const Icon(Icons.hourglass_top),
+              title: const Text('Not out yet'),
+              subtitle: Text(!_upcoming
+                  ? 'Keeps it in a "Not out yet" group at the top.'
+                  : _releaseDate == null
+                      ? 'Tap the date to add when it comes out.'
+                      : 'Expected ${_releaseDate!.day}/${_releaseDate!.month}/'
+                          '${_releaseDate!.year}. With reminders on, the '
+                          'phone reminds you that day.'),
+              value: _upcoming,
+              onChanged: (v) => setState(() => _upcoming = v),
+            ),
+            if (_upcoming)
+              Align(
+                alignment: Alignment.centerLeft,
+                child: OutlinedButton.icon(
+                  icon: const Icon(Icons.event_outlined),
+                  label: Text(_releaseDate == null
+                      ? 'Add release date'
+                      : 'Release date: ${_releaseDate!.day}/'
+                          '${_releaseDate!.month}/${_releaseDate!.year}'),
+                  onPressed: () async {
+                    final now = DateTime.now();
+                    final picked = await showDatePicker(
+                      context: context,
+                      initialDate: _releaseDate ?? now,
+                      firstDate: DateTime(now.year - 1),
+                      lastDate: DateTime(now.year + 10),
+                    );
+                    if (picked != null && mounted) {
+                      setState(() => _releaseDate =
+                          DateTime(picked.year, picked.month, picked.day, 9));
+                    }
+                  },
+                ),
+              ),
             gap,
             TagEditor(
               tags: _tags,

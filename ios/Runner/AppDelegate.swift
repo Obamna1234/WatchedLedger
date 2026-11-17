@@ -20,6 +20,40 @@ import UserNotifications
         EpisodeReminders.handle(call, result: result)
       }
     }
+    if let registrar = engineBridge.pluginRegistry.registrar(forPlugin: "WatchedLedgerShare") {
+      let channel = FlutterMethodChannel(
+        name: "watchedledger/share", binaryMessenger: registrar.messenger())
+      channel.setMethodCallHandler { call, result in
+        guard call.method == "shareText", let text = call.arguments as? String else {
+          result(FlutterMethodNotImplemented)
+          return
+        }
+        ShareOut.present(String(text.prefix(200000)))
+        result(nil)
+      }
+    }
+  }
+}
+
+/// Shares a folder as plain text through the iPhone share sheet.
+enum ShareOut {
+  static func present(_ text: String) {
+    DispatchQueue.main.async {
+      let scenes = UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }
+      guard let root = scenes.flatMap({ $0.windows }).first(where: { $0.isKeyWindow })?
+        .rootViewController
+      else { return }
+      var top = root
+      while let next = top.presentedViewController { top = next }
+      let sheet = UIActivityViewController(activityItems: [text], applicationActivities: nil)
+      if let popover = sheet.popoverPresentationController {
+        popover.sourceView = top.view
+        popover.sourceRect = CGRect(
+          x: top.view.bounds.midX, y: top.view.bounds.midY, width: 0, height: 0)
+        popover.permittedArrowDirections = []
+      }
+      top.present(sheet, animated: true)
+    }
   }
 }
 

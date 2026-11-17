@@ -8,9 +8,23 @@ import '../../data/tags.dart';
 
 /// Tag chips with an "add tag" box that suggests tags already in use.
 class TagEditor extends StatefulWidget {
-  const TagEditor({super.key, required this.tags, required this.onChanged});
+  const TagEditor({
+    super.key,
+    required this.tags,
+    required this.onChanged,
+    this.title = 'Tags & folders',
+    this.hint = 'Add a tag or folder, e.g. Halloween or Funny reels',
+    this.icon = Icons.sell_outlined,
+    this.suggestions,
+  });
   final List<String> tags;
   final ValueChanged<List<String>> onChanged;
+  final String title;
+  final String hint;
+  final IconData icon;
+
+  /// Where suggestions come from (default: tags already in use).
+  final Future<List<String>> Function(AppDatabase db)? suggestions;
 
   @override
   State<TagEditor> createState() => _TagEditorState();
@@ -22,7 +36,8 @@ class _TagEditorState extends State<TagEditor> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    AppScope.of(context).db.tagsInUse().then((t) {
+    final db = AppScope.of(context).db;
+    (widget.suggestions?.call(db) ?? db.tagsInUse()).then((t) {
       if (mounted) setState(() => _known = t);
     }).ignore();
   }
@@ -42,7 +57,7 @@ class _TagEditorState extends State<TagEditor> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('Tags', style: theme.textTheme.titleSmall),
+        Text(widget.title, style: theme.textTheme.titleSmall),
         const SizedBox(height: 8),
         Wrap(
           spacing: 8,
@@ -73,10 +88,10 @@ class _TagEditorState extends State<TagEditor> {
             inputFormatters: [
               LengthLimitingTextInputFormatter(kMaxTagLength),
             ],
-            decoration: const InputDecoration(
-              hintText: 'Add a tag, e.g. Halloween or with Sam',
-              prefixIcon: Icon(Icons.sell_outlined),
-              border: OutlineInputBorder(),
+            decoration: InputDecoration(
+              hintText: widget.hint,
+              prefixIcon: Icon(widget.icon),
+              border: const OutlineInputBorder(),
             ),
             onSubmitted: (v) {
               _add(v);
@@ -494,6 +509,80 @@ class _RewatchDialogState extends State<_RewatchDialog> {
           child: const Text('Add'),
         ),
       ],
+    );
+  }
+}
+
+/// Common places to watch, read, listen or play. Typed by the user and
+/// never looked up online; any other name can be typed too.
+const List<String> kWherePresets = [
+  'Netflix', 'Prime Video', 'Disney+', 'Stan', 'Binge', 'Foxtel', //
+  'Apple TV+', 'Paramount+', 'SBS On Demand', 'ABC iview', '9Now',
+  '10 Play', '7plus', 'YouTube', 'Plex', 'Cinema', 'Steam', 'PlayStation',
+  'Xbox', 'Nintendo', 'Kindle', 'Library', 'Audible', 'Spotify',
+];
+
+/// "Where to watch": a text box plus tap-to-pick names.
+class WhereField extends StatefulWidget {
+  const WhereField({super.key, required this.controller});
+  final TextEditingController controller;
+
+  @override
+  State<WhereField> createState() => _WhereFieldState();
+}
+
+class _WhereFieldState extends State<WhereField> {
+  List<String> _used = const [];
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    AppScope.of(context).db.placesInUse().then((p) {
+      if (mounted) setState(() => _used = p);
+    }).ignore();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final names = <String>{..._used, ...kWherePresets}.toList();
+    return ListenableBuilder(
+      listenable: widget.controller,
+      builder: (context, _) => Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          TextFormField(
+            controller: widget.controller,
+            textCapitalization: TextCapitalization.words,
+            inputFormatters: [LengthLimitingTextInputFormatter(60)],
+            decoration: const InputDecoration(
+              labelText: 'Where to watch (optional)',
+              hintText: 'Netflix, Stan, Steam, Library…',
+              prefixIcon: Icon(Icons.tv_outlined),
+              border: OutlineInputBorder(),
+            ),
+          ),
+          const SizedBox(height: 6),
+          SizedBox(
+            height: 40,
+            child: ListView(
+              scrollDirection: Axis.horizontal,
+              children: [
+                for (final n in names)
+                  Padding(
+                    padding: const EdgeInsets.only(right: 6),
+                    child: ChoiceChip(
+                      label: Text(n),
+                      selected: widget.controller.text.trim().toLowerCase() ==
+                          n.toLowerCase(),
+                      onSelected: (on) =>
+                          widget.controller.text = on ? n : '',
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
