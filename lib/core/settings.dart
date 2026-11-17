@@ -40,11 +40,13 @@ class SettingsController extends ChangeNotifier {
   static const _kOffline = 'offline_mode';
   static const _kLookups = 'lookups_enabled';
   static const _kMobileData = 'mobile_data';
+  static const _kReminders = 'episode_reminders';
 
   AppThemeMode _themeMode = AppThemeMode.system;
   bool _offlineMode = false;
   bool _lookupsEnabled = true;
   MobileDataUse _mobileData = MobileDataUse.none;
+  bool _episodeReminders = false;
 
   AppThemeMode get themeMode => _themeMode;
 
@@ -57,6 +59,9 @@ class SettingsController extends ChangeNotifier {
   /// Default: Wi-Fi only, so a forgotten setting never eats mobile data.
   MobileDataUse get mobileData => _mobileData;
 
+  /// "New episode" reminders for followed shows. Off by default.
+  bool get episodeReminders => _episodeReminders;
+
   Future<void> load() async {
     final values = await _db.readSettings();
     _themeMode = AppThemeMode.values.firstWhere(
@@ -65,6 +70,7 @@ class SettingsController extends ChangeNotifier {
     );
     _offlineMode = values[_kOffline] == 'true';
     _lookupsEnabled = values[_kLookups] != 'false';
+    _episodeReminders = values[_kReminders] == 'true';
     _mobileData = MobileDataUse.values.firstWhere(
       (m) => m.name == values[_kMobileData],
       orElse: () => MobileDataUse.none,
@@ -94,5 +100,11 @@ class SettingsController extends ChangeNotifier {
     _lookupsEnabled = value;
     notifyListeners();
     await _db.writeSetting(_kLookups, value.toString());
+  }
+
+  Future<void> setEpisodeReminders(bool value) async {
+    _episodeReminders = value;
+    notifyListeners();
+    await _db.writeSetting(_kReminders, value.toString());
   }
 }

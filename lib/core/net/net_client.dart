@@ -152,8 +152,8 @@ class NetClient {
   }
 
   /// Fetches and decodes JSON. Returns `null` for an empty body.
-  Future<Object?> getJson(Uri url) async {
-    final bytes = await getBytes(url);
+  Future<Object?> getJson(Uri url, {int maxBytes = maxJsonBytes}) async {
+    final bytes = await getBytes(url, maxBytes: maxBytes);
     if (bytes.isEmpty) return null;
     return jsonDecode(utf8.decode(bytes, allowMalformed: true));
   }

@@ -7,6 +7,7 @@ import 'core/lock/app_lock.dart';
 import 'core/lock/platform_lock.dart';
 import 'core/net/net_client.dart';
 import 'core/net/network_status.dart';
+import 'core/reminders.dart';
 import 'core/settings.dart';
 import 'core/theme.dart';
 import 'data/covers/cover_cache.dart';
@@ -70,6 +71,10 @@ class _BootAppState extends State<BootApp> {
       network.addListener(matcher.run);
       settings.addListener(matcher.run);
       unawaited(Future<void>.delayed(const Duration(seconds: 3), matcher.run));
+      final reminders =
+          ReminderService(db: result.db, settings: settings, net: net);
+      network.addListener(() => unawaited(reminders.run()));
+      unawaited(Future<void>.delayed(const Duration(seconds: 5), reminders.run));
       final lock = AppLock(
         storage: SecureLockStorage(),
         biometrics: DeviceBiometrics(),
@@ -84,6 +89,7 @@ class _BootAppState extends State<BootApp> {
         network: network,
         matcher: matcher,
         lock: lock,
+        reminders: reminders,
       );
     }
     if (!mounted) return;
