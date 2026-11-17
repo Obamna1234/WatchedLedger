@@ -65,6 +65,6 @@ void main() {
   });
 
   test('hidden characters are cleaned', () {
-    expect(parseShared('He​at‮')!.title, 'Heat');
+    expect(parseShared('He\u200Bat\u202E')!.title, 'Heat');
   });
 }
