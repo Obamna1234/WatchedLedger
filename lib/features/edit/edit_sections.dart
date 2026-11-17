@@ -349,6 +349,7 @@ class DiarySection extends StatelessWidget {
       MediaCategory.movie || MediaCategory.series => 'Watched again',
       MediaCategory.book => 'Read again',
       MediaCategory.audiobook || MediaCategory.podcast => 'Listened again',
+      MediaCategory.game => 'Played again',
     };
     return StreamBuilder<List<WatchEvent>>(
       stream: db.watchEventsFor(item.id),

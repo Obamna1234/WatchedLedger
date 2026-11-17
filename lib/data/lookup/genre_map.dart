@@ -62,6 +62,30 @@ const List<_Rule> _bookRules = [
   (['fiction'], 'Fiction'),
 ];
 
+// Video game genres from Wikipedia's first sentence, most specific first.
+const List<_Rule> _gameRules = [
+  (['survival horror'], 'Horror'),
+  (['first person shooter', 'third person shooter', 'shooter', 'fps'],
+      'Shooter'),
+  (['role playing', 'rpg'], 'Role-Playing'),
+  (['action adventure'], 'Action-Adventure'),
+  (['battle royale'], 'Shooter'),
+  (['horror'], 'Horror'),
+  (['survival'], 'Survival'),
+  (['platform'], 'Platformer'),
+  (['racing', 'kart'], 'Racing'),
+  (['fighting', 'beat em up'], 'Fighting'),
+  (['puzzle'], 'Puzzle'),
+  (['strategy', 'tactics', 'tactical', '4x', 'moba'], 'Strategy'),
+  (['simulation', 'simulator', 'management'], 'Simulation'),
+  (['sports', 'football', 'soccer', 'basketball', 'golf', 'hockey'],
+      'Sports'),
+  (['party'], 'Party'),
+  (['sandbox'], 'Sandbox'),
+  (['adventure'], 'Adventure'),
+  (['action'], 'Action'),
+];
+
 final RegExp _nonLetters = RegExp(r'[^a-z0-9]+');
 
 String _normalise(String s) =>
@@ -86,6 +110,7 @@ String mapGenre(MediaCategory category, Iterable<String> raw) {
     MediaCategory.series => [..._seriesOnlyRules, ..._screenRules],
     MediaCategory.book || MediaCategory.audiobook => _bookRules,
     MediaCategory.podcast => const <_Rule>[],
+    MediaCategory.game => _gameRules,
   };
   final normalised = [for (final n in names) _normalise(n)];
   for (final (keywords, genre) in rules) {

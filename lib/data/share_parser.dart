@@ -54,6 +54,11 @@ MediaCategory? _categoryFromHost(Uri u) {
       (on('spotify.com') && path.contains('/episode'))) {
     return MediaCategory.podcast;
   }
+  if (on('store.steampowered.com') || on('steamcommunity.com') ||
+      on('playstation.com') || on('xbox.com') || on('nintendo.com') ||
+      on('epicgames.com') || on('gog.com') || on('itch.io')) {
+    return MediaCategory.game;
+  }
   if (on('letterboxd.com') || on('boxd.it')) return MediaCategory.movie;
   if (on('tvmaze.com') || on('trakt.tv') && path.startsWith('/shows')) {
     return MediaCategory.series;

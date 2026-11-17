@@ -24,6 +24,12 @@ const List<String> _podcastGenres = [
   'Technology', 'True Crime', 'TV & Film',
 ];
 
+const List<String> _gameGenres = [
+  'Action', 'Action-Adventure', 'Adventure', 'Fighting', 'Horror', //
+  'Party', 'Platformer', 'Puzzle', 'Racing', 'Role-Playing', 'Sandbox',
+  'Shooter', 'Simulation', 'Sports', 'Strategy', 'Survival',
+];
+
 List<String> curatedGenres(MediaCategory category) => switch (category) {
       MediaCategory.movie => _screenGenres,
       MediaCategory.series => const [
@@ -35,6 +41,7 @@ List<String> curatedGenres(MediaCategory category) => switch (category) {
         ],
       MediaCategory.book || MediaCategory.audiobook => _bookGenres,
       MediaCategory.podcast => _podcastGenres,
+      MediaCategory.game => _gameGenres,
     };
 
 /// Genres sorted A–Z with "Uncategorised" always last.

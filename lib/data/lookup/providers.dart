@@ -241,7 +241,7 @@ class GoogleBooksProvider extends LookupProvider {
 
 // --------------------------------------------------------------- Wikipedia
 
-enum WikiKind { film, podcast }
+enum WikiKind { film, podcast, game }
 
 /// English Wikipedia's title search (Wikimedia Foundation, no key). Its
 /// search box is typo-tolerant, so "Inceptoin" finds "Inception", and each
@@ -261,9 +261,17 @@ class WikipediaProvider extends LookupProvider {
   static final RegExp _notAFilm =
       RegExp(r'film series|franchise|filmmaker', caseSensitive: false);
   static final RegExp _podcast = RegExp(r'\bpodcast\b', caseSensitive: false);
+  static final RegExp _game = RegExp(r'\bvideo ?game\b', caseSensitive: false);
+  static final RegExp _notAGame = RegExp(
+      r'video game (?:series|franchise|developer|publisher|company|character|console|designer|music)|'
+      r'\bseries of\b',
+      caseSensitive: false);
+  static final RegExp _gameGenreWords = RegExp(
+      r'\b(?:18|19|20)\d{2}\s+(.{3,80}?)\s*(?:video\s*)?game\b',
+      caseSensitive: false);
   static final RegExp _by = RegExp(r'\bby (.+)$');
   static final RegExp _qualifier = RegExp(
-      r'\s*\((?:(?:18|19|20)\d{2} )?(?:[A-Za-z]+ )*(?:film|podcast)\)$');
+      r'\s*\((?:(?:18|19|20)\d{2} )?(?:[A-Za-z]+ )*(?:film|podcast|video game)\)$');
   static final RegExp _genreWords =
       RegExp(r'\b(?:18|19|20)\d{2}\s+(.{3,80}?)\s*film\b');
 
@@ -272,6 +280,8 @@ class WikipediaProvider extends LookupProvider {
             _film.hasMatch(description) &&
             !_notAFilm.hasMatch(description),
         WikiKind.podcast => _podcast.hasMatch(description),
+        WikiKind.game =>
+          _game.hasMatch(description) && !_notAGame.hasMatch(description),
       };
 
   static String? _thumb(Map<String, Object?>? m) {
@@ -296,12 +306,12 @@ class WikipediaProvider extends LookupProvider {
       if (title.isEmpty) continue;
       out.add(LookupCandidate(
         title: title,
-        year: kind == WikiKind.film
-            ? yearOf(_leadingYear.firstMatch(description)?.group(1))
-            : null,
-        creator: kind == WikiKind.film
-            ? _by.firstMatch(description)?.group(1)?.trim()
-            : null,
+        year: kind == WikiKind.podcast
+            ? null
+            : yearOf(_leadingYear.firstMatch(description)?.group(1)),
+        creator: kind == WikiKind.podcast
+            ? null
+            : _by.firstMatch(description)?.group(1)?.trim(),
         coverUrl: _thumb(asMap(page?['thumbnail'])),
         source: 'wikipedia',
         sourceId: key,
@@ -314,7 +324,7 @@ class WikipediaProvider extends LookupProvider {
   /// film") and a picture if Wikipedia has a free one.
   @override
   Future<LookupCandidate> details(LookupCandidate c) async {
-    if (kind != WikiKind.film) return c;
+    if (kind == WikiKind.podcast) return c;
     final json = asMap(await net.getJson(Uri(
       scheme: 'https',
       host: 'en.wikipedia.org',
@@ -322,10 +332,14 @@ class WikipediaProvider extends LookupProvider {
     )));
     final extract = str(json, 'extract', maxLength: 600) ?? '';
     var genre = c.genre;
-    final words = _genreWords.firstMatch(extract)?.group(1);
+    final category =
+        kind == WikiKind.game ? MediaCategory.game : MediaCategory.movie;
+    final words = (kind == WikiKind.game ? _gameGenreWords : _genreWords)
+        .firstMatch(extract)
+        ?.group(1);
     if (words != null) {
-      final mapped = mapGenre(MediaCategory.movie, [words]);
-      if (curatedGenres(MediaCategory.movie).contains(mapped)) genre = mapped;
+      final mapped = mapGenre(category, [words]);
+      if (curatedGenres(category).contains(mapped)) genre = mapped;
     }
     return LookupCandidate(
       title: c.title,

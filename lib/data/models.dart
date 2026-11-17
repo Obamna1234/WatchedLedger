@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 /// IMPORTANT: these enums are stored in the database by their index.
 /// Only ever ADD new values at the end. Never reorder or remove.
-enum MediaCategory { movie, series, book, audiobook, podcast }
+enum MediaCategory { movie, series, book, audiobook, podcast, game }
 
 enum ListStatus { todo, done }
 
@@ -25,6 +25,7 @@ extension MediaCategoryLabels on MediaCategory {
         MediaCategory.book => 'Books',
         MediaCategory.audiobook => 'Audiobooks',
         MediaCategory.podcast => 'Podcasts',
+        MediaCategory.game => 'Games',
       };
 
   String get singular => switch (this) {
@@ -33,6 +34,7 @@ extension MediaCategoryLabels on MediaCategory {
         MediaCategory.book => 'book',
         MediaCategory.audiobook => 'audiobook',
         MediaCategory.podcast => 'podcast',
+        MediaCategory.game => 'game',
       };
 
   /// "To Watch" / "To Read" / "To Listen"
@@ -40,6 +42,7 @@ extension MediaCategoryLabels on MediaCategory {
         MediaCategory.movie || MediaCategory.series => 'To Watch',
         MediaCategory.book => 'To Read',
         MediaCategory.audiobook || MediaCategory.podcast => 'To Listen',
+        MediaCategory.game => 'To Play',
       };
 
   /// "Watched" / "Read" / "Listened"
@@ -47,6 +50,7 @@ extension MediaCategoryLabels on MediaCategory {
         MediaCategory.movie || MediaCategory.series => 'Watched',
         MediaCategory.book => 'Read',
         MediaCategory.audiobook || MediaCategory.podcast => 'Listened',
+        MediaCategory.game => 'Played',
       };
 
   String labelFor(ListStatus status) =>
@@ -58,6 +62,7 @@ extension MediaCategoryLabels on MediaCategory {
         MediaCategory.book => Icons.menu_book_outlined,
         MediaCategory.audiobook => Icons.headphones_outlined,
         MediaCategory.podcast => Icons.podcasts_outlined,
+        MediaCategory.game => Icons.sports_esports_outlined,
       };
 }
 
