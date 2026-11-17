@@ -55,6 +55,10 @@ Finder get addField => find.byType(TextField);
 
 /// Adds [typed]; if "Did you mean…?" appears, picks [pick] (or the first).
 Future<void> add(WidgetTester t, String typed, {String? pick}) async {
+  // Clear the previous "Added …" message so it isn't mistaken for this one.
+  t.state<ScaffoldMessengerState>(find.byType(ScaffoldMessenger).first)
+      .removeCurrentSnackBar();
+  await idle(t, 200);
   await type(t, addField, typed);
   await tap(t, find.byTooltip('Add'), after: 100);
   mark('~wait'); // network lookup: shortened in the video
