@@ -127,7 +127,7 @@ class PrivacyPage extends StatelessWidget {
             const SizedBox(height: 8),
             body(
               'Shared folders: when you tap Share on a folder, your phone '
-              "opens its normal share menu with a plain message (titles and "
+              'opens its normal share menu with a plain message (titles and '
               'links). Nothing is uploaded anywhere by WatchedLedger, and '
               'private items are never included.',
             ),
