@@ -66,6 +66,8 @@ Future<ListOptions?> showFilterSheet(
   required ListStatus status,
   required Set<String> genresInList,
   Set<String> tagsInList = const {},
+  Set<String> whereInList = const {},
+  Set<String> peopleInList = const {},
   required Set<int> addedYears,
   required Set<int> completedYears,
 }) {
@@ -79,6 +81,8 @@ Future<ListOptions?> showFilterSheet(
       status: status,
       genresInList: genresInList,
       tagsInList: tagsInList,
+      whereInList: whereInList,
+      peopleInList: peopleInList,
       addedYears: addedYears,
       completedYears: completedYears,
     ),
@@ -92,6 +96,8 @@ class _FilterSheet extends StatefulWidget {
     required this.status,
     required this.genresInList,
     required this.tagsInList,
+    required this.whereInList,
+    required this.peopleInList,
     required this.addedYears,
     required this.completedYears,
   });
@@ -101,6 +107,8 @@ class _FilterSheet extends StatefulWidget {
   final ListStatus status;
   final Set<String> genresInList;
   final Set<String> tagsInList;
+  final Set<String> whereInList;
+  final Set<String> peopleInList;
   final Set<int> addedYears;
   final Set<int> completedYears;
 
@@ -111,6 +119,8 @@ class _FilterSheet extends StatefulWidget {
 class _FilterSheetState extends State<_FilterSheet> {
   late Set<String> _genres = {...widget.options.genres};
   late Set<String> _tags = {...widget.options.tags};
+  late Set<String> _where = {...widget.options.where};
+  late Set<String> _people = {...widget.options.people};
   late int? _minRating = widget.options.minRating;
   late int? _addedYear = widget.options.addedYear;
   late int? _completedYear = widget.options.completedYear;
@@ -129,6 +139,8 @@ class _FilterSheetState extends State<_FilterSheet> {
   ListOptions _result() => widget.options.withFilters(
         genres: _genres,
         tags: _tags,
+        where: _where,
+        people: _people,
         minRating: _minRating,
         yearFrom: int.tryParse(_from.text),
         yearTo: int.tryParse(_to.text),
@@ -163,6 +175,32 @@ class _FilterSheetState extends State<_FilterSheet> {
         ],
       ),
     );
+  }
+
+  List<Widget> _chipSection(String title, Set<String> options,
+      Set<String> selected, ValueChanged<Set<String>> onChanged) {
+    final all = {...options, ...selected}.toList()
+      ..sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
+    if (all.isEmpty) return const [];
+    return [
+      _heading(title),
+      Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        child: Wrap(
+          spacing: 8,
+          runSpacing: 4,
+          children: [
+            for (final v in all)
+              FilterChip(
+                label: Text(v),
+                selected: selected.contains(v),
+                onSelected: (on) => onChanged(
+                    on ? {...selected, v} : ({...selected}..remove(v))),
+              ),
+          ],
+        ),
+      ),
+    ];
   }
 
   @override
@@ -240,6 +278,11 @@ class _FilterSheetState extends State<_FilterSheet> {
                   ),
                 ),
               ],
+              ..._chipSection('Where to watch', widget.whereInList, _where,
+                  (v) => setState(() => _where = v)),
+              ..._chipSection('People (recommended by / watch with)',
+                  widget.peopleInList, _people,
+                  (v) => setState(() => _people = v)),
               _heading('Minimum rating'),
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16),

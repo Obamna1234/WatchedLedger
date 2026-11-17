@@ -96,6 +96,8 @@ class _CategoryPageState extends State<CategoryPage>
       _options = _options.withFilters(
         genres: _options.genres,
         tags: _options.tags,
+        where: _options.where,
+        people: _options.people,
         minRating: _options.minRating,
         yearFrom: _options.yearFrom,
         yearTo: _options.yearTo,
@@ -179,6 +181,16 @@ class _CategoryPageState extends State<CategoryPage>
       genresInList: {for (final i in items) i.genre},
       tagsInList: {
         for (final i in items) ...itemTags(i),
+      },
+      whereInList: {
+        for (final i in items)
+          if (i.whereToWatch != null) i.whereToWatch!,
+      },
+      peopleInList: {
+        for (final i in items) ...[
+          if (i.recommendedBy != null) i.recommendedBy!,
+          ...decodeTags(i.watchWith),
+        ],
       },
       addedYears: {for (final i in items) i.addedAt.year},
       completedYears: {

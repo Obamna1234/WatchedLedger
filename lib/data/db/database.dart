@@ -523,6 +523,32 @@ class AppDatabase extends _$AppDatabase {
       ..sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
   }
 
+  /// Names used in "recommended by" and "watch with", sorted.
+  Future<List<String>> peopleInUse() async {
+    final seen = <String, String>{};
+    for (final i in await select(items).get()) {
+      for (final n in [
+        if (i.recommendedBy != null) i.recommendedBy!,
+        ...decodeTags(i.watchWith),
+      ]) {
+        seen.putIfAbsent(n.toLowerCase(), () => n);
+      }
+    }
+    return seen.values.toList()
+      ..sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
+  }
+
+  /// "Where to watch" values used so far.
+  Future<List<String>> placesInUse() async {
+    final seen = <String, String>{};
+    for (final i in await select(items).get()) {
+      final w = i.whereToWatch;
+      if (w != null) seen.putIfAbsent(w.toLowerCase(), () => w);
+    }
+    return seen.values.toList()
+      ..sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
+  }
+
   static String _goalKey(MediaCategory c, int year) => 'goal_${c.name}_$year';
 
   Future<Map<MediaCategory, int>> goalsFor(int year) async {

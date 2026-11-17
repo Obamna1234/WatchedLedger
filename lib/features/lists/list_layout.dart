@@ -24,6 +24,8 @@ class ListOptions {
     this.reverse = false,
     this.genres = const {},
     this.tags = const {},
+    this.where = const {},
+    this.people = const {},
     this.minRating,
     this.yearFrom,
     this.yearTo,
@@ -39,6 +41,12 @@ class ListOptions {
 
   /// Show items with any of these tags (compared ignoring case).
   final Set<String> tags;
+
+  /// Where to watch ("Netflix"), compared ignoring case.
+  final Set<String> where;
+
+  /// Recommended by or watching with any of these people.
+  final Set<String> people;
   final int? minRating;
   final int? yearFrom;
   final int? yearTo;
@@ -48,6 +56,8 @@ class ListOptions {
   bool get isFiltered =>
       genres.isNotEmpty ||
       tags.isNotEmpty ||
+      where.isNotEmpty ||
+      people.isNotEmpty ||
       minRating != null ||
       yearFrom != null ||
       yearTo != null ||
@@ -61,6 +71,8 @@ class ListOptions {
         reverse: reverse ?? this.reverse,
         genres: genres,
         tags: tags,
+        where: where,
+        people: people,
         minRating: minRating,
         yearFrom: yearFrom,
         yearTo: yearTo,
@@ -72,6 +84,8 @@ class ListOptions {
   ListOptions withFilters({
     Set<String> genres = const {},
     Set<String> tags = const {},
+    Set<String> where = const {},
+    Set<String> people = const {},
     int? minRating,
     int? yearFrom,
     int? yearTo,
@@ -84,6 +98,8 @@ class ListOptions {
         reverse: reverse,
         genres: genres,
         tags: tags,
+        where: where,
+        people: people,
         minRating: minRating,
         yearFrom: yearFrom,
         yearTo: yearTo,
@@ -98,6 +114,17 @@ class ListOptions {
       if (!itemTags(i).any((t) => wanted.contains(t.toLowerCase()))) {
         return false;
       }
+    }
+    if (where.isNotEmpty) {
+      final w = i.whereToWatch?.toLowerCase();
+      if (w == null || !where.any((x) => x.toLowerCase() == w)) return false;
+    }
+    if (people.isNotEmpty) {
+      final names = {
+        if (i.recommendedBy != null) i.recommendedBy!.toLowerCase(),
+        for (final n in decodeTags(i.watchWith)) n.toLowerCase(),
+      };
+      if (!people.any((p) => names.contains(p.toLowerCase()))) return false;
     }
     final min = minRating;
     if (min != null && (i.rating ?? 0) < min) return false;
@@ -221,6 +248,17 @@ ListLayout buildListLayout(List<MediaItem> all, ListOptions options) {
 
   final rows = <ListRow>[];
   final sections = <ListSection>[];
+
+  // "Not out yet" items sit together at the top, whatever the grouping.
+  final upcoming = [for (final i in items) if (i.upcoming) i];
+  if (upcoming.isNotEmpty) {
+    items.removeWhere((i) => i.upcoming);
+    sections.add(ListSection('Not out yet', '\u23F3', rows.length));
+    rows.add(HeaderRow('Not out yet', upcoming.length));
+    for (final i in upcoming) {
+      rows.add(ItemRow(i));
+    }
+  }
 
   if (options.groupByGenre) {
     final byGenre = <String, List<MediaItem>>{};
