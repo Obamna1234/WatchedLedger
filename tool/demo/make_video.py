@@ -56,13 +56,26 @@ def read_marks(folder):
     return marks
 
 
+def draw_lines(folder, prefix, lines, font, size, color, gap, top, box=''):
+    """One drawtext per line, centred. Newer ffmpeg builds draw a box glyph
+    for line breaks inside a single drawtext, so lines are never joined."""
+    step = size + gap
+    out = []
+    for k, line in enumerate(lines):
+        tf = text_file(folder, f'{prefix}.{k}.txt', line)
+        out.append(f"drawtext=fontfile={font}:textfile={tf}:fontcolor={color}:"
+                   f"fontsize={size}:x=(w-text_w)/2:y={top}+{k * step}{box}")
+    return ','.join(out)
+
+
 def card(folder, out, duration, title, subtitle, title_size=64):
-    tf = text_file(folder, os.path.basename(out) + '.t.txt', title)
-    sf = text_file(folder, os.path.basename(out) + '.s.txt', subtitle)
-    vf = (f"drawtext=fontfile={FONT}:textfile={tf}:fontcolor=white:fontsize={title_size}:"
-          f"line_spacing=12:x=(w-text_w)/2:y=h/2-60-text_h,"
-          f"drawtext=fontfile={FONT_REG}:textfile={sf}:fontcolor=0xBFE3D8:"
-          f"fontsize=34:line_spacing=14:x=(w-text_w)/2:y=h/2+20,"
+    name = os.path.basename(out)
+    t_lines = title.split('\n')
+    t_top = f"h/2-60-{len(t_lines) * (title_size + 12)}"
+    vf = (draw_lines(folder, name + '.t', t_lines, FONT, title_size, 'white', 12,
+                     t_top) + ',' +
+          draw_lines(folder, name + '.s', subtitle.split('\n'), FONT_REG, 34,
+                     '0xBFE3D8', 14, 'h/2+20') + ',' +
           f"fade=t=in:st=0:d=0.35,fade=t=out:st={duration - 0.35:.2f}:d=0.35")
     encode(['-f', 'lavfi', '-i', f'color=c={BG}:s={W}x{H}:r={FPS}:d={duration:.3f}',
             '-vf', vf], out)
@@ -121,7 +134,11 @@ def main():
 
     used = TITLE
     for i, sc in enumerate(scenes, 1):
-        cf = text_file(work, f'cap{i}.txt', '\n'.join(textwrap.wrap(sc['caption'], 26)))
+        cap_lines = textwrap.wrap(sc['caption'], 26)
+        caption = draw_lines(
+            work, f'cap{i}', cap_lines, FONT, 38, 'white', 14,
+            f"h-110-{len(cap_lines) * 52}",
+            box=':box=1:boxcolor=black@0.72:boxborderw=14')
         scene_len = 0.0
         for j, (a, b, waiting) in enumerate(sc['pieces']):
             length = b - a
@@ -129,10 +146,7 @@ def main():
             dur = length / speed
             vf = (f"setpts=(PTS-STARTPTS)/{speed:.4f},fps={FPS},"
                   f"scale={W}:{H}:force_original_aspect_ratio=decrease,"
-                  f"pad={W}:{H}:(ow-iw)/2:(oh-ih)/2,"
-                  f"drawtext=fontfile={FONT}:textfile={cf}:fontcolor=white:"
-                  f"fontsize=38:line_spacing=10:box=1:boxcolor=black@0.72:"
-                  f"boxborderw=22:x=(w-text_w)/2:y=h-text_h-110")
+                  f"pad={W}:{H}:(ow-iw)/2:(oh-ih)/2,{caption}")
             out = os.path.join(work, f'{i:02d}{j:01d}_scene.mp4')
             encode(['-ss', f'{a:.3f}', '-to', f'{b:.3f}', '-i', raw,
                     '-vf', vf, '-t', f'{dur:.3f}'], out)
