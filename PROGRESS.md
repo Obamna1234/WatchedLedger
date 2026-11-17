@@ -87,15 +87,17 @@ Maintained by Claude. Updated at the end of every stage, in the same pull reques
   - **New episode reminders** (off by default): follow a show, switch reminders on in Settings, and the phone schedules a notification for each upcoming air date. TVmaze only sees the followed shows' numbers, about once a day.
   - **Sync two phones** on home Wi-Fi: one shows an address and a one-time code, the other types them in. Encrypted end to end; newest edit wins; deletions sync.
 
+- **Final pass (2026-11-17):** Claude re-checked the riskier new code. It found and fixed one bug: Undo after ticking or unticking now keeps the diary right, and there's a test for it. The 30-second demo video was re-recorded with the new features.
+
 ## Next
-- Final independent review, a new demo video and a last pass on the docs.
+- Nothing planned. Ideas for later, only if you want them: QR pairing for sync, iPhone widget and share sheet (needs a paid Apple account to be practical), more lookup sources.
 
 ## Waiting on me (owner)
 - [x] Add the WatchedLedger repo to the Claude GitHub App.
 - [ ] **Switch on 4 GitHub settings.** Claude can't change repo settings: GitHub blocks that through Claude's connection. Steps:
   1. **Settings → General**, scroll to **Pull Requests**. Tick **Allow auto-merge** and **Automatically delete head branches**.
   2. **Settings → Advanced Security** (it may be called **Code security**). Click **Enable** for **Dependabot alerts**, **Dependabot security updates** and **Private vulnerability reporting**.
-  3. Optional: **Code → Branches**. Delete the old `stage-1a-foundation`, `stage-1b-core-lists` and `stage-2-lookup` branches with the 🗑 icon. They're already merged.
+  3. Optional: **Code → Branches**. Delete the old `stage-…` branches and `final-polish` with the 🗑 icon. They're all merged (`stage-4c-import` was a mistake and is unused). Keep `main` and `demo-recordings`.
 - [x] Android signing key created and the 4 GitHub Secrets added (2026-11-11). **Keep the `.jks` file and its password backed up.**
 - [ ] Optional: paste 5–10 lines copied from your Samsung Notes checklist (fake titles are fine, some ticked, some not). The importer already handles common tick marks and crossed-out text, and you can flip any item on the review screen, but a real sample lets Claude make sure your ticks come through automatically.
 - [ ] Optional: tell Claude which iPhone and iOS version you have, and whether you use a Mac or a Windows PC, so the README can lead with the right sideloading tool.
