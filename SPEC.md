@@ -134,6 +134,53 @@ Agreed staging. Workflows were built first, so every stage produces installable 
 | **3 Search** ✅ | Highlight-all, up/down, "3 of 12", tick from results |
 | **4 Import/export + protection** | Paste/txt/csv import, Samsung Notes helper, review screen, txt/csv/json export, encrypted backup/restore, app lock (PIN/biometric) |
 | **5 Extras** | Random picker, stats, home-screen widgets, share-to-app, AltStore/SideStore source feed |
+| **6 Tracking & sync** (added 2026-11-17) | Rewatch/reread diary, reading & listening progress with yearly goals, custom lists & tags, phone-to-phone sync over home Wi-Fi |
+
+### 12a. Features added 2026-11-17 (owner's choice)
+
+**Mobile data setting** (Stage 4)
+- Settings → **Use mobile data**. There are three options:
+  - **Wi-Fi only** (default)
+  - **Wi-Fi + mobile data for lookups only** (a lookup is a few KB)
+  - **Wi-Fi + mobile data** (lookups and covers)
+- When the current option doesn't allow mobile data:
+  - a title added on mobile data is saved as typed;
+  - unmatched titles and missing covers are fetched automatically the next time the phone is on Wi-Fi.
+- Offline mode still blocks everything.
+- This needs the Android `ACCESS_NETWORK_STATE` permission (no prompt; it only tells the app whether it's on Wi-Fi). It is currently removed in the manifest and will be re-allowed for this.
+
+**Import from other apps** (Stage 4)
+- Read the export files from Letterboxd, Goodreads, Trakt and IMDb, which you download from each site yourself.
+- Ratings, finished dates and reviews/notes carry over where the file has them.
+- Everything goes through the same review screen as other imports.
+
+**Rewatch / reread diary** (Stage 6)
+- Each item can have several "finished" entries, each with a date, plus an optional rating and note per entry, like a Letterboxd diary.
+- There's a diary view by month.
+- Stats count every entry.
+
+**Reading & listening progress, yearly goals** (Stage 6)
+- **Books:** page (out of total) or %.
+- **Audiobooks:** hours and minutes listened (out of total).
+- **Yearly goals** per category (e.g. "24 books in 2027"), with progress shown on the Stats screen.
+
+**Custom lists & tags** (Stage 6)
+- Free-form tags on any item (e.g. "Halloween", "with Sam", "comfort rewatches").
+- Filter by tag on every tab.
+- Tags are included in exports and backups.
+
+**Phone-to-phone sync over home Wi-Fi** (Stage 6)
+- **Pairing:** two phones pair once by scanning a QR code, which exchanges a secret key.
+- **Syncing:**
+  - While both apps are open on the same Wi-Fi, they find each other on the local network and exchange changes.
+  - The connection is end-to-end encrypted, with no server or account.
+- **Conflicts:** the most recent edit wins per item, and deletions sync too.
+- **Permissions:** needs iOS "Local Network" permission and Android local-network access, asked only when sync is turned on.
+- **Caveat:** this is the most complex feature and needs both phones. It is built last.
+
+**Under discussion** (not yet agreed):
+- a smarter "Pick something for me" (length/mood filters)
+- "new episode" alerts
 
 ---
 
