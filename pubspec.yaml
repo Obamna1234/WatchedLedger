@@ -22,6 +22,10 @@ dependencies:
 dev_dependencies:
   flutter_test:
     sdk: flutter
+  integration_test:      # drives the real app for the demo video (not in release builds)
+    sdk: flutter
+  flutter_driver:
+    sdk: flutter
   flutter_lints: ^6.0.0
   drift_dev: ^2.35.2
   build_runner: ^2.16.2
