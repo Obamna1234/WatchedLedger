@@ -131,10 +131,12 @@ MediaItem? pickOne(
   final today = now ?? DateTime.now();
   // Weight 1 + months waiting (capped), so old items surface more often
   // without new ones being shut out.
-  final weights = [
-    for (final i in pool)
-      1 + min(24, max(0, today.difference(i.addedAt).inDays ~/ 30)),
-  ];
+  int weight(MediaItem i) {
+    final months = today.difference(i.addedAt).inDays ~/ 30;
+    return 1 + (months < 0 ? 0 : (months > 24 ? 24 : months));
+  }
+
+  final weights = <int>[for (final i in pool) weight(i)];
   final total = weights.fold<int>(0, (a, b) => a + b);
   var r = rnd.nextInt(total);
   for (var k = 0; k < pool.length; k++) {
