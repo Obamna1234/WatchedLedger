@@ -9,7 +9,7 @@ repo.
 - Your library lives in an **encrypted database on your phone**.
 - See [PRIVACY.md](PRIVACY.md) for exactly what leaves the device, and when.
 
-> **Status: Stage 4 (import/export and protection), v0.2.0.**
+> **Status: Stage 5 (extras), v0.3.0.**
 > - **Lists:** five category tabs with To Watch / Watched, ticking (tap or swipe) with undo, an edit screen with rating, note and series progress, sort, filter and a genre fast-scroll index.
 > - **Smart add:** titles are looked up automatically with no accounts or API keys. If nothing fits, save exactly what you typed.
 > - **Search:** every match highlighted, ▲ ▼ to jump, "3 of 12" counter, tick from the results.
@@ -17,7 +17,9 @@ repo.
 > - **Import:** paste a list or Samsung Notes checklist, or import files from Letterboxd, Goodreads, IMDb or Trakt, then check everything on a review screen.
 > - **Export and backup:** .txt / .csv / .json, plus password-encrypted backups you can restore.
 > - **App lock:** optional PIN and fingerprint / Face ID.
-> - **Coming next:** smart picker, stats, widgets, share-to-app, then diary, progress, tags, episode reminders and Wi-Fi sync.
+> - **Extras:** 🎲 "Pick something for me" (mood and length filters), 📊 stats, "More by…" this director/author/host.
+> - **Android only:** share a link or text from Netflix, IMDb, Goodreads, a podcast app or a browser into the app, and a home screen widget with your next titles and a quick-add button.
+> - **Coming next:** rewatch diary, reading progress and goals, tags and custom lists, episode reminders and Wi-Fi sync between phones.
 
 ---
 
@@ -71,11 +73,15 @@ Pick one tool:
 
 **Updating:** install the new `.ipa` the same way, with the **same Apple ID**. It replaces the old app and keeps your data.
 
+**Easier updates (optional):** in SideStore or AltStore, go to **Sources → +** and add
+`https://github.com/Obamna1234/WatchedLedger/releases/latest/download/altstore-source.json`.
+New versions then show up in the app's update list, so you don't have to download the `.ipa` by hand.
+
 > ⚠️ **Always use the same Apple ID.**
 > - The key that unlocks your encrypted library is stored in the iOS Keychain under your Apple ID's signing team.
 > - If you re-sign with a *different* Apple ID, the app can't read its key. It will show a recovery screen (your data isn't deleted).
 > - Re-installing with the original Apple ID fixes it.
-> - Make regular backups once that feature arrives.
+> - Make regular backups (**Settings → Import, export and backup**).
 
 ---
 
