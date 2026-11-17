@@ -100,6 +100,13 @@ class PrivacyPage extends StatelessWidget {
               'the key. Your real backups are files you create yourself and '
               'save wherever you choose.',
             ),
+            const SizedBox(height: 8),
+            body(
+              'Home screen widget (Android): if you add it, the few titles it '
+              "shows are kept in the app's private storage so the widget can "
+              'draw them. Remove the widget and they are deleted. While the '
+              'app lock is on it only says "Locked".',
+            ),
           ],
         ),
       ),

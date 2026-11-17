@@ -6,6 +6,7 @@ Maintained by Claude. Updated at the end of every stage, in the same pull reques
 **Stages 1 and 2 are merged into `main`** (PRs #1–#3, 2026-11-06).
 **Stage 3 (search) is merged** (PR #4, 2026-11-06): analyzer clean, 48 tests passing.
 **Stage 4 (import/export and protection) is merged** (2026-11-17) and released as **v0.2.0**.
+**Stage 5 (extras) is merged** (2026-11-17) and released as **v0.3.0**.
 
 ## Done
 - **Proposal:** structure, packages and tech choices, written up in SPEC.md §13.
@@ -67,13 +68,16 @@ Maintained by Claude. Updated at the end of every stage, in the same pull reques
   - **App lock (optional):** PIN, plus fingerprint / Face ID if you want. Locks immediately or after 1/5/15 minutes away. Waits get longer after 5 wrong tries. "Hide in recent apps" blanks the app switcher (and blocks screenshots on Android).
   - Database upgraded to version 2, ready for Stage 6 (existing data kept; migration tested).
 
-## Next
 - **Stage 5, extras:**
-  - smart "Pick something for me" (from your list only; length and mood filters)
-  - "More by this director/author"
-  - stats
-  - widgets
-  - share-to-app
+  - **Pick something for me** (🎲): from your own lists, with category, mood, length and genre filters. Doesn't repeat itself; older items come up a bit more.
+  - **Stats** (📊): per category, month and year, top genres, average rating, pages read, hours watched/listened.
+  - **More by…** on the Edit screen: other work by the same director, author or host, with one-tap add. Only the name is sent.
+  - **Share to the app (Android):** share from Netflix, IMDb, Goodreads, a podcast app or a browser. The title is read from the shared text, looked up, and you confirm.
+  - **Home screen widget (Android):** "Up next" with your newest 5 titles and a + button. It says "Locked" while the app lock is on.
+  - **App icon** and an **AltStore/SideStore source** so iPhone updates show up in those apps.
+  - Book lookups now save page counts.
+
+## Next
 - **Stage 6, tracking and sync** (new):
   - rewatch/reread diary
   - reading and listening progress, with yearly goals
@@ -92,6 +96,9 @@ Maintained by Claude. Updated at the end of every stage, in the same pull reques
 - [ ] Optional: tell Claude which iPhone and iOS version you have, and whether you use a Mac or a Windows PC, so the README can lead with the right sideloading tool.
 
 ## Decisions made
+- **2026-11-17 Widget and share are Android-only.** On iPhone they need extra app parts (extensions) that free sideloading handles badly. On iPhone, copy and paste into Import instead.
+- **2026-11-17 No packages for widget/share:** small native Kotlin pieces instead of `home_widget` / `share_handler`, so fewer dependencies.
+- **2026-11-17 App icon** drawn by Claude (a ledger page with a green tick).
 - **2026-11-17 Import:** own parsers, no new package. Unmatched imported titles are saved as typed and matched in the background later. Imports never overwrite existing items.
 - **2026-11-17 App lock PIN** is kept in Keystore/Keychain, not in the database, so a restored backup can't switch the lock on without a PIN. Forgetting the PIN means reinstalling, which erases the library, so the app tells you to keep a backup.
 - **2026-11-17 Mobile data:** Wi-Fi only by default. New permission `ACCESS_NETWORK_STATE` (connection type only). Fingerprint unlock adds `USE_BIOMETRIC`.
