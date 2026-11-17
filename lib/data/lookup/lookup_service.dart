@@ -65,6 +65,8 @@ class LookupService {
             OpenLibraryProvider(net),
           ],
         MediaCategory.podcast => [ItunesProvider(net, ItunesMedia.podcast)],
+        // Wikipedia covers games on every console and copes with typos.
+        MediaCategory.game => [WikipediaProvider(net, WikiKind.game)],
       };
 
   /// Tries each source in turn until one returns results.
@@ -126,6 +128,8 @@ class LookupService {
     try {
       return switch (c.source) {
         'wikipedia' => await WikipediaProvider(net, WikiKind.film).details(c),
+        'wikipedia-game' =>
+          await WikipediaProvider(net, WikiKind.game).details(c),
         _ => c,
       };
     } catch (_) {

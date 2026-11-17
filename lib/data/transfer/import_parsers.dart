@@ -156,6 +156,7 @@ MediaCategory? _categoryFrom(String s) {
   if (v.startsWith('serie') || v.startsWith('tv') || v.startsWith('show')) {
     return MediaCategory.series;
   }
+  if (v.contains('game')) return MediaCategory.game;
   if (v.startsWith('audio')) return MediaCategory.audiobook;
   if (v.startsWith('book') || v.startsWith('novel')) return MediaCategory.book;
   if (v.startsWith('podcast')) return MediaCategory.podcast;
@@ -168,7 +169,8 @@ MediaCategory? _categoryFrom(String s) {
 ListStatus _statusFrom(String s, {ListStatus fallback = ListStatus.todo}) {
   final v = s.trim().toLowerCase();
   if (v.isEmpty) return fallback;
-  const done = ['done', 'watched', 'read', 'listened', 'finished', 'yes',
+  const done = ['done', 'watched', 'read', 'listened', 'played', 'finished',
+    'yes',
     'true', 'x', '1', 'completed'];
   return done.contains(v) ? ListStatus.done : ListStatus.todo;
 }
@@ -387,11 +389,12 @@ final RegExp _trailingDone =
 final RegExp _yearInBrackets = RegExp(r'\s*\(((?:18|19|20)\d{2})\)\s*$');
 final RegExp _heading = RegExp(
     r'^\s*(movies?|films?|series|tv(?: shows?)?|shows?|books?|audiobooks?|'
-    r'podcasts?)\b(?:\s*[-:]\s*(to (?:watch|read|listen)|watched|read|listened))?\s*:?\s*$',
+    r'podcasts?|(?:video )?games?)\b(?:\s*[-:]\s*(to (?:watch|read|listen|play)|'
+    r'watched|read|listened|played))?\s*:?\s*$',
     caseSensitive: false);
 // Our own text export: "[x] Heat (1995) ★★★★ - Watched March 2026 - "note""
 final RegExp _ourExtras = RegExp(
-    r'(\s*\((?:18|19|20)\d{2}\))?(\s*★{1,5})?(\s+-\s+(?:Watched|Read|Listened) \w+ \d{4})?(\s+-\s+"(.*)")?\s*$');
+    r'(\s*\((?:18|19|20)\d{2}\))?(\s*★{1,5})?(\s+-\s+(?:Watched|Read|Listened|Played) \w+ \d{4})?(\s+-\s+"(.*)")?\s*$');
 
 ImportParseResult _fromLines(String text) {
   final rows = <ImportRow>[];

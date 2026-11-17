@@ -269,6 +269,7 @@ class _EditItemPageState extends State<EditItemPage> {
       MediaCategory.book => 'Author',
       MediaCategory.audiobook => 'Author / narrator',
       MediaCategory.podcast => 'Host',
+      MediaCategory.game => 'Developer',
     };
 
     return Scaffold(

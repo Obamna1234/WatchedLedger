@@ -19,7 +19,9 @@ class MoreByService {
   }
 
   static bool available(MediaCategory category, String? creator) =>
-      creator != null && primaryName(creator).length >= 3;
+      category != MediaCategory.game &&
+      creator != null &&
+      primaryName(creator).length >= 3;
 
   /// Works by [creator], newest first, without duplicates.
   Future<List<LookupCandidate>> worksBy(
@@ -40,6 +42,7 @@ class MoreByService {
                   attribute: 'authorTerm', limit: 50)
               .search(name, category),
           name),
+      MediaCategory.game => const <LookupCandidate>[],
     };
     final seen = <String>{};
     final unique = [

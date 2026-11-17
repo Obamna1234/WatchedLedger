@@ -34,10 +34,12 @@ extension PickMoodInfo on PickMood {
             'comedy', 'animation', 'family', 'romance', 'music', 'kids',
             'kids & family', 'leisure', "children's", 'comics & graphic novels',
             'reality', 'talk', 'tv & film', 'sports',
+            'party', 'platformer', 'puzzle', 'racing',
           },
         PickMood.gripping => const {
             'action', 'adventure', 'crime', 'horror', 'mystery', 'thriller',
             'mystery & crime', 'true crime', 'western', 'war',
+            'shooter', 'fighting', 'survival', 'action-adventure',
           },
         PickMood.thoughtful => const {
             'drama', 'documentary', 'history', 'biography & memoir',
@@ -45,10 +47,11 @@ extension PickMoodInfo on PickMood {
             'philosophy', 'poetry', 'science', 'self-help', 'news',
             'society & culture', 'education', 'religion & spirituality',
             'business', 'health & fitness', 'technology',
+            'strategy', 'simulation',
           },
         PickMood.escape => const {
             'fantasy', 'science fiction', 'young adult', 'fiction', 'travel',
-            'arts',
+            'arts', 'role-playing', 'sandbox',
           },
       };
 }
@@ -76,6 +79,7 @@ PickLength? lengthOf(MediaItem i) {
           : (m <= 140 ? PickLength.medium : PickLength.long);
     case MediaCategory.series:
     case MediaCategory.podcast:
+    case MediaCategory.game:
       return null;
   }
 }
