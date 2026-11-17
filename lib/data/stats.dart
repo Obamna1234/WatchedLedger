@@ -39,18 +39,28 @@ class LibraryStats {
   int get totalFinished =>
       finishedByCategory.values.fold(0, (a, b) => a + b);
 
-  factory LibraryStats.from(List<MediaItem> items, {int? year}) {
-    final done = [
-      for (final i in items)
-        if (i.status == ListStatus.done && i.completedAt != null) i,
+  /// Every diary entry counts (a rewatch counts again). Without [events],
+  /// each finished item counts once on its finished date.
+  factory LibraryStats.from(List<MediaItem> items,
+      {int? year, List<WatchEvent>? events}) {
+    final byId = {for (final i in items) i.id: i};
+    final finishes = <(MediaItem, DateTime)>[
+      if (events != null)
+        for (final e in events)
+          if (byId[e.itemId] case final i?) (i, e.date)
+      else
+        for (final i in items)
+          if (i.status == ListStatus.done && i.completedAt != null)
+            (i, i.completedAt!),
     ];
-    final inYear = year == null
-        ? done
-        : [for (final i in done) if (i.completedAt!.year == year) i];
+    final inYear = [
+      for (final f in finishes)
+        if (year == null || f.$2.year == year) f,
+    ];
 
     final byCat = {for (final c in MediaCategory.values) c: 0};
     final todo = {for (final c in MediaCategory.values) c: 0};
-    for (final i in inYear) {
+    for (final (i, _) in inYear) {
       byCat[i.category] = byCat[i.category]! + 1;
     }
     for (final i in items) {
@@ -59,13 +69,13 @@ class LibraryStats {
 
     final months = List<int>.filled(year == null ? 0 : 12, 0);
     if (year != null) {
-      for (final i in inYear) {
-        months[i.completedAt!.month - 1]++;
+      for (final (_, date) in inYear) {
+        months[date.month - 1]++;
       }
     }
 
     final genres = <String, int>{};
-    for (final i in inYear) {
+    for (final (i, _) in inYear) {
       if (i.genre == kUncategorised) continue;
       genres[i.genre] = (genres[i.genre] ?? 0) + 1;
     }
@@ -75,13 +85,16 @@ class LibraryStats {
         return c != 0 ? c : a.key.compareTo(b.key);
       });
 
-    final rated = [for (final i in inYear) if (i.rating != null) i.rating!];
+    final rated = [
+      for (final (i, _) in inYear)
+        if (i.rating != null) i.rating!,
+    ];
     final avg = rated.isEmpty
         ? null
         : rated.fold<int>(0, (a, b) => a + b) / rated.length;
 
     var pages = 0, minutes = 0;
-    for (final i in inYear) {
+    for (final (i, _) in inYear) {
       if (i.category == MediaCategory.book) pages += i.pages ?? 0;
       if (i.category == MediaCategory.movie ||
           i.category == MediaCategory.audiobook) {
@@ -90,8 +103,8 @@ class LibraryStats {
     }
 
     final perYear = <int, int>{};
-    for (final i in done) {
-      final y = i.completedAt!.year;
+    for (final (_, date) in finishes) {
+      final y = date.year;
       perYear[y] = (perYear[y] ?? 0) + 1;
     }
     final yearsList = perYear.entries.toList()

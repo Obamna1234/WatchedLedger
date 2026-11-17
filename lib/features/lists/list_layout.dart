@@ -1,5 +1,6 @@
 import '../../data/db/database.dart';
 import '../../data/genres.dart';
+import '../../data/tags.dart';
 
 // Pure sorting, filtering and sectioning of a list, kept free of Flutter
 // so it can be unit-tested.
@@ -22,6 +23,7 @@ class ListOptions {
     this.sort = SortMode.az,
     this.reverse = false,
     this.genres = const {},
+    this.tags = const {},
     this.minRating,
     this.yearFrom,
     this.yearTo,
@@ -34,6 +36,9 @@ class ListOptions {
   final bool reverse;
 
   final Set<String> genres;
+
+  /// Show items with any of these tags (compared ignoring case).
+  final Set<String> tags;
   final int? minRating;
   final int? yearFrom;
   final int? yearTo;
@@ -42,6 +47,7 @@ class ListOptions {
 
   bool get isFiltered =>
       genres.isNotEmpty ||
+      tags.isNotEmpty ||
       minRating != null ||
       yearFrom != null ||
       yearTo != null ||
@@ -54,6 +60,7 @@ class ListOptions {
         sort: sort ?? this.sort,
         reverse: reverse ?? this.reverse,
         genres: genres,
+        tags: tags,
         minRating: minRating,
         yearFrom: yearFrom,
         yearTo: yearTo,
@@ -64,6 +71,7 @@ class ListOptions {
   /// Same sorting, filters replaced (pass nothing to clear all filters).
   ListOptions withFilters({
     Set<String> genres = const {},
+    Set<String> tags = const {},
     int? minRating,
     int? yearFrom,
     int? yearTo,
@@ -75,6 +83,7 @@ class ListOptions {
         sort: sort,
         reverse: reverse,
         genres: genres,
+        tags: tags,
         minRating: minRating,
         yearFrom: yearFrom,
         yearTo: yearTo,
@@ -84,6 +93,12 @@ class ListOptions {
 
   bool matches(MediaItem i) {
     if (genres.isNotEmpty && !genres.contains(i.genre)) return false;
+    if (tags.isNotEmpty) {
+      final wanted = {for (final t in tags) t.toLowerCase()};
+      if (!itemTags(i).any((t) => wanted.contains(t.toLowerCase()))) {
+        return false;
+      }
+    }
     final min = minRating;
     if (min != null && (i.rating ?? 0) < min) return false;
     final from = yearFrom;

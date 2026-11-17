@@ -4,6 +4,8 @@ import '../../data/db/database.dart';
 import '../../data/models.dart';
 import '../lookup/remote_thumb.dart';
 import '../search/list_search.dart';
+import '../../data/tags.dart';
+import '../edit/edit_sections.dart' show progressLabel;
 
 enum _SwipeAction { edit, delete }
 
@@ -45,10 +47,13 @@ class ItemTile extends StatelessWidget {
           if (item.season != null) 'S${item.season}',
           if (item.episode != null) 'E${item.episode}',
         ].join(' '),
+      if (item.status == ListStatus.todo)
+        if (progressLabel(item) case final p?) p,
       if (item.rating != null) '★' * item.rating!,
       if (item.status == ListStatus.done && item.completedAt != null)
         completedLabel(item.category, item.completedAt!),
       if (item.note != null && item.note!.isNotEmpty) '“${item.note}”',
+      for (final t in itemTags(item)) '#$t',
     ];
     return parts.join('  ·  ');
   }

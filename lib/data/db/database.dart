@@ -4,6 +4,7 @@ import 'package:drift/drift.dart';
 
 import '../../core/sanitise.dart';
 import '../models.dart';
+import '../tags.dart';
 
 part 'database.g.dart';
 
@@ -128,6 +129,13 @@ class SettingsEntries extends Table {
 
 @DriftDatabase(
     tables: [Items, SettingsEntries, WatchEvents, EpisodeMarks, Tombstones])
+/// A diary entry with its item.
+class DiaryEntry {
+  const DiaryEntry(this.event, this.item);
+  final WatchEvent event;
+  final MediaItem item;
+}
+
 class AppDatabase extends _$AppDatabase {
   AppDatabase(super.e);
 
@@ -200,7 +208,8 @@ class AppDatabase extends _$AppDatabase {
       throw ArgumentError.value(title, 'title', 'must not be empty');
     }
     final ts = now ?? DateTime.now();
-    return into(items).insert(ItemsCompanion.insert(
+    return transaction(() async {
+      final id = await into(items).insert(ItemsCompanion.insert(
       category: category,
       status: status,
       title: clean,
@@ -220,16 +229,186 @@ class AppDatabase extends _$AppDatabase {
       updatedAt: ts,
       completedAt: Value(status == ListStatus.done ? ts : null),
     ));
+      if (status == ListStatus.done) await _addEvent(id, ts);
+      return id;
+    });
   }
 
   /// Moves an item between To Watch and Watched, stamping the completion date.
+  /// Ticking adds a diary entry for today; unticking removes the entry
+  /// that tick made (earlier entries stay in the diary).
   Future<void> setStatus(int id, ListStatus status, {DateTime? now}) async {
     final ts = now ?? DateTime.now();
-    await (update(items)..where((t) => t.id.equals(id))).write(ItemsCompanion(
-      status: Value(status),
-      completedAt: Value(status == ListStatus.done ? ts : null),
-      updatedAt: Value(ts),
+    await transaction(() async {
+      final before = await itemById(id);
+      if (before == null) return;
+      await (update(items)..where((t) => t.id.equals(id))).write(ItemsCompanion(
+        status: Value(status),
+        completedAt: Value(status == ListStatus.done ? ts : null),
+        updatedAt: Value(ts),
+      ));
+      if (status == ListStatus.done && before.status != ListStatus.done) {
+        await _addEvent(id, ts);
+      } else if (status == ListStatus.todo && before.completedAt != null) {
+        await (delete(watchEvents)
+              ..where((e) =>
+                  e.itemId.equals(id) & e.date.equals(before.completedAt!)))
+            .go();
+      }
+    });
+  }
+
+  Future<int> _addEvent(int itemId, DateTime date,
+          {int? rating, String? note}) =>
+      into(watchEvents).insert(WatchEventsCompanion.insert(
+        itemId: itemId,
+        date: date,
+        rating: Value(rating),
+        note: Value(note),
+        uid: Value(newUid()),
+      ));
+
+  // ---------------------------------------------------------------- diary
+
+  /// "Watched again" / "Read again": a new diary entry; the item moves to
+  /// (or stays in) the finished list with this as its latest date.
+  Future<void> addRewatch(int itemId,
+      {DateTime? date, int? rating, String? note, DateTime? now}) async {
+    final ts = now ?? DateTime.now();
+    final when = date ?? ts;
+    await transaction(() async {
+      final item = await itemById(itemId);
+      if (item == null) return;
+      await _addEvent(itemId, when,
+          rating: rating?.clamp(1, 5),
+          note: note == null || cleanText(note).isEmpty
+              ? null
+              : cleanText(note, maxLength: kMaxNoteLength));
+      final latest = item.completedAt == null || when.isAfter(item.completedAt!)
+          ? when
+          : item.completedAt!;
+      await (update(items)..where((t) => t.id.equals(itemId))).write(
+          ItemsCompanion(
+              status: const Value(ListStatus.done),
+              completedAt: Value(latest),
+              updatedAt: Value(ts)));
+    });
+  }
+
+  /// Diary entries for one item, newest first.
+  Stream<List<WatchEvent>> watchEventsFor(int itemId) =>
+      (select(watchEvents)
+            ..where((e) => e.itemId.equals(itemId))
+            ..orderBy([(e) => OrderingTerm.desc(e.date)]))
+          .watch();
+
+  /// Every diary entry with its item, newest first (entries whose item was
+  /// deleted are left out).
+  Stream<List<DiaryEntry>> watchDiary() {
+    final q = select(watchEvents).join([
+      innerJoin(items, items.id.equalsExp(watchEvents.itemId)),
+    ])
+      ..orderBy([OrderingTerm.desc(watchEvents.date)]);
+    return q.watch().map((rows) => [
+          for (final r in rows)
+            DiaryEntry(r.readTable(watchEvents), r.readTable(items)),
+        ]);
+  }
+
+  Future<List<WatchEvent>> allEvents() => select(watchEvents).get();
+
+  Stream<List<WatchEvent>> watchAllEvents() => select(watchEvents).watch();
+
+  Future<void> deleteEvent(int eventId) async {
+    await transaction(() async {
+      final e = await (select(watchEvents)..where((t) => t.id.equals(eventId)))
+          .getSingleOrNull();
+      if (e == null) return;
+      await (delete(watchEvents)..where((t) => t.id.equals(eventId))).go();
+      final item = await itemById(e.itemId);
+      if (item == null || item.completedAt != e.date) return;
+      // That was the latest finish: fall back to the one before, if any.
+      final previous = await (select(watchEvents)
+            ..where((t) => t.itemId.equals(e.itemId))
+            ..orderBy([(t) => OrderingTerm.desc(t.date)])
+            ..limit(1))
+          .getSingleOrNull();
+      if (previous != null) {
+        await (update(items)..where((t) => t.id.equals(item.id))).write(
+            ItemsCompanion(
+                completedAt: Value(previous.date),
+                updatedAt: Value(DateTime.now())));
+      }
+    });
+  }
+
+  Future<void> updateEvent(WatchEvent e) async {
+    await update(watchEvents).replace(e.copyWith(
+      rating: Value(e.rating?.clamp(1, 5)),
+      note: Value(e.note == null ? null : cleanText(e.note!,
+          maxLength: kMaxNoteLength)),
     ));
+  }
+
+  /// Gives every finished item without a diary entry one entry on its
+  /// finished date (for items finished before the diary existed, and
+  /// imports). Safe to run often.
+  Future<int> backfillDiary() async {
+    return transaction(() async {
+      final done = await (select(items)
+            ..where((t) =>
+                t.status.equalsValue(ListStatus.done) & t.completedAt.isNotNull()))
+          .get();
+      if (done.isEmpty) return 0;
+      final withEvents = {
+        for (final e in await select(watchEvents).get()) e.itemId,
+      };
+      var added = 0;
+      for (final i in done) {
+        if (withEvents.contains(i.id)) continue;
+        await _addEvent(i.id, i.completedAt!, rating: i.rating, note: i.note);
+        added++;
+      }
+      return added;
+    });
+  }
+
+  // ------------------------------------------------------- tags and goals
+
+  /// Every tag used in [category] (or everywhere), sorted.
+  Future<List<String>> tagsInUse([MediaCategory? category]) async {
+    final q = select(items)..where((t) => t.tags.isNotNull());
+    if (category != null) q.where((t) => t.category.equalsValue(category));
+    final seen = <String, String>{};
+    for (final i in await q.get()) {
+      for (final t in decodeTags(i.tags)) {
+        seen.putIfAbsent(t.toLowerCase(), () => t);
+      }
+    }
+    return seen.values.toList()
+      ..sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
+  }
+
+  static String _goalKey(MediaCategory c, int year) => 'goal_${c.name}_$year';
+
+  Future<Map<MediaCategory, int>> goalsFor(int year) async {
+    final all = await readSettings();
+    return {
+      for (final c in MediaCategory.values)
+        if (int.tryParse(all[_goalKey(c, year)] ?? '') case final g?
+            when g > 0)
+          c: g,
+    };
+  }
+
+  Future<void> setGoal(MediaCategory c, int year, int? goal) async {
+    final key = _goalKey(c, year);
+    if (goal == null || goal <= 0) {
+      await (delete(settingsEntries)..where((t) => t.settingKey.equals(key)))
+          .go();
+    } else {
+      await writeSetting(key, '${goal.clamp(1, 10000)}');
+    }
   }
 
   /// Saves an edited item. Title-derived keys are recalculated here so they
@@ -239,11 +418,32 @@ class AppDatabase extends _$AppDatabase {
     if (title.isEmpty) {
       throw ArgumentError.value(item.title, 'title', 'must not be empty');
     }
-    await update(items).replace(item.copyWith(
-      title: title,
-      sortTitle: sortKey(title),
-      matchKey: matchKey(title),
-    ));
+    await transaction(() async {
+      final before = await itemById(item.id);
+      await update(items).replace(item.copyWith(
+        title: title,
+        sortTitle: sortKey(title),
+        matchKey: matchKey(title),
+      ));
+      if (before == null) return;
+      // Keep the diary in step with edits to the list or finished date.
+      final wasDone = before.status == ListStatus.done;
+      final isDone = item.status == ListStatus.done;
+      final oldDate = before.completedAt;
+      final newDate = item.completedAt;
+      if (!wasDone && isDone && newDate != null) {
+        await _addEvent(item.id, newDate);
+      } else if (wasDone && !isDone && oldDate != null) {
+        await (delete(watchEvents)
+              ..where((e) => e.itemId.equals(item.id) & e.date.equals(oldDate)))
+            .go();
+      } else if (wasDone && isDone && oldDate != null && newDate != null &&
+          oldDate != newDate) {
+        await (update(watchEvents)
+              ..where((e) => e.itemId.equals(item.id) & e.date.equals(oldDate)))
+            .write(WatchEventsCompanion(date: Value(newDate)));
+      }
+    });
   }
 
   /// Every genre currently used in [category] (for the genre picker/filter).
@@ -288,12 +488,39 @@ class AppDatabase extends _$AppDatabase {
         .write(ItemsCompanion(coverFile: Value(fileName)));
   }
 
-  Future<int> deleteItem(int id) =>
-      (delete(items)..where((t) => t.id.equals(id))).go();
+  /// Deletes an item. Its diary entries are kept so Undo can bring the
+  /// whole thing back; they are hidden while the item is gone and tidied up
+  /// at the next start. A tombstone lets sync delete it on other phones.
+  Future<int> deleteItem(int id) async {
+    return transaction(() async {
+      final item = await itemById(id);
+      final n = await (delete(items)..where((t) => t.id.equals(id))).go();
+      final uid = item?.uid;
+      if (n > 0 && uid != null) {
+        await into(tombstones).insertOnConflictUpdate(
+            TombstonesCompanion.insert(uid: uid, deletedAt: DateTime.now()));
+      }
+      return n;
+    });
+  }
 
   /// Puts back an exact earlier copy of an item (used by Undo).
   Future<void> restoreItem(MediaItem item) async {
-    await into(items).insertOnConflictUpdate(item);
+    await transaction(() async {
+      await into(items).insertOnConflictUpdate(item);
+      final uid = item.uid;
+      if (uid != null) {
+        await (delete(tombstones)..where((t) => t.uid.equals(uid))).go();
+      }
+    });
+  }
+
+  /// Removes diary entries and episode ticks whose item no longer exists.
+  Future<void> tidyOrphans() async {
+    await customStatement(
+        'DELETE FROM watch_events WHERE item_id NOT IN (SELECT id FROM items)');
+    await customStatement(
+        'DELETE FROM episode_marks WHERE item_id NOT IN (SELECT id FROM items)');
   }
 
   // ------------------------------------------------------------- settings
