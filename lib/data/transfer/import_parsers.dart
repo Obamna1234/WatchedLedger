@@ -871,7 +871,7 @@ String _utf16(Uint8List b, int start, {required bool little}) {
 // ------------------------------------------------------ hints in notes
 
 final RegExp _recommendation = RegExp(
-    r"(?:^|[\s,;(])(?:recommended by|suggested by|rec(?:ommended)?\.? by)\s+([^,;()]{2,40})|"
+    r'(?:^|[\s,;(])(?:recommended by|suggested by|rec(?:ommended)?\.? by)\s+([^,;()]{2,40})|'
     r"(?:^|[\s,;(])([A-Za-z][\w' .-]{1,40}?)\s*(?:'s)?\s+(?:recommendation|recommends?|recommended|suggestion)\b",
     caseSensitive: false);
 final RegExp _watchWith = RegExp(
