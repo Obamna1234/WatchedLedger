@@ -47,8 +47,7 @@ class ItemTile extends StatelessWidget {
           if (item.season != null) 'S${item.season}',
           if (item.episode != null) 'E${item.episode}',
         ].join(' '),
-      if (item.status == ListStatus.todo)
-        if (progressLabel(item) case final p?) p,
+      if (item.status == ListStatus.todo) ?progressLabel(item),
       if (item.rating != null) '★' * item.rating!,
       if (item.status == ListStatus.done && item.completedAt != null)
         completedLabel(item.category, item.completedAt!),
