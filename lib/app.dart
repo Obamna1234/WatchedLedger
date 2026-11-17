@@ -47,16 +47,10 @@ class WatchedLedgerApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final settings = services.settings;
-    return AppScope(
-      db: services.db,
-      settings: settings,
-      net: services.net,
-      lookup: services.lookup,
-      covers: services.covers,
-      network: services.network,
-      matcher: services.matcher,
-      lock: services.lock,
-      reminders: services.reminders,
+    // Rebuilt when the lock changes, so private items show or hide everywhere.
+    return ListenableBuilder(
+      listenable: Listenable.merge([services.lock]),
+      builder: (context, child) => _scope(child!),
       child: ListenableBuilder(
         listenable: settings,
         builder: (context, _) {
@@ -77,6 +71,22 @@ class WatchedLedgerApp extends StatelessWidget {
           );
         },
       ),
+    );
+  }
+
+  Widget _scope(Widget child) {
+    return AppScope(
+      showPrivate: services.lock?.privateVisible ?? true,
+      db: services.db,
+      settings: services.settings,
+      net: services.net,
+      lookup: services.lookup,
+      covers: services.covers,
+      network: services.network,
+      matcher: services.matcher,
+      lock: services.lock,
+      reminders: services.reminders,
+      child: child,
     );
   }
 }

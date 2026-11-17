@@ -49,7 +49,7 @@ void main() {
     expect(hint('meat canyon recommendation "holy moly"').recommendedBy,
         'Meat Canyon');
     expect(hint('suggested by bobb lee').recommendedBy, 'Bobb Lee');
-    expect(hint('watch with sofia').watchWith, ['Sofia']);
+    expect(hint('watch with sam').watchWith, ['Sam']);
     expect(hint('netflix').whereToWatch, 'Netflix');
     expect(hint('on plex').whereToWatch, 'Plex');
     expect(hint('waiting to get released').upcoming, isTrue);
@@ -58,13 +58,13 @@ void main() {
   });
 
   test('filters: where to watch and people', () {
-    final a = item(1, 'A', where: 'Netflix', withWho: ['Sofia']);
+    final a = item(1, 'A', where: 'Netflix', withWho: ['Sam']);
     final b = item(2, 'B', where: 'Stan', rec: 'Meat Canyon');
     expect(const ListOptions(where: {'netflix'}).matches(a), isTrue);
     expect(const ListOptions(where: {'netflix'}).matches(b), isFalse);
-    expect(const ListOptions(people: {'sofia'}).matches(a), isTrue);
+    expect(const ListOptions(people: {'sam'}).matches(a), isTrue);
     expect(const ListOptions(people: {'meat canyon'}).matches(b), isTrue);
-    expect(const ListOptions(people: {'sofia'}).matches(b), isFalse);
+    expect(const ListOptions(people: {'sam'}).matches(b), isFalse);
   });
 
   test('"Not out yet" items are grouped at the top', () {
@@ -123,10 +123,10 @@ void main() {
     final a = (await db.itemById(id))!;
     await db.updateItem(a.copyWith(
       recommendedBy: const Value('Meat Canyon'),
-      watchWith: Value(encodeTags(['Sofia'])),
+      watchWith: Value(encodeTags(['Sam'])),
       whereToWatch: const Value('Stan'),
     ));
-    expect(await db.peopleInUse(), ['Meat Canyon', 'Sofia']);
+    expect(await db.peopleInUse(), ['Meat Canyon', 'Sam']);
     expect(await db.placesInUse(), ['Stan']);
   });
 }

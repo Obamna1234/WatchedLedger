@@ -5,9 +5,11 @@ import '../../core/build_info.dart';
 import '../../core/settings.dart';
 import '../../core/theme.dart';
 import '../data/data_page.dart';
+import '../duplicates/duplicates_page.dart';
 import '../lock/lock_settings_page.dart';
 import '../privacy/privacy_page.dart';
 import '../sync/sync_page.dart';
+import '../trash/trash_page.dart';
 
 class SettingsPage extends StatelessWidget {
   const SettingsPage({super.key});
@@ -134,6 +136,24 @@ class SettingsPage extends StatelessWidget {
               trailing: const Icon(Icons.chevron_right),
               onTap: () => Navigator.of(context).push(
                 MaterialPageRoute<void>(builder: (_) => const DataPage()),
+              ),
+            ),
+            ListTile(
+              leading: const Icon(Icons.content_copy_outlined),
+              title: const Text('Find duplicates'),
+              subtitle: const Text('Merge things added more than once'),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => Navigator.of(context).push(
+                MaterialPageRoute<void>(builder: (_) => const DuplicatesPage()),
+              ),
+            ),
+            ListTile(
+              leading: const Icon(Icons.restore_from_trash_outlined),
+              title: const Text('Recently deleted'),
+              subtitle: const Text('Kept for 30 days'),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => Navigator.of(context).push(
+                MaterialPageRoute<void>(builder: (_) => const TrashPage()),
               ),
             ),
             ListTile(

@@ -23,6 +23,7 @@ class AppScope extends InheritedWidget {
     this.matcher,
     this.lock,
     this.reminders,
+    this.showPrivate = true,
     required super.child,
   });
 
@@ -42,6 +43,11 @@ class AppScope extends InheritedWidget {
   /// "New episode" reminders (null in tests).
   final ReminderService? reminders;
 
+  /// False while private items are hidden (app lock on, not revealed).
+  final bool showPrivate;
+
+  bool isVisible(MediaItem i) => showPrivate || !i.isPrivate;
+
   static AppScope of(BuildContext context) {
     final scope = context.dependOnInheritedWidgetOfExactType<AppScope>();
     assert(scope != null, 'No AppScope above this widget');
@@ -58,5 +64,6 @@ class AppScope extends InheritedWidget {
       network != oldWidget.network ||
       matcher != oldWidget.matcher ||
       lock != oldWidget.lock ||
-      reminders != oldWidget.reminders;
+      reminders != oldWidget.reminders ||
+      showPrivate != oldWidget.showPrivate;
 }

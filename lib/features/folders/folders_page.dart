@@ -23,7 +23,11 @@ class FoldersPage extends StatelessWidget {
       body: StreamBuilder<List<MediaItem>>(
         stream: db.watchAll(),
         builder: (context, snap) {
-          final items = snap.data ?? const <MediaItem>[];
+          final scope = AppScope.of(context);
+          final items = [
+            for (final i in snap.data ?? const <MediaItem>[])
+              if (scope.isVisible(i)) i,
+          ];
           final folders = <String, List<MediaItem>>{};
           final names = <String, String>{};
           for (final i in items) {
@@ -40,7 +44,7 @@ class FoldersPage extends StatelessWidget {
                 padding: const EdgeInsets.all(32),
                 child: Text(
                   'No folders yet. Open any item and add it to a folder '
-                  '(e.g. "Funny reels" or "For Sofia") under "Tags & '
+                  '(e.g. "Funny reels" or "For Sam") under "Tags & '
                   'folders". Folders can hold anything from any tab, and '
                   'you can share one with someone.',
                   textAlign: TextAlign.center,
@@ -96,7 +100,8 @@ class FolderPage extends StatelessWidget {
       builder: (context, snap) {
         final items = [
           for (final i in snap.data ?? const <MediaItem>[])
-            if (itemTags(i).any((t) => t.toLowerCase() == folder.toLowerCase()))
+            if (AppScope.of(context).isVisible(i) &&
+                itemTags(i).any((t) => t.toLowerCase() == folder.toLowerCase()))
               i,
         ];
         return Scaffold(

@@ -60,7 +60,11 @@ class _PickerPageState extends State<PickerPage> {
       body: StreamBuilder<List<MediaItem>>(
         stream: db.watchAll(),
         builder: (context, snap) {
-          final items = snap.data ?? const <MediaItem>[];
+          final scope = AppScope.of(context);
+          final items = [
+            for (final i in snap.data ?? const <MediaItem>[])
+              if (scope.isVisible(i)) i,
+          ];
           final candidates = items.where(_filter.matches).length;
           final genres = {
             for (final i in items)

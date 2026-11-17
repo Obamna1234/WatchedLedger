@@ -62,6 +62,12 @@ Backups are encrypted files that you create yourself and save wherever you choos
 
 **Episode reminders (optional, off by default):** the phone schedules its own notifications for the air dates. There is no push server, account or device token. On a locked screen the notification only says "New episode".
 
+**Shared folders:** tapping Share on a folder opens your phone's normal share menu with a plain message of titles and links. WatchedLedger uploads nothing; you choose who to send it to. Private items are never included.
+
+**Recently deleted and private items** stay in the encrypted database. Deleted items are erased for good after 30 days. Private items are hidden behind your app lock PIN.
+
+**Opening links:** the ▶ button hands the link to the YouTube, NewPipe or browser app on your phone; WatchedLedger itself doesn't contact the site.
+
 **App lock (optional):** your PIN is stored only as a salted hash (PBKDF2) in the phone's secure storage, never in the database or in backups.
 
 ## Permissions

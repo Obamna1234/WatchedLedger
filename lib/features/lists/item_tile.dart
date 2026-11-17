@@ -22,6 +22,9 @@ class ItemTile extends StatelessWidget {
     required this.onSwipeDelete,
     this.query = '',
     this.isCurrentMatch = false,
+    this.selecting = false,
+    this.selected = false,
+    this.onSelect,
   });
 
   final MediaItem item;
@@ -35,6 +38,13 @@ class ItemTile extends StatelessWidget {
 
   /// This row is the current search match ("3 of 12").
   final bool isCurrentMatch;
+
+  /// Select-several mode: tapping selects instead of opening.
+  final bool selecting;
+  final bool selected;
+
+  /// Long-press (or tap while selecting) to select this row.
+  final VoidCallback? onSelect;
 
   bool get _done => item.status == ListStatus.done;
 
@@ -114,7 +124,15 @@ class ItemTile extends StatelessWidget {
 
     final tile = ListTile(
       tileColor: isCurrentMatch ? scheme.secondaryContainer : null,
-      leading: ItemCover(item: item),
+      selected: selected,
+      selectedTileColor: scheme.primaryContainer.withValues(alpha: 0.5),
+      onLongPress: onSelect,
+      leading: selected
+          ? SizedBox(
+              width: 40,
+              child: Icon(Icons.check_circle, color: scheme.primary, size: 32),
+            )
+          : ItemCover(item: item),
       title: Text.rich(
         highlightSpan(
           item.title,
@@ -150,7 +168,7 @@ class ItemTile extends StatelessWidget {
           ),
         ],
       ),
-      onTap: onEdit,
+      onTap: selecting ? onSelect : onEdit,
     );
 
     return Dismissible(
