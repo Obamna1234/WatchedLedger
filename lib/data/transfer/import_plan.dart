@@ -145,7 +145,7 @@ Future<int> saveImport(AppDatabase db, List<ImportEntry> entries,
             episode:
                 Value(e.category == MediaCategory.series ? r.episode : null),
             runtimeMinutes: Value(r.runtimeMinutes),
-            pages: Value(r.pages),
+            pages: Value(r.pages ?? m?.pages),
             tags: Value(r.tags.isEmpty ? null : jsonEncode(r.tags)),
             addedAt: ts,
             updatedAt: ts,

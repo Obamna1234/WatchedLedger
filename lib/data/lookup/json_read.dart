@@ -62,3 +62,6 @@ String? safeImageUrl(Object? v) {
   if (uri == null || !NetClient.isAllowed(uri)) return null;
   return uri.toString();
 }
+
+/// A plausible page count, or null.
+int? pageCount(Object? v) => v is int && v > 0 && v <= 20000 ? v : null;
