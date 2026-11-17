@@ -9,7 +9,9 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
 import 'package:watchedledger/main.dart' as app;
 
-void mark(String caption) => debugPrint('MARK|$caption');
+// print (not debugPrint, which is throttled) keeps the timestamps tight.
+// ignore: avoid_print
+void mark(String caption) => print('MARK|$caption');
 
 Future<void> idle(WidgetTester t, int ms) async {
   await Future<void>.delayed(Duration(milliseconds: ms));
@@ -51,6 +53,11 @@ Future<void> type(WidgetTester t, Finder field, String text) async {
 }
 
 Finder get sheet => find.byType(BottomSheet);
+
+/// The To Watch / Watched switch (not the add bar's list button).
+Finder listSwitch(String label) => find.descendant(
+    of: find.byWidgetPredicate((w) => w is SegmentedButton),
+    matching: find.text(label));
 Finder get addField => find.byType(TextField);
 
 /// Adds [typed]; if "Did you mean…?" appears, picks [pick] (or the first).
@@ -119,7 +126,7 @@ void main() {
     await t.timedDrag(visible(find.text('Inception')).first,
         const Offset(420, 0), const Duration(milliseconds: 700));
     await idle(t, 1500);
-    await tap(t, find.text('Watched'), after: 1500);
+    await tap(t, listSwitch('Watched'), after: 1500);
 
     mark('Tap a title to rate it, add a note or track progress.');
     await tap(t, find.text('Inception'), after: 900);
@@ -130,7 +137,7 @@ void main() {
     await tap(t, find.text('Save'), after: 1600);
 
     mark('Search highlights every match, across all your lists.');
-    await tap(t, find.text('To Watch'), after: 700);
+    await tap(t, listSwitch('To Watch'), after: 700);
     await tap(t, find.byTooltip('Search'), after: 500);
     await type(t, addField, 'in');
     await hideKeyboard(t);
@@ -146,10 +153,8 @@ void main() {
     await t.timedDrag(visible(find.byType(ListView)).first,
         const Offset(0, -450), const Duration(milliseconds: 900));
     await idle(t, 1500);
-    await t.pageBack();
-    await idle(t, 400);
-    await t.pageBack();
-    await idle(t, 1500);
+    await tap(t, find.byTooltip('Back'), after: 600);
+    await tap(t, find.byTooltip('Back'), after: 1500);
 
     mark('end');
     await idle(t, 1500);

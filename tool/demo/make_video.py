@@ -24,6 +24,7 @@ FONT_REG = '/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf'
 ENC = ['-c:v', 'libx264', '-crf', '20', '-preset', 'veryfast',
        '-pix_fmt', 'yuv420p', '-r', str(FPS), '-an']
 BG = '0x0E1F1B'  # deep ledger green
+MARK_LAG = 0.5  # seconds between an action and its log line reaching logcat
 
 
 def run(args):
@@ -51,17 +52,17 @@ def read_marks(folder):
                      errors='replace'):
         m = re.match(r'\s*(\d+\.\d+).*?MARK\|(.*)$', line)
         if m:
-            marks.append((float(m.group(1)) - t0, m.group(2).strip()))
+            marks.append((float(m.group(1)) - t0 - MARK_LAG, m.group(2).strip()))
     return marks
 
 
-def card(folder, out, duration, title, subtitle):
+def card(folder, out, duration, title, subtitle, title_size=64):
     tf = text_file(folder, os.path.basename(out) + '.t.txt', title)
     sf = text_file(folder, os.path.basename(out) + '.s.txt', subtitle)
-    vf = (f"drawtext=fontfile={FONT}:textfile={tf}:fontcolor=white:fontsize=64:"
-          f"x=(w-text_w)/2:y=h/2-110,"
+    vf = (f"drawtext=fontfile={FONT}:textfile={tf}:fontcolor=white:fontsize={title_size}:"
+          f"line_spacing=12:x=(w-text_w)/2:y=h/2-60-text_h,"
           f"drawtext=fontfile={FONT_REG}:textfile={sf}:fontcolor=0xBFE3D8:"
-          f"fontsize=34:line_spacing=14:x=(w-text_w)/2:y=h/2+10,"
+          f"fontsize=34:line_spacing=14:x=(w-text_w)/2:y=h/2+20,"
           f"fade=t=in:st=0:d=0.35,fade=t=out:st={duration - 0.35:.2f}:d=0.35")
     encode(['-f', 'lavfi', '-i', f'color=c={BG}:s={W}x{H}:r={FPS}:d={duration:.3f}',
             '-vf', vf], out)
@@ -142,8 +143,9 @@ def main():
               f"(x{sc['speed']:.1f}, {len(sc['waits'])} waits)  {sc['caption']}")
 
     parts.append(os.path.join(work, '999_end.mp4'))
-    card(work, parts[-1], max(END_MIN, TOTAL - used), 'No account. No tracking.',
-         'Your lists stay on your phone.\n\nFree on GitHub:\nObamna1234/WatchedLedger')
+    card(work, parts[-1], max(END_MIN, TOTAL - used), 'No account.\nNo tracking.',
+         'Your lists stay on your phone.\n\nFree on GitHub:\nObamna1234/WatchedLedger',
+         title_size=58)
 
     listing = text_file(work, 'list.txt', ''.join(f"file '{p}'\n" for p in parts))
     tmp = output[:-4] + '.part.mp4'
