@@ -713,7 +713,9 @@ class AppDatabase extends _$AppDatabase {
   Future<void> restoreItem(MediaItem item) async {
     await transaction(() async {
       final current = await itemById(item.id);
-      await into(items).insertOnConflictUpdate(item);
+      // toCompanion(false) writes empty fields too, so Undo also clears
+      // anything the change had filled in.
+      await into(items).insertOnConflictUpdate(item.toCompanion(false));
       // Undo of a delete: it's no longer in "Recently deleted".
       await (delete(trash)..where((t) => t.itemId.equals(item.id))).go();
       if (current != null) await _diaryFollows(current, item);
