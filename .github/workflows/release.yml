@@ -76,6 +76,54 @@ jobs:
           path: dist
           merge-multiple: true
 
+      - name: AltStore / SideStore source
+        # A small JSON file that lets AltStore or SideStore offer updates.
+        # Always reachable at .../releases/latest/download/altstore-source.json
+        env:
+          VERSION: ${{ needs.check.outputs.version }}
+          REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          ipa="dist/WatchedLedger-$VERSION.ipa"
+          size=$(stat -c %s "$ipa")
+          today=$(date -u +%Y-%m-%d)
+          python3 - "$VERSION" "$REPO" "$size" "$today" > dist/altstore-source.json <<'PY'
+          import json, sys
+          version, repo, size, today = sys.argv[1], sys.argv[2], int(sys.argv[3]), sys.argv[4]
+          base = f"https://github.com/{repo}"
+          print(json.dumps({
+            "name": "WatchedLedger",
+            "identifier": "app.watchedledger.source",
+            "website": base,
+            "apps": [{
+              "name": "WatchedLedger",
+              "bundleIdentifier": "app.watchedledger",
+              "developerName": repo.split("/")[0],
+              "subtitle": "Private tracker for what you watch, read and hear",
+              "localizedDescription": "Private, offline-first tracker for movies, series, books, audiobooks and podcasts. No accounts, no tracking.",
+              "iconURL": f"https://raw.githubusercontent.com/{repo}/main/assets/icon/icon.png",
+              "tintColor": "2EC48A",
+              "category": "lifestyle",
+              "versions": [{
+                "version": version,
+                "date": today,
+                "localizedDescription": f"See {base}/releases/tag/v{version}",
+                "downloadURL": f"{base}/releases/download/v{version}/WatchedLedger-{version}.ipa",
+                "size": size,
+                "minOSVersion": "15.0",
+              }],
+              "appPermissions": {
+                "entitlements": [],
+                "privacy": {
+                  "NSFaceIDUsageDescription": "Unlock WatchedLedger with Face ID if you turn on the app lock."
+                },
+              },
+            }],
+            "news": [],
+          }, indent=2))
+          PY
+          cat dist/altstore-source.json
+
       - name: Checksums
         run: |
           set -euo pipefail
@@ -93,6 +141,6 @@ jobs:
           generate_release_notes: true
           body: |
             **Android:** download the `.apk` below and open it on your phone.
-            **iPhone:** download the `.ipa` and install it with SideStore, AltStore or Sideloadly (see the README).
+            **iPhone:** download the `.ipa` and install it with SideStore, AltStore or Sideloadly (see the README). In AltStore/SideStore you can add this source once to get updates: `https://github.com/${{ github.repository }}/releases/latest/download/altstore-source.json`
 
             Verify downloads against `SHA256SUMS.txt`.
