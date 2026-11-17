@@ -425,25 +425,32 @@ class AppDatabase extends _$AppDatabase {
         sortTitle: sortKey(title),
         matchKey: matchKey(title),
       ));
-      if (before == null) return;
-      // Keep the diary in step with edits to the list or finished date.
-      final wasDone = before.status == ListStatus.done;
-      final isDone = item.status == ListStatus.done;
-      final oldDate = before.completedAt;
-      final newDate = item.completedAt;
-      if (!wasDone && isDone && newDate != null) {
-        await _addEvent(item.id, newDate);
-      } else if (wasDone && !isDone && oldDate != null) {
-        await (delete(watchEvents)
-              ..where((e) => e.itemId.equals(item.id) & e.date.equals(oldDate)))
-            .go();
-      } else if (wasDone && isDone && oldDate != null && newDate != null &&
-          oldDate != newDate) {
-        await (update(watchEvents)
-              ..where((e) => e.itemId.equals(item.id) & e.date.equals(oldDate)))
-            .write(WatchEventsCompanion(date: Value(newDate)));
-      }
+      if (before != null) await _diaryFollows(before, item);
     });
+  }
+
+  /// Keeps the diary in step when an item's list or finished date changes
+  /// (edits and Undo).
+  Future<void> _diaryFollows(MediaItem before, MediaItem after) async {
+    final wasDone = before.status == ListStatus.done;
+    final isDone = after.status == ListStatus.done;
+    final oldDate = before.completedAt;
+    final newDate = after.completedAt;
+    if (!wasDone && isDone && newDate != null) {
+      final exists = await (select(watchEvents)
+            ..where((e) => e.itemId.equals(after.id) & e.date.equals(newDate)))
+          .get();
+      if (exists.isEmpty) await _addEvent(after.id, newDate);
+    } else if (wasDone && !isDone && oldDate != null) {
+      await (delete(watchEvents)
+            ..where((e) => e.itemId.equals(after.id) & e.date.equals(oldDate)))
+          .go();
+    } else if (wasDone && isDone && oldDate != null && newDate != null &&
+        oldDate != newDate) {
+      await (update(watchEvents)
+            ..where((e) => e.itemId.equals(after.id) & e.date.equals(oldDate)))
+          .write(WatchEventsCompanion(date: Value(newDate)));
+    }
   }
 
   /// Every genre currently used in [category] (for the genre picker/filter).
@@ -507,7 +514,9 @@ class AppDatabase extends _$AppDatabase {
   /// Puts back an exact earlier copy of an item (used by Undo).
   Future<void> restoreItem(MediaItem item) async {
     await transaction(() async {
+      final current = await itemById(item.id);
       await into(items).insertOnConflictUpdate(item);
+      if (current != null) await _diaryFollows(current, item);
       final uid = item.uid;
       if (uid != null) {
         await (delete(tombstones)..where((t) => t.uid.equals(uid))).go();

@@ -93,6 +93,25 @@ void main() {
       expect(await events(id), isEmpty);
     });
 
+    test('Undo of a tick or untick keeps the diary right', () async {
+      final id = await db.addItem(
+          category: MediaCategory.movie,
+          status: ListStatus.todo,
+          title: 'Fargo');
+      final todo = (await db.itemById(id))!;
+      await db.setStatus(id, ListStatus.done, now: DateTime(2026, 2, 2));
+      expect(await events(id), hasLength(1));
+      await db.restoreItem(todo); // Undo the tick
+      expect(await events(id), isEmpty);
+
+      await db.setStatus(id, ListStatus.done, now: DateTime(2026, 3, 3));
+      final done = (await db.itemById(id))!;
+      await db.setStatus(id, ListStatus.todo);
+      expect(await events(id), isEmpty);
+      await db.restoreItem(done); // Undo the untick
+      expect((await events(id)).single.date, DateTime(2026, 3, 3));
+    });
+
     test('backfill gives older finished items one entry, once', () async {
       final id = await db.into(db.items).insert(ItemsCompanion.insert(
             category: MediaCategory.movie,
