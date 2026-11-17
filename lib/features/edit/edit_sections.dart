@@ -273,7 +273,7 @@ class _NumberFieldState extends State<_NumberField> {
         ),
         onChanged: (v) {
           final n = int.tryParse(v);
-          widget.onChanged(n == null ? null : n.clamp(0, widget.max));
+          widget.onChanged(n?.clamp(0, widget.max));
         },
       );
 }
