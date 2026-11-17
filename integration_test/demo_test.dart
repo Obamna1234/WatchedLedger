@@ -4,6 +4,7 @@
 // is recorded. Each scene logs "MARK|<caption>" so the recording can be cut
 // and captioned afterwards. Uses the real lookup services.
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
 import 'package:watchedledger/main.dart' as app;
@@ -28,6 +29,13 @@ Future<bool> waitFor(WidgetTester t, Finder finder,
 
 Finder visible(Finder f) => f.hitTestable();
 
+/// Closes the on-screen keyboard so it doesn't cover the list.
+Future<void> hideKeyboard(WidgetTester t) async {
+  FocusManager.instance.primaryFocus?.unfocus();
+  await SystemChannels.textInput.invokeMethod<void>('TextInput.hide');
+  await idle(t, 500);
+}
+
 Future<void> tap(WidgetTester t, Finder f, {int after = 500}) async {
   await t.tap(visible(f).first);
   await idle(t, after);
@@ -49,13 +57,18 @@ Finder get addField => find.byType(TextField);
 Future<void> add(WidgetTester t, String typed, {String? pick}) async {
   await type(t, addField, typed);
   await tap(t, find.byTooltip('Add'), after: 100);
+  mark('~wait'); // network lookup: shortened in the video
   final added = find.textContaining('Added "');
   final asked = find.text('Did you mean…?');
   final end = DateTime.now().add(const Duration(seconds: 20));
   while (DateTime.now().isBefore(end)) {
     await idle(t, 150);
-    if (added.evaluate().isNotEmpty) break;
+    if (added.evaluate().isNotEmpty) {
+      mark('~go');
+      break;
+    }
     if (asked.evaluate().isNotEmpty) {
+      mark('~go');
       await idle(t, 1200); // let viewers read the suggestions
       final choice = pick == null
           ? find.descendant(of: sheet, matching: find.byType(ListTile))
@@ -66,7 +79,8 @@ Future<void> add(WidgetTester t, String typed, {String? pick}) async {
       break;
     }
   }
-  await idle(t, 1200);
+  await hideKeyboard(t);
+  await idle(t, 900);
 }
 
 void main() {
@@ -105,13 +119,15 @@ void main() {
     await tap(t, find.byTooltip('5 stars'), after: 500);
     await type(t, find.widgetWithText(TextFormField, 'Note (one line, optional)'),
         'Rewatch soon');
+    await hideKeyboard(t);
     await tap(t, find.text('Save'), after: 1600);
 
     mark('Search highlights every match, across all your lists.');
     await tap(t, find.text('To Watch'), after: 700);
     await tap(t, find.byTooltip('Search'), after: 500);
     await type(t, addField, 'in');
-    await idle(t, 1800);
+    await hideKeyboard(t);
+    await idle(t, 1500);
     await tap(t, find.byTooltip('Close search'), after: 700);
 
     mark('Light, dark and AMOLED black themes.');

@@ -6,12 +6,16 @@ OUT=demo-out
 mkdir -p "$OUT"
 adb logcat -c
 
+# Software-rendered emulator: a smaller screen draws more frames per second.
+adb shell wm size 720x1600
+adb shell wm density 280
+
 # Start recording when the test says the app is ready.
 (
   adb logcat -v epoch -s flutter:I | while IFS= read -r line; do
     if [[ "$line" == *"MARK|start"* ]]; then
       adb shell date +%s.%N > "$OUT/rec_t0.txt"
-      adb shell screenrecord --bit-rate 8000000 --time-limit 180 /sdcard/demo.mp4 &
+      adb shell screenrecord --size 720x1600 --bit-rate 6000000 --time-limit 180 /sdcard/demo.mp4 &
       echo "screen recording started"
       break
     fi

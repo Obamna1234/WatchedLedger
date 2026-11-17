@@ -18,6 +18,8 @@ jobs:
   record:
     name: Record demo on Android emulator
     runs-on: ubuntu-latest
+    permissions:
+      contents: write # publishes the recording to the demo-recordings branch
     timeout-minutes: 60
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -49,9 +51,22 @@ jobs:
           disable-animations: false
           emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim
           script: bash tool/demo/record.sh
-      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+      - name: Cut the 30-second captioned video
         if: always()
-        with:
-          name: demo-recording
-          path: demo-out/
-          retention-days: 14
+        continue-on-error: true
+        run: |
+          command -v ffmpeg || (sudo apt-get update -q && sudo apt-get install -y -q ffmpeg fonts-dejavu-core)
+          python3 -I tool/demo/make_video.py demo-out demo-out/WatchedLedger-demo.mp4
+      - name: Publish to the demo-recordings branch
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          cd demo-out
+          git init -q -b demo-recordings
+          git add -A
+          git -c user.name='github-actions[bot]' \
+              -c user.email='41898282+github-actions[bot]@users.noreply.github.com' \
+              commit -qm "Demo recording from ${GITHUB_SHA::7}"
+          git push -q -f "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" demo-recordings
