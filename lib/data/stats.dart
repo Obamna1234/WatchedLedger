@@ -44,15 +44,19 @@ class LibraryStats {
   factory LibraryStats.from(List<MediaItem> items,
       {int? year, List<WatchEvent>? events}) {
     final byId = {for (final i in items) i.id: i};
-    final finishes = <(MediaItem, DateTime)>[
-      if (events != null)
+    final List<(MediaItem, DateTime)> finishes;
+    if (events != null) {
+      finishes = [
         for (final e in events)
-          if (byId[e.itemId] case final i?) (i, e.date)
-      else
+          if (byId[e.itemId] case final i?) (i, e.date),
+      ];
+    } else {
+      finishes = [
         for (final i in items)
           if (i.status == ListStatus.done && i.completedAt != null)
             (i, i.completedAt!),
-    ];
+      ];
+    }
     final inYear = [
       for (final f in finishes)
         if (year == null || f.$2.year == year) f,
