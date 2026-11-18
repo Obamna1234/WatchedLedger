@@ -179,7 +179,9 @@ void main() {
       await tap(t, find.text('Whole show watched'), after: 1400);
     }
     await tap(t, find.byTooltip('Back'), after: 700);
-    await tap(t, find.text('Save'), after: 1000);
+    await tap(t, find.text('Save'), after: 300);
+    await waitFor(t, visible(find.widgetWithText(FloatingActionButton, 'Add')));
+    await idle(t, 1000);
 
     mark('Swipe right to tick it off. Undo is always there.');
     await openTab(t, 'Movies', after: 900);
@@ -195,7 +197,9 @@ void main() {
     final netflix = find.widgetWithText(ChoiceChip, 'Netflix');
     await scrollTo(t, netflix);
     await tap(t, netflix, after: 900);
-    await tap(t, find.text('Save'), after: 1300);
+    await tap(t, find.text('Save'), after: 300);
+    await waitFor(t, visible(find.widgetWithText(FloatingActionButton, 'Add')));
+    await idle(t, 1300);
 
     mark('Folders: group anything and share it. No app needed.');
     await tap(t, navButton('Folders'), after: 1000);
