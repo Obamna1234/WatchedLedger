@@ -1,0 +1,97 @@
+# The main features on the real built app: Android emulators (API 24, the
+# oldest supported, and 34) and an iPhone simulator. See
+# integration_test/features_test.dart for what is covered.
+name: Device tests
+
+on:
+  push:
+    branches: ['**']
+    paths:
+      - 'lib/**'
+      - 'android/**'
+      - 'ios/**'
+      - 'pubspec.*'
+      - 'integration_test/features_test.dart'
+      - 'tool/device_test/**'
+      - '.github/workflows/device-tests.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: device-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  android:
+    name: Android ${{ matrix.api }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        api: [24, 34]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6.1.0
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2.23.0
+        with:
+          channel: stable
+          flutter-version: '3.47.x'
+          cache: true
+      - run: bash tool/bootstrap.sh
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - uses: ReactiveCircus/android-emulator-runner@c9c93e6ba9c4194322e114c40970d5983d9a07cc # v2.38.0
+        with:
+          api-level: ${{ matrix.api }}
+          target: google_apis
+          arch: x86_64
+          profile: pixel_6
+          disable-animations: true
+          emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim
+          script: bash tool/device_test/android.sh
+
+  iphone:
+    name: iPhone simulator
+    runs-on: macos-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2.23.0
+        with:
+          channel: stable
+          flutter-version: '3.47.x'
+          cache: true
+      - run: bash tool/bootstrap.sh
+      - name: Start an iPhone simulator
+        id: sim
+        run: |
+          set -euo pipefail
+          udid="$(xcrun simctl list devices available -j | python3 -c '
+          import json, sys
+          devs = json.load(sys.stdin)["devices"]
+          ios = sorted((k for k in devs if "iOS" in k), reverse=True)
+          for k in ios:
+              for d in devs[k]:
+                  if d["name"].startswith("iPhone"):
+                      print(d["udid"]); sys.exit()
+          ')"
+          xcrun simctl boot "$udid"
+          xcrun simctl bootstatus "$udid" -b
+          echo "udid=$udid" >> "$GITHUB_OUTPUT"
+      - name: Run the feature test
+        env:
+          UDID: ${{ steps.sim.outputs.udid }}
+        run: flutter test integration_test/features_test.dart -d "$UDID"
