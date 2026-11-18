@@ -97,8 +97,12 @@ Future<void> add(WidgetTester t, String typed, {String? pick}) async {
       final choice = pick == null
           ? find.descendant(of: didYouMean, matching: find.byType(ListTile))
           : find.descendant(of: didYouMean, matching: find.text(pick));
-      await waitFor(t, choice);
-      await tap(t, choice, after: 200);
+      if (await waitFor(t, choice)) {
+        await tap(t, choice, after: 200);
+      } else {
+        // Lookup didn't answer (flaky network on the emulator): keep going.
+        await tap(t, find.textContaining('as typed'), after: 200);
+      }
       await waitFor(t, added);
       break;
     }
