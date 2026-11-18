@@ -87,9 +87,12 @@ Future<void> add(WidgetTester t, String typed, {String? pick}) async {
     if (asked.evaluate().isNotEmpty) {
       mark('~go');
       await idle(t, 1200); // let viewers read the suggestions
+      // The "Did you mean" sheet (the Add sheet is open underneath).
+      final didYouMean =
+          find.ancestor(of: asked, matching: find.byType(BottomSheet));
       final choice = pick == null
-          ? find.descendant(of: sheet.last, matching: find.byType(ListTile))
-          : find.descendant(of: sheet.last, matching: find.text(pick));
+          ? find.descendant(of: didYouMean, matching: find.byType(ListTile))
+          : find.descendant(of: didYouMean, matching: find.text(pick));
       await waitFor(t, choice);
       await tap(t, choice, after: 200);
       await waitFor(t, added);
@@ -134,7 +137,8 @@ void main() {
 
   testWidgets('demo', (t) async {
     app.main();
-    await waitFor(t, find.byTooltip('Add'), timeoutMs: 60000);
+    await waitFor(t, find.widgetWithText(FloatingActionButton, 'Add'),
+        timeoutMs: 60000);
     await idle(t, 500);
 
     // A few titles before the camera rolls, so the lists look lived in.
