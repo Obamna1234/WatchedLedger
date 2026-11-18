@@ -13,8 +13,12 @@ import 'package:watchedledger/main.dart' as app;
 // ignore: avoid_print
 void mark(String caption) => print('MARK|$caption');
 
+/// How much slower than normal to go (2 for the how-to video).
+final double pace =
+    double.tryParse(const String.fromEnvironment('DEMO_PACE')) ?? 1;
+
 Future<void> idle(WidgetTester t, int ms) async {
-  await Future<void>.delayed(Duration(milliseconds: ms));
+  await Future<void>.delayed(Duration(milliseconds: (ms * pace).round()));
   await t.pump();
 }
 
@@ -38,8 +42,16 @@ Future<void> hideKeyboard(WidgetTester t) async {
   await idle(t, 500);
 }
 
+/// Logs where a touch lands (screen pixels) so the video can draw a ring.
+void markTouch(WidgetTester t, Offset at, [String kind = 'tap']) {
+  final px = at * t.view.devicePixelRatio;
+  mark('~$kind ${px.dx.toStringAsFixed(0)} ${px.dy.toStringAsFixed(0)}');
+}
+
 Future<void> tap(WidgetTester t, Finder f, {int after = 500}) async {
-  await t.tap(visible(f).first);
+  final target = visible(f).first;
+  markTouch(t, t.getCenter(target));
+  await t.tap(target);
   await idle(t, after);
 }
 
@@ -93,8 +105,12 @@ Future<void> add(WidgetTester t, String typed, {String? pick}) async {
       final choice = pick == null
           ? find.descendant(of: didYouMean, matching: find.byType(ListTile))
           : find.descendant(of: didYouMean, matching: find.text(pick));
-      await waitFor(t, choice);
-      await tap(t, choice, after: 200);
+      if (await waitFor(t, choice)) {
+        await tap(t, choice, after: 200);
+      } else {
+        // Lookup didn't answer (flaky network on the emulator): keep going.
+        await tap(t, find.textContaining('as typed'), after: 200);
+      }
       await waitFor(t, added);
       break;
     }
@@ -185,6 +201,7 @@ void main() {
 
     mark('Swipe right to tick it off. Undo is always there.');
     await openTab(t, 'Movies', after: 900);
+    markTouch(t, t.getCenter(visible(find.text('Inception')).first), 'swipe');
     await t.timedDrag(visible(find.text('Inception')).first,
         const Offset(420, 0), const Duration(milliseconds: 700));
     await idle(t, 1500);
