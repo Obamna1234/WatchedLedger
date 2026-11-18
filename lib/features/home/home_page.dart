@@ -12,7 +12,7 @@ import '../../data/models.dart';
 import '../../data/share_parser.dart';
 import '../../data/transfer/folder_share.dart';
 import '../add/add_link.dart';
-import '../add/quick_add_bar.dart';
+import '../add/quick_add_bar.dart' show showAddSheet;
 import '../data/backup_reminder.dart';
 import '../data/data_page.dart';
 import '../folders/folders_page.dart';
@@ -30,13 +30,14 @@ class HomePage extends StatefulWidget {
   State<HomePage> createState() => _HomePageState();
 }
 
-class _HomePageState extends State<HomePage>
-    with SingleTickerProviderStateMixin {
-  late final TabController _tabs =
-      TabController(length: MediaCategory.values.length, vsync: this)
-        ..addListener(_onTabChanged);
+class _HomePageState extends State<HomePage> {
+  /// Which category the list shows.
+  MediaCategory _current = MediaCategory.movie;
 
-  /// Which list (To Watch / Watched) each tab is showing.
+  /// Bottom bar: 0 Lists, 1 Folders, 2 Pick, 3 Stats, 4 More.
+  int _page = 0;
+
+  /// Which list (To Watch / Watched) each category is showing.
   final Map<MediaCategory, ValueNotifier<ListStatus>> _statuses = {
     for (final c in MediaCategory.values) c: ValueNotifier(ListStatus.todo),
   };
@@ -44,11 +45,8 @@ class _HomePageState extends State<HomePage>
   final ListSearch _search = ListSearch();
   final TextEditingController _searchText = TextEditingController();
   final FocusNode _searchFocus = FocusNode();
-  final FocusNode _addFocus = FocusNode();
   HomeWidgetSync? _widgetSync;
   bool _backupChecked = false;
-
-  MediaCategory get _current => MediaCategory.values[_tabs.index];
 
   @override
   void initState() {
@@ -125,19 +123,44 @@ class _HomePageState extends State<HomePage>
     }
   }
 
-  /// The widget's "+" was tapped: jump into the add box.
+  /// The widget's "+" was tapped: open the Add sheet.
   void _quickAdd() {
     if (!mounted) return;
     if (_search.active) _closeSearch();
+    setState(() => _page = 0);
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) _addFocus.requestFocus();
+      if (mounted) unawaited(_openAdd());
     });
   }
 
-  void _onTabChanged() {
-    if (_tabs.indexIsChanging) return;
-    setState(() {});
+  Future<void> _openAdd() => showAddSheet(
+        context,
+        category: _current,
+        status: _statuses[_current]!.value,
+        onImport: _openImport,
+      );
+
+  void _openImport() {
+    unawaited(Navigator.of(context).push<int>(MaterialPageRoute(
+      builder: (_) => ImportPage(initialCategory: _current),
+    )));
+  }
+
+  void _setCategory(MediaCategory c) {
+    if (c == _current) return;
+    setState(() => _current = c);
     if (_search.active) _search.restart();
+  }
+
+  Future<void> _pickCategory() async {
+    final picked = await showModalBottomSheet<MediaCategory>(
+      context: context,
+      // Sized to fit every category, so none hide below the fold.
+      isScrollControlled: true,
+      showDragHandle: true,
+      builder: (_) => _CategorySheet(current: _current),
+    );
+    if (picked != null) _setCategory(picked);
   }
 
   void _onListSwitched() {
@@ -157,10 +180,10 @@ class _HomePageState extends State<HomePage>
     setState(() {});
   }
 
-  /// "Also in…" chip tapped: switch tab and list, keep the search.
+  /// "Also in…" chip tapped: switch category and list, keep the search.
   void _showList(MediaCategory category, ListStatus status) {
     _statuses[category]!.value = status;
-    if (category != _current) _tabs.animateTo(category.index);
+    if (category != _current) setState(() => _current = category);
     _search.restart();
   }
 
@@ -169,67 +192,35 @@ class _HomePageState extends State<HomePage>
     for (final n in _statuses.values) {
       n.dispose();
     }
-    _tabs.dispose();
     _search.dispose();
     _searchText.dispose();
     _searchFocus.dispose();
-    _addFocus.dispose();
     _widgetSync?.dispose();
     super.dispose();
   }
 
   PreferredSizeWidget _appBar(BuildContext context) {
-    final tabBar = TabBar(
-      controller: _tabs,
-      isScrollable: true,
-      tabAlignment: TabAlignment.start,
-      tabs: [
-        for (final c in MediaCategory.values)
-          Tab(icon: Icon(c.icon), text: c.tabLabel),
-      ],
-    );
-
+    final theme = Theme.of(context);
     if (!_search.active) {
       return AppBar(
-        title: const Text('WatchedLedger'),
-        actions: [
-          IconButton(
-            tooltip: 'Search',
-            icon: const Icon(Icons.search),
-            onPressed: _openSearch,
+        titleSpacing: 8,
+        title: TextButton.icon(
+          style: TextButton.styleFrom(
+            foregroundColor: theme.colorScheme.onSurface,
+            textStyle: theme.textTheme.titleLarge
+                ?.copyWith(fontWeight: FontWeight.w700),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
           ),
-          IconButton(
-            tooltip: 'Pick something for me',
-            icon: const Icon(Icons.casino_outlined),
-            onPressed: () => Navigator.of(context).push(
-              MaterialPageRoute<void>(
-                builder: (_) => PickerPage(startCategory: _current),
-              ),
-            ),
+          onPressed: _pickCategory,
+          icon: Icon(_current.icon, color: theme.colorScheme.primary),
+          label: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(_current.tabLabel),
+              const Icon(Icons.arrow_drop_down),
+            ],
           ),
-          IconButton(
-            tooltip: 'Folders',
-            icon: const Icon(Icons.folder_outlined),
-            onPressed: () => Navigator.of(context).push(
-              MaterialPageRoute<void>(builder: (_) => const FoldersPage()),
-            ),
-          ),
-          IconButton(
-            tooltip: 'Stats',
-            icon: const Icon(Icons.bar_chart),
-            onPressed: () => Navigator.of(context).push(
-              MaterialPageRoute<void>(builder: (_) => const StatsPage()),
-            ),
-          ),
-          IconButton(
-            tooltip: 'Settings',
-            icon: const Icon(Icons.settings_outlined),
-            onPressed: () => Navigator.of(context).push(
-              MaterialPageRoute<void>(builder: (_) => const SettingsPage()),
-            ),
-          ),
-        ],
-        bottom: tabBar,
+        ),
       );
     }
 
@@ -249,8 +240,8 @@ class _HomePageState extends State<HomePage>
         // Enter jumps to the next match and keeps the keyboard open.
         onSubmitted: (_) => _search.next(),
         onEditingComplete: () {},
-        decoration: const InputDecoration(
-          hintText: 'Search this list',
+        decoration: InputDecoration(
+          hintText: 'Search ${_current.tabLabel}',
           border: InputBorder.none,
         ),
       ),
@@ -278,51 +269,144 @@ class _HomePageState extends State<HomePage>
           ),
         ),
       ],
-      bottom: tabBar,
+    );
+  }
+
+  Widget _lists(BuildContext context) {
+    return SearchScope(
+      search: _search,
+      child: Scaffold(
+        appBar: _appBar(context),
+        floatingActionButton: _search.active
+            ? null
+            : FloatingActionButton.extended(
+                heroTag: 'add',
+                onPressed: _openAdd,
+                icon: const Icon(Icons.add),
+                label: const Text('Add'),
+              ),
+        body: Column(
+          children: [
+            if (_search.active)
+              _ElsewhereBar(
+                category: _current,
+                status: _statuses[_current]!,
+                onShow: _showList,
+              ),
+            Expanded(
+              child: CategoryPage(
+                key: PageStorageKey(_current),
+                category: _current,
+                status: _statuses[_current]!,
+                onSearch: _openSearch,
+                onImport: _openImport,
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
+    final body = switch (_page) {
+      1 => const FoldersPage(),
+      2 => PickerPage(startCategory: _current),
+      3 => const StatsPage(),
+      4 => const SettingsPage(),
+      _ => _lists(context),
+    };
     return PopScope(
-      // The Back button closes search first.
-      canPop: !_search.active,
+      // Back closes search first, then returns to the lists.
+      canPop: !_search.active && _page == 0,
       onPopInvokedWithResult: (didPop, _) {
-        if (!didPop) _closeSearch();
+        if (didPop) return;
+        if (_search.active) {
+          _closeSearch();
+        } else {
+          setState(() => _page = 0);
+        }
       },
-      child: SearchScope(
-        search: _search,
-        child: Scaffold(
-          appBar: _appBar(context),
-          body: Column(
-            children: [
-              if (_search.active)
-                _ElsewhereBar(
-                  category: _current,
-                  status: _statuses[_current]!,
-                  onShow: _showList,
-                )
-              else
-                QuickAddBar(category: _current, focusNode: _addFocus),
-              const Divider(height: 1),
-              Expanded(
-                child: TabBarView(
-                  controller: _tabs,
-                  children: [
-                    for (final c in MediaCategory.values)
-                      CategoryPage(
-                        key: PageStorageKey(c),
-                        category: c,
-                        status: _statuses[c]!,
-                        isActive: c == _current,
-                      ),
-                  ],
-                ),
-              ),
-            ],
-          ),
+      child: Scaffold(
+        body: body,
+        bottomNavigationBar: NavigationBar(
+          selectedIndex: _page,
+          onDestinationSelected: (i) {
+            if (_search.active) _closeSearch();
+            setState(() => _page = i);
+          },
+          destinations: const [
+            NavigationDestination(
+              icon: Icon(Icons.checklist_outlined),
+              selectedIcon: Icon(Icons.checklist),
+              label: 'Lists',
+            ),
+            NavigationDestination(
+              icon: Icon(Icons.folder_outlined),
+              selectedIcon: Icon(Icons.folder),
+              label: 'Folders',
+            ),
+            NavigationDestination(
+              icon: Icon(Icons.casino_outlined),
+              selectedIcon: Icon(Icons.casino),
+              label: 'Pick',
+            ),
+            NavigationDestination(
+              icon: Icon(Icons.bar_chart_outlined),
+              selectedIcon: Icon(Icons.bar_chart),
+              label: 'Stats',
+            ),
+            NavigationDestination(
+              icon: Icon(Icons.more_horiz),
+              label: 'More',
+            ),
+          ],
         ),
       ),
+    );
+  }
+}
+
+/// "Which list?": every category with how much is in it.
+class _CategorySheet extends StatelessWidget {
+  const _CategorySheet({required this.current});
+  final MediaCategory current;
+
+  @override
+  Widget build(BuildContext context) {
+    final scope = AppScope.of(context);
+    return StreamBuilder<List<MediaItem>>(
+      stream: scope.db.watchAll(),
+      builder: (context, snap) {
+        final todo = <MediaCategory, int>{};
+        final done = <MediaCategory, int>{};
+        for (final i in snap.data ?? const <MediaItem>[]) {
+          if (!scope.isVisible(i)) continue;
+          final m = i.status == ListStatus.done ? done : todo;
+          m[i.category] = (m[i.category] ?? 0) + 1;
+        }
+        return SafeArea(
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                for (final c in MediaCategory.values)
+                  ListTile(
+                    selected: c == current,
+                    leading: Icon(c.icon),
+                    title: Text(c.tabLabel),
+                    subtitle: Text('${todo[c] ?? 0} ${c.todoLabel.toLowerCase()}'
+                        ' · ${done[c] ?? 0} ${c.doneLabel.toLowerCase()}'),
+                    trailing:
+                        c == current ? const Icon(Icons.check) : null,
+                    onTap: () => Navigator.pop(context, c),
+                  ),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 }

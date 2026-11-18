@@ -130,14 +130,14 @@ def main():
     work = tempfile.mkdtemp(prefix='demo-')
     parts = [os.path.join(work, '000_title.mp4')]
     card(work, parts[0], TITLE, 'WatchedLedger',
-         'Movies, series, books,\naudiobooks, podcasts,\ngames and videos.\n\nNew in 1.1')
+         'Movies, series, books,\naudiobooks, podcasts,\ngames and videos.\n\nNew in 1.2')
 
     used = TITLE
     for i, sc in enumerate(scenes, 1):
         cap_lines = textwrap.wrap(sc['caption'], 26)
         caption = draw_lines(
             work, f'cap{i}', cap_lines, FONT, 38, 'white', 14,
-            f"h-110-{len(cap_lines) * 52}",
+            f"h-300-{len(cap_lines) * 52}",
             box=':box=1:boxcolor=black@0.72:boxborderw=14')
         scene_len = 0.0
         for j, (a, b, waiting) in enumerate(sc['pieces']):

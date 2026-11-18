@@ -9,6 +9,7 @@ Maintained by Claude. Updated at the end of every stage, in the same pull reques
 **Stage 5 (extras) is merged** (2026-11-17) and released as **v0.3.0**.
 **Stage 6 (tracking and sync) is merged** (2026-11-17) and released as **v1.0.0**.
 **Stages 7 and 8 (your requests after 1.0) are merged** (2026-11-17) and released as **v1.1.0**.
+**Stage 9 (simpler navigation) is merged** (2026-11-18) and released as **v1.2.0**.
 
 ## Done
 - **Proposal:** structure, packages and tech choices, written up in SPEC.md §13.
@@ -103,6 +104,15 @@ Maintained by Claude. Updated at the end of every stage, in the same pull reques
   - **Folders you can share:** a plain message with titles and links (the other person doesn't need the app; if they have it, they can import the folder).
   - **Recently deleted** (30 days), **private items** (hidden behind the app lock PIN), **select several** (long-press), **find duplicates** (Settings) and a monthly **backup reminder**.
 
+- **Stage 9, simpler to use (2026-11-18):**
+  - One **category button** at the top replaces the seven tabs; tap it to switch (it shows how much is in each).
+  - **Bottom bar with labels:** Lists, Folders, Pick, Stats, More. Settings, import and backup live under More.
+  - **Big Add button:** pick the category with one tap, To Watch or Watched, type a title or paste a link. "Have a list?" goes straight to Import.
+  - **Folders:** a "New folder" button, then tick what goes in it. "Watching with" groups everything you plan to watch with one person.
+  - **Pick** now chooses from everything by default, keeps mood/length/genre tucked away, and says why when there's nothing to pick.
+  - **Easier to read:** bolder titles, higher contrast, coloured bands for each genre group.
+  - **Import** also understands "Title - watched", "Title (seen)", "Title - to watch", table rows with a ✓, and spreadsheet columns like "Movie", "Seen?" or "Date read".
+
 ## Next
 - Nothing planned. Ideas for later, only if you want them: QR pairing for sync, iPhone widget and share sheet (needs a paid Apple account to be practical), more lookup sources.
 
@@ -115,6 +125,7 @@ Maintained by Claude. Updated at the end of every stage, in the same pull reques
 - [ ] Optional: tell Claude which iPhone and iOS version you have, and whether you use a Mac or a Windows PC, so the README can lead with the right sideloading tool.
 
 ## Decisions made
+- **2026-11-18 Navigation:** the owner picked the "bottom bar" layout over home tiles or decluttered tabs. This replaces SPEC §7's add box at the top. Swiping sideways no longer changes category (it clashed with swipe-to-tick).
 - **2026-11-17 Enums appended:** `game` (5) and `video` (6) added to the end of the category list; database schema v3 adds link, people, where-to-watch, not-out-yet, private columns and the `trash` table (migration tested).
 - **2026-11-17 Headings in imported notes** only decide the category and grouping, never the genre (your headings' genre words aren't real genres). The genre comes from the lookup.
 - **2026-11-17 YouTube search** opens the YouTube or NewPipe app rather than searching from inside WatchedLedger: searching YouTube in-app would need a Google API key tied to an account. Sharing the video back adds it.

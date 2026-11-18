@@ -23,7 +23,7 @@ Only these things are ever sent. Each is sent only while **"Look up titles autom
 | The title you type (last resort) | Wikidata (Wikimedia Foundation) | Only when the main services find nothing |
 | A request for a cover image | Those services' image servers (`*.mzstatic.com`, `static.tvmaze.com`, `covers.openlibrary.org` → `*.archive.org`, `books.google.com`, `upload.wikimedia.org`) | The first time a cover is shown. After that it is cached on the device. |
 
-**Mobile data:** by default nothing is fetched on mobile data (**Settings → Use mobile data → Wi-Fi only**). Titles added on mobile data are saved as typed and looked up automatically once the phone is back on Wi-Fi. You can allow lookups only, or everything, on mobile data.
+**Mobile data:** by default nothing is fetched on mobile data (**More → Use mobile data → Wi-Fi only**). Titles added on mobile data are saved as typed and looked up automatically once the phone is back on Wi-Fi. You can allow lookups only, or everything, on mobile data.
 
 These requests carry nothing that identifies you:
 

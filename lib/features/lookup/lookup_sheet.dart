@@ -110,7 +110,7 @@ class _LookupSheetState extends State<_LookupSheet> {
     } on NotOnWifiException {
       if (mounted) {
         setState(() => _problem = "You're on mobile data and lookups are set "
-            'to Wi-Fi only (Settings > Use mobile data).');
+            'to Wi-Fi only (More > Use mobile data).');
       }
     } on OfflineException {
       if (mounted) {

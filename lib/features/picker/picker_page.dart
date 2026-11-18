@@ -19,7 +19,9 @@ class PickerPage extends StatefulWidget {
 }
 
 class _PickerPageState extends State<PickerPage> {
-  late Set<MediaCategory> _categories = {widget.startCategory};
+  // Everything by default: the simplest "just pick something".
+  Set<MediaCategory> _categories = MediaCategory.values.toSet();
+  bool _fineTune = false;
   String? _genre;
   PickLength _length = PickLength.any;
   PickMood _mood = PickMood.any;
@@ -103,7 +105,16 @@ class _PickerPageState extends State<PickerPage> {
                     ),
                 ],
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 4),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: TextButton.icon(
+                  icon: Icon(_fineTune ? Icons.expand_less : Icons.tune),
+                  label: Text(_fineTune ? 'Fewer choices' : 'Mood, length, genre'),
+                  onPressed: () => setState(() => _fineTune = !_fineTune),
+                ),
+              ),
+              if (_fineTune) ...[
               _Choice<PickMood>(
                 values: PickMood.values,
                 selected: _mood,
@@ -126,6 +137,7 @@ class _PickerPageState extends State<PickerPage> {
                   onSelected: (g) => _changed(() => _genre = g),
                 ),
               ],
+              ],
               const SizedBox(height: 8),
               Text(
                 _length == PickLength.any
@@ -135,6 +147,22 @@ class _PickerPageState extends State<PickerPage> {
                         'count; others are still included.',
                 style: theme.textTheme.bodySmall,
               ),
+              if (candidates == 0) ...[
+                const SizedBox(height: 16),
+                _NothingToPick(
+                  emptyLists: !items.any((i) => i.status == ListStatus.todo),
+                  filtered: _mood != PickMood.any ||
+                      _length != PickLength.any ||
+                      _genre != null ||
+                      _categories.length < MediaCategory.values.length,
+                  onReset: () => _changed(() {
+                    _categories = MediaCategory.values.toSet();
+                    _mood = PickMood.any;
+                    _length = PickLength.any;
+                    _genre = null;
+                  }),
+                ),
+              ],
               const SizedBox(height: 16),
               if (_picked && current != null)
                 _PickCard(item: current)
@@ -154,6 +182,50 @@ class _PickerPageState extends State<PickerPage> {
             ],
           );
         },
+      ),
+    );
+  }
+}
+
+/// Why there's nothing to pick, and the one tap that fixes it.
+class _NothingToPick extends StatelessWidget {
+  const _NothingToPick({
+    required this.emptyLists,
+    required this.filtered,
+    required this.onReset,
+  });
+
+  final bool emptyLists;
+  final bool filtered;
+  final VoidCallback onReset;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          children: [
+            Text(
+              emptyLists
+                  ? 'Your To Watch lists are empty. The picker chooses from '
+                      'things you still want to watch, read, play or hear, '
+                      'so add a few first.'
+                  : 'Nothing on your To Watch lists fits these choices. '
+                      'Mood and genre only work for titles with a known genre.',
+              textAlign: TextAlign.center,
+              style: theme.textTheme.bodyLarge,
+            ),
+            if (!emptyLists && filtered) ...[
+              const SizedBox(height: 12),
+              OutlinedButton(
+                onPressed: onReset,
+                child: const Text('Pick from everything'),
+              ),
+            ],
+          ],
+        ),
       ),
     );
   }

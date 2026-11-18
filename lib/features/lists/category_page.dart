@@ -22,7 +22,15 @@ class CategoryPage extends StatefulWidget {
     required this.category,
     required this.status,
     this.isActive = true,
+    this.onSearch,
+    this.onImport,
   });
+
+  /// Opens search (the "Search this list" box).
+  final VoidCallback? onSearch;
+
+  /// Opens Import from the empty-list screen.
+  final VoidCallback? onImport;
 
   final MediaCategory category;
 
@@ -407,7 +415,7 @@ class _CategoryPageState extends State<CategoryPage>
     return Column(
       children: [
         Padding(
-          padding: const EdgeInsets.fromLTRB(12, 8, 4, 4),
+          padding: const EdgeInsets.fromLTRB(12, 8, 12, 4),
           child: Row(
             children: [
               Expanded(
@@ -427,22 +435,68 @@ class _CategoryPageState extends State<CategoryPage>
                   onSelectionChanged: (s) => _setStatus(s.first),
                 ),
               ),
-              IconButton(
-                tooltip: 'Sort & group',
-                icon: const Icon(Icons.sort),
-                onPressed: _openSort,
-              ),
-              IconButton(
-                tooltip: 'Filter',
-                icon: Badge(
-                  isLabelVisible: _options.isFiltered,
-                  child: const Icon(Icons.filter_list),
-                ),
-                onPressed: _openFilter,
-              ),
             ],
           ),
         ),
+        if (widget.onSearch != null)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(12, 4, 4, 4),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Material(
+                    color: theme.colorScheme.surfaceContainerHighest,
+                    shape: const StadiumBorder(),
+                    child: InkWell(
+                      customBorder: const StadiumBorder(),
+                      onTap: widget.onSearch,
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 14, vertical: 10),
+                        child: Row(
+                          children: [
+                            Icon(Icons.search,
+                                size: 20,
+                                color: theme.colorScheme.onSurfaceVariant),
+                            const SizedBox(width: 10),
+                            Text('Search',
+                                style: theme.textTheme.bodyLarge?.copyWith(
+                                    color:
+                                        theme.colorScheme.onSurfaceVariant)),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+                MenuAnchor(
+                  menuChildren: [
+                    MenuItemButton(
+                      leadingIcon: const Icon(Icons.sort),
+                      onPressed: _openSort,
+                      child: const Text('Sort & group'),
+                    ),
+                    MenuItemButton(
+                      leadingIcon: const Icon(Icons.filter_list),
+                      onPressed: _openFilter,
+                      child: Text(_options.isFiltered
+                          ? 'Filter (on)'
+                          : 'Filter'),
+                    ),
+                  ],
+                  builder: (context, menu, _) => IconButton(
+                    tooltip: 'Sort & filter',
+                    icon: Badge(
+                      isLabelVisible: _options.isFiltered,
+                      child: const Icon(Icons.tune),
+                    ),
+                    onPressed: () =>
+                        menu.isOpen ? menu.close() : menu.open(),
+                  ),
+                ),
+              ],
+            ),
+          ),
         Expanded(
           child: StreamBuilder<List<MediaItem>>(
             stream: _stream,
@@ -470,7 +524,10 @@ class _CategoryPageState extends State<CategoryPage>
               _selected.removeWhere((id) => !ids.contains(id));
               if (visible.isEmpty) {
                 _syncSearch(search, const [], const [], itemExtent);
-                return _EmptyState(category: widget.category, status: _status);
+                return _EmptyState(
+                    category: widget.category,
+                    status: _status,
+                    onImport: widget.onImport);
               }
 
               final layout = buildListLayout(visible, _options);
@@ -662,16 +719,37 @@ class _GenreHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = theme.colorScheme;
+    // A coloured band so each group stands apart from the rows.
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 0, 16, 6),
-      child: Align(
-        alignment: Alignment.bottomLeft,
-        child: Text(
-          '$label  ·  $count',
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          style: theme.textTheme.titleSmall
-              ?.copyWith(color: theme.colorScheme.primary),
+      padding: const EdgeInsets.fromLTRB(8, 4, 8, 2),
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: scheme.secondaryContainer,
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 10),
+          child: Row(
+            children: [
+              Expanded(
+                child: Text(
+                  label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: theme.textTheme.titleSmall?.copyWith(
+                    color: scheme.onSecondaryContainer,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+              Text(
+                '$count',
+                style: theme.textTheme.labelLarge
+                    ?.copyWith(color: scheme.onSecondaryContainer),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -713,10 +791,12 @@ class _FilterBanner extends StatelessWidget {
 }
 
 class _EmptyState extends StatelessWidget {
-  const _EmptyState({required this.category, required this.status});
+  const _EmptyState(
+      {required this.category, required this.status, this.onImport});
 
   final MediaCategory category;
   final ListStatus status;
+  final VoidCallback? onImport;
 
   @override
   Widget build(BuildContext context) {
@@ -735,10 +815,18 @@ class _EmptyState extends StatelessWidget {
             ),
             const SizedBox(height: 4),
             Text(
-              'Type a title in the box above to add one.',
+              'Tap + to add one.',
               style: theme.textTheme.bodyMedium,
               textAlign: TextAlign.center,
             ),
+            if (onImport != null) ...[
+              const SizedBox(height: 16),
+              OutlinedButton.icon(
+                icon: const Icon(Icons.playlist_add),
+                label: const Text('Import a list or file'),
+                onPressed: onImport,
+              ),
+            ],
           ],
         ),
       ),

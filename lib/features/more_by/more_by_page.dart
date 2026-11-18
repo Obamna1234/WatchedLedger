@@ -86,11 +86,11 @@ class _MoreByPageState extends State<MoreByPage> {
             final e = snap.error;
             final message = e is NotOnWifiException
                 ? "You're on mobile data. This works on Wi-Fi, or allow "
-                    'lookups on mobile data in Settings.'
+                    'lookups on mobile data in More.'
                 : e is OfflineException
                     ? 'Offline mode is on, so nothing can be looked up.'
                     : e is _LookupsOff
-                        ? 'Lookups are switched off in Settings.'
+                        ? 'Lookups are switched off in More.'
                         : "Couldn't reach the service. Try again later.";
             return _Message(text: message);
           }

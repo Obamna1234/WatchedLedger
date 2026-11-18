@@ -10,7 +10,7 @@ import '../../data/transfer/export.dart';
 import '../import/import_page.dart';
 import 'backup_reminder.dart';
 
-/// Settings > Your data: export, encrypted backup and restore.
+/// More > Your lists: export, encrypted backup and restore.
 class DataPage extends StatefulWidget {
   const DataPage({super.key});
 

@@ -9,8 +9,8 @@ repo.
 - Your library lives in an **encrypted database on your phone**.
 - See [PRIVACY.md](PRIVACY.md) for exactly what leaves the device, and when.
 
-> **Status: v1.1.0.**
-> - **Lists:** seven category tabs (Movies, Series, Books, Audiobooks, Podcasts, Games, Videos) with To Watch / Watched, ticking (tap or swipe) with undo, an edit screen with rating, note and series progress, sort, filter and a genre fast-scroll index.
+> **Status: v1.2.0.**
+> - **Lists:** seven categories (Movies, Series, Books, Audiobooks, Podcasts, Games, Videos), switched with the button at the top, each with To Watch / Watched, ticking (tap or swipe) with undo, an edit screen with rating, note and series progress, sort, filter and a genre fast-scroll index.
 > - **Smart add:** titles are looked up automatically with no accounts or API keys. If nothing fits, save exactly what you typed.
 > - **Search:** every match highlighted, ▲ ▼ to jump, "3 of 12" counter, tick from the results.
 > - **Mobile data:** Wi-Fi only by default; titles added on mobile data are matched once you're back on Wi-Fi.
@@ -20,10 +20,11 @@ repo.
 > - **Extras:** 🎲 "Pick something for me" (mood and length filters), 📊 stats, "More by…" this director/author/host.
 > - **Android only:** share a link or text from Netflix, IMDb, Goodreads, a podcast app or a browser into the app, and a home screen widget with your next titles and a quick-add button.
 > - **Diary:** every time you finish something, including rewatches and rereads ("Watched again"), by month (📊 → Diary).
-> - **Tags** on any item (e.g. "Halloween", "with Sam"), with a tag filter on every tab.
+> - **Tags** on any item (e.g. "Halloween", "with Sam"), with a tag filter on every list.
 > - **Reading/listening progress** (page, % or h:mm) and **yearly goals** ("24 books in 2027") on the Stats screen.
 > - **Episodes:** tick single episodes (list from TVmaze) and get optional **"new episode" reminders** that the phone schedules itself.
-> - **Sync two phones** over home Wi-Fi with a one-time code (Settings → Sync with another phone), encrypted, no account or server.
+> - **Sync two phones** over home Wi-Fi with a one-time code (More → Sync with another phone), encrypted, no account or server.
+> - **New in 1.2:** a much simpler layout: one category button at the top, a labelled bottom bar (Lists, Folders, Pick, Stats, More), a big Add button, clearer folders and "Watching with" groups, easier-to-read colours, and an importer that understands more list layouts.
 > - **New in 1.1:** Games and Videos tabs; tick whole shows, seasons or single episodes; import Samsung Notes `.sdocx` files with their ticks and strike-throughs; paste or share links (YouTube, TikTok, Spotify, Facebook, Instagram…) and open them in the right app; Where to watch, Recommended by, Watch with and Not out yet (with a release-day reminder); shareable folders; Recently deleted (30 days); private items; select several; find duplicates; backup reminder.
 
 ---
@@ -86,7 +87,7 @@ New versions then show up in the app's update list, so you don't have to downloa
 > - The key that unlocks your encrypted library is stored in the iOS Keychain under your Apple ID's signing team.
 > - If you re-sign with a *different* Apple ID, the app can't read its key. It will show a recovery screen (your data isn't deleted).
 > - Re-installing with the original Apple ID fixes it.
-> - Make regular backups (**Settings → Import, export and backup**).
+> - Make regular backups (**More → Backup and export**).
 
 ---
 
