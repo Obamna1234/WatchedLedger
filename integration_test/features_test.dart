@@ -133,7 +133,9 @@ void main() {
     await tapOn(t, find.text('Import a list or file'), 'Import');
     await t.enterText(find.byType(TextField).hitTestable().first,
         'Pasted Watched Film - watched\nPasted Later Film (to watch)\n');
-    await settle(t);
+    FocusManager.instance.primaryFocus?.unfocus(); // the keyboard covers it
+    await settle(t, 800);
+    await scrollTo(t, find.text('Continue'));
     await tapOn(t, find.text('Continue'), 'Continue');
     await tapOn(t, find.text('Add 2 titles'), 'Add 2 titles');
     await tapOn(t, nav('Lists'), 'Lists');
@@ -167,10 +169,13 @@ void main() {
     expect(find.textContaining('Device check').hitTestable(), findsNothing,
         reason: 'nothing from the library shows while locked');
     await enterPin(t, '000000');
+    // Checking a PIN takes a moment on purpose; wait for the answer.
+    await expectSoon(t, find.text('Wrong PIN'), 'the "Wrong PIN" message',
+        seconds: 30);
     expect(find.text('WatchedLedger is locked').hitTestable(), findsOneWidget,
         reason: 'a wrong PIN does not unlock');
     await enterPin(t, '482913');
-    await expectSoon(t, find.text('App lock'), 'unlocked again');
+    await expectSoon(t, find.text('Lock now'), 'unlocked again', seconds: 30);
 
     // Leave it locked with "Hide in recent apps" on, for the FLAG_SECURE check.
     await tapOn(t, find.text('Lock now'), 'Lock now');
