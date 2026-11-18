@@ -3,7 +3,7 @@
 # has tried the beta and said "release it".
 #
 # Refuses unless every check on that exact build passed: CI (tests and both
-# builds) and "Update keeps the library".
+# builds), "Update keeps the library" and "Device tests".
 name: Release it
 
 on:
@@ -42,7 +42,7 @@ jobs:
 
           # Every required check must have run on this commit and passed.
           runs="$(gh api "repos/$REPO/actions/runs?head_sha=$sha&per_page=100")"
-          for wf in "CI" "Update keeps the library"; do
+          for wf in "CI" "Update keeps the library" "Device tests"; do
             result="$(jq -r --arg wf "$wf" '[.workflow_runs[] | select(.name == $wf)] | sort_by(.created_at) | last | "\(.status) \(.conclusion)"' <<<"$runs")"
             echo "- $wf: $result" >> "$GITHUB_STEP_SUMMARY"
             if [ "$result" != "completed success" ]; then

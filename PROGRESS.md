@@ -117,8 +117,10 @@ Maintained by Claude. Updated at the end of every stage, in the same pull reques
   - **10a, your data:** a database saved by every past version (0.1.0 to 1.2.0) is kept in the tests and opened by each new version. A new **update test** installs the new version over the last release on Android emulators (oldest supported and newest), and checks nothing is lost and the encryption key still works.
   - **10b, releases:** new versions go out as a **beta** first. They become the normal release only when you say "release it", and only if every check on that exact build passed. Each release needs a written security and privacy review first. The real-lookup check now runs every day. When a lookup service doesn't answer, the app names it.
 
+  - **10c, on real devices:** the main features are tested on the built app on Android emulators (oldest supported and newest) and an iPhone simulator. That covers adding, ticking and Undo in every category, saving as typed when offline, search, importing a pasted list, sharing into the app, the app lock (including a wrong PIN) and "Hide in recent apps". Backup files, exports and the home screen widget are covered by the regular tests, because a test can't use the phone's file picker.
+
 ## Next
-- 10c: on-device tests of the main features on Android and an iPhone simulator, then the 1.3.0 beta.
+- The 1.3.0 beta (security and privacy review first).
 - Ideas for later, only if you want them: QR pairing for sync, iPhone widget and share sheet (needs a paid Apple account to be practical), more lookup sources.
 
 ## Waiting on me (owner)

@@ -98,7 +98,8 @@ New versions then show up in the app's update list, so you don't have to downloa
 | Push to any branch | `CI` workflow: analyze → test → dependency scan → build the APK and IPA. Download them from the run's **Artifacts** (kept 14 days). |
 | Push that changes the app | `Update keeps the library`: on Android emulators (API 24 and 34) the last release saves a library, this build is installed over it as an update, and nothing may be lost. |
 | New `version:` in `pubspec.yaml` lands on `main` (or a `vX.Y.Z` tag is pushed) | `Release` workflow: needs `docs/reviews/vX.Y.Z.md` (the security and privacy review), then the same build with the real signing key, a tag and a **beta** GitHub Release (pre-release) with the APK, the IPA and checksums. |
-| Owner says "release it" | `Release it` workflow (run by hand): checks CI and the update test passed on that exact build, then makes the beta the normal release. |
+| Push that changes the app | `Device tests`: the main features on the built app on Android emulators (API 24 and 34) and an iPhone simulator, including sharing into the app and "Hide in recent apps". |
+| Owner says "release it" | `Release it` workflow (run by hand): checks CI, the update test and the device tests passed on that exact build, then makes the beta the normal release. |
 | Every day | `Live lookup check`: real searches against every lookup service. |
 
 This repo is **public**, so GitHub Actions minutes are free and unmetered, including the macOS runner the iOS build needs. In a private repo on the free plan, each macOS minute uses up 10 of the 2,000 free monthly minutes.
