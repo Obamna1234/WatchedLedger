@@ -11,6 +11,8 @@ adb logcat -c
 adb shell settings put global hide_error_dialogs 1 || true
 adb shell settings put secure anr_show_background 0 || true
 adb shell am broadcast -a android.intent.action.CLOSE_SYSTEM_DIALOGS >/dev/null || true
+# Show a dot wherever the test taps, so viewers can follow along.
+adb shell settings put system show_touches 1 || true
 
 # Software-rendered emulator: a smaller screen draws more frames per second.
 adb shell wm size 720x1600
@@ -32,6 +34,7 @@ adb shell wm density 280
 flutter drive --profile \
   --driver=test_driver/integration_test.dart \
   --target=integration_test/demo_test.dart \
+  --dart-define=DEMO_PACE="${DEMO_PACE:-1}" \
   -d emulator-5554
 status=$?
 

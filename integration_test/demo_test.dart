@@ -13,8 +13,12 @@ import 'package:watchedledger/main.dart' as app;
 // ignore: avoid_print
 void mark(String caption) => print('MARK|$caption');
 
+/// How much slower than normal to go (2 for the how-to video).
+final double pace =
+    double.tryParse(const String.fromEnvironment('DEMO_PACE')) ?? 1;
+
 Future<void> idle(WidgetTester t, int ms) async {
-  await Future<void>.delayed(Duration(milliseconds: ms));
+  await Future<void>.delayed(Duration(milliseconds: (ms * pace).round()));
   await t.pump();
 }
 
