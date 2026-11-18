@@ -6,7 +6,7 @@ name: Demo video
 on:
   push:
     paths:
-      - 'integration_test/**'
+      - 'integration_test/demo_test.dart'
       - 'tool/demo/**'
       - '.github/workflows/demo-video.yml'
   workflow_dispatch:
