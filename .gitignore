@@ -43,3 +43,6 @@ key.properties
 *.mobileprovision
 .env
 secrets/
+
+# Python caches from the demo tools
+__pycache__/
