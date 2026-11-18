@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-"""Turns the raw emulator recording into a captioned 30-second demo video.
+"""Turns the raw emulator recording into a captioned 40-second demo video.
 
-Usage: make_video.py <demo-out dir> <output.mp4>
+Usage: make_video.py <demo-out dir> <output.mp4> [music.wav]
 
 The demo-out folder (artifact of the "Demo video" workflow) holds raw.mp4,
 rec_t0.txt (device clock when recording started) and marks.log (logcat lines
@@ -16,7 +16,7 @@ import tempfile
 import textwrap
 
 W, H, FPS = 720, 1600, 30
-TOTAL = 30.0
+TOTAL = 40.0
 TITLE = 2.2
 END_MIN = 2.3
 FONT = '/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf'
@@ -130,7 +130,7 @@ def main():
     work = tempfile.mkdtemp(prefix='demo-')
     parts = [os.path.join(work, '000_title.mp4')]
     card(work, parts[0], TITLE, 'WatchedLedger',
-         'Your private tracker for movies,\nseries, books, audiobooks\nand podcasts')
+         'Movies, series, books,\naudiobooks, podcasts,\ngames and videos.\n\nNew in 1.1')
 
     used = TITLE
     for i, sc in enumerate(scenes, 1):
@@ -166,6 +166,13 @@ def main():
     run(['-f', 'concat', '-safe', '0', '-i', listing, '-c', 'copy',
          '-movflags', '+faststart', tmp])
     os.replace(tmp, output)
+    if len(sys.argv) > 3:  # add the backing track, faded out at the end
+        tmp = output[:-4] + '.part.mp4'
+        run(['-i', output, '-i', sys.argv[3], '-map', '0:v', '-map', '1:a',
+             '-c:v', 'copy', '-af', f'afade=t=out:st={TOTAL - 2.5}:d=2.5',
+             '-c:a', 'aac', '-b:a', '192k', '-shortest',
+             '-movflags', '+faststart', tmp])
+        os.replace(tmp, output)
     print('wrote', output)
 
 

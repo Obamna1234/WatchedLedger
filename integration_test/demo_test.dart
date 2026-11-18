@@ -94,6 +94,29 @@ Future<void> add(WidgetTester t, String typed, {String? pick}) async {
   await idle(t, 900);
 }
 
+/// Hides the "Added …" message so taps on a title hit the list row.
+Future<void> clearSnack(WidgetTester t) async {
+  t.state<ScaffoldMessengerState>(find.byType(ScaffoldMessenger).first)
+      .removeCurrentSnackBar();
+  await idle(t, 300);
+}
+
+/// Scrolls the tab bar so [name] is on screen, then opens that tab.
+Future<void> openTab(WidgetTester t, String name, {int after = 700}) async {
+  final tab = find.widgetWithText(Tab, name);
+  await t.ensureVisible(tab);
+  await idle(t, 250);
+  await tap(t, tab, after: after);
+}
+
+/// Scrolls the open page until [f] shows, then taps it.
+Future<void> scrollTo(WidgetTester t, Finder f) async {
+  final page = find.byWidgetPredicate(
+      (w) => w is Scrollable && w.axisDirection == AxisDirection.down);
+  await t.dragUntilVisible(f, visible(page).first, const Offset(0, -250));
+  await idle(t, 400);
+}
+
 void main() {
   final binding = IntegrationTestWidgetsFlutterBinding.ensureInitialized();
   binding.framePolicy = LiveTestWidgetsFlutterBindingFramePolicy.fullyLive;
@@ -106,74 +129,92 @@ void main() {
     await waitFor(t, find.byTooltip('Add'), timeoutMs: 60000);
     await idle(t, 500);
 
+    // A few titles before the camera rolls, so the lists look lived in.
+    await add(t, 'Dune');
+    await add(t, 'Arrival');
+    await add(t, 'The Matrix');
+    await idle(t, 800);
+
     mark('start');
     await idle(t, 2500); // recording starts
 
-    mark('Type a title. It is looked up and filed automatically.');
+    mark('Type a title. It is looked up and filed for you.');
     await add(t, 'Inception');
 
-    mark('Typo? "Did you mean...?" offers the right one.');
+    mark('Typo? "Did you mean...?" fixes it.');
     await add(t, 'Intersteller', pick: 'Interstellar');
 
-    mark('Series, books, audiobooks and podcasts too, with covers.');
-    await tap(t, find.widgetWithText(Tab, 'Series'), after: 700);
-    await add(t, 'Severence', pick: 'Severance');
-    await tap(t, find.widgetWithText(Tab, 'Books'), after: 700);
-    await add(t, 'The Hobbit');
+    mark('New: Games, for every console.');
+    await openTab(t, 'Games');
+    await add(t, 'Minecraft');
 
-    mark('Swipe right to tick it off. The date is saved, with Undo.');
-    await tap(t, find.widgetWithText(Tab, 'Movies'), after: 900);
+    mark('New: paste a YouTube or social link. It fills itself in.');
+    await openTab(t, 'Videos');
+    await add(t, 'https://www.youtube.com/watch?v=aqz-KE-bpKQ');
+
+    mark('New: tick a whole show, a season or single episodes.');
+    await openTab(t, 'Series');
+    await add(t, 'Severence', pick: 'Severance');
+    await clearSnack(t);
+    await tap(t, find.textContaining('Severance'), after: 900);
+    final seasons = find.textContaining('Seasons & episodes');
+    await scrollTo(t, seasons);
+    await tap(t, seasons, after: 300);
+    final tickSeason = find.text('Tick season');
+    if (await waitFor(t, tickSeason, timeoutMs: 12000)) {
+      await tap(t, tickSeason, after: 1400);
+    } else {
+      await tap(t, find.text('Whole show watched'), after: 1400);
+    }
+    await tap(t, find.byTooltip('Back'), after: 700);
+    await tap(t, find.text('Save'), after: 1000);
+
+    mark('Swipe right to tick it off. Undo is always there.');
+    await openTab(t, 'Movies', after: 900);
     await t.timedDrag(visible(find.text('Inception')).first,
         const Offset(420, 0), const Duration(milliseconds: 700));
     await idle(t, 1500);
-    await tap(t, listSwitch('Watched'), after: 1500);
+    await tap(t, listSwitch('Watched'), after: 1200);
 
-    mark('Tap a title to rate it, add a note or track progress.');
+    mark('Rate it and save where you watched it.');
     await tap(t, find.text('Inception'), after: 900);
-    await tap(t, find.byTooltip('5 stars'), after: 500);
-    await type(t, find.widgetWithText(TextFormField, 'Note (one line, optional)'),
-        'Rewatch soon');
-    await hideKeyboard(t);
-    await tap(t, find.text('Save'), after: 1600);
+    await tap(t, find.byTooltip('5 stars'), after: 400);
+    final netflix = find.widgetWithText(ChoiceChip, 'Netflix');
+    await scrollTo(t, netflix);
+    await tap(t, netflix, after: 900);
+    await tap(t, find.text('Save'), after: 1300);
 
-    mark('Not sure what to watch? Pick something from your own list.');
-    await tap(t, listSwitch('To Watch'), after: 700);
-    await tap(t, find.byTooltip('Pick something for me'), after: 900);
-    await tap(t, find.text('Pick for me'), after: 1800);
-    await tap(t, find.byTooltip('Back'), after: 700);
+    mark('Long-press to select several. Move, tag or delete together.');
+    await tap(t, listSwitch('To Watch'), after: 800);
+    await clearSnack(t);
+    await t.longPress(visible(find.textContaining('Dune')).first);
+    await idle(t, 500);
+    await tap(t, find.textContaining('Arrival'), after: 600);
+    await tap(t, find.byTooltip('Add to a folder'), after: 600);
+    await type(t, find.widgetWithText(TextField, 'New folder name'),
+        'Movie night');
+    await tap(t, find.text('Add'), after: 1300);
 
-    mark('Stats, yearly goals and a diary of everything you finished.');
-    await tap(t, find.byTooltip('Stats'), after: 1600);
-    await tap(t, find.byTooltip('Diary'), after: 1600);
+    mark('New: share a folder as a simple message. No app needed.');
+    await tap(t, find.byTooltip('Folders'), after: 1000);
+    await tap(t, find.text('Movie night'), after: 2200);
     await tap(t, find.byTooltip('Back'), after: 500);
     await tap(t, find.byTooltip('Back'), after: 700);
 
-    mark('Search highlights every match, across all your lists.');
-    await tap(t, find.byTooltip('Search'), after: 500);
-    await type(t, addField, 'in');
-    await hideKeyboard(t);
-    await idle(t, 1500);
-    await tap(t, find.byTooltip('Close search'), after: 700);
+    mark("Can't decide? Let it pick from your list.");
+    await tap(t, find.byTooltip('Pick something for me'), after: 800);
+    await tap(t, find.text('Pick for me'), after: 1800);
+    await tap(t, find.byTooltip('Back'), after: 700);
 
-    mark('Themes, app lock, backups and Wi-Fi sync between phones.');
+    mark('Themes, app lock, private items and backups in Settings.');
     await tap(t, find.byTooltip('Settings'), after: 900);
     await tap(t, find.text('AMOLED black'), after: 1200);
     await t.timedDrag(visible(find.byType(ListView)).first,
-        const Offset(0, -500), const Duration(milliseconds: 900));
-    await idle(t, 1200);
-
-    mark('Private by design: offline mode, no accounts, no tracking.');
-    await t.dragUntilVisible(find.text('What leaves this device'),
-        visible(find.byType(ListView)).first, const Offset(0, 250));
-    await idle(t, 400);
-    await tap(t, find.text('What leaves this device'), after: 1200);
-    await t.timedDrag(visible(find.byType(ListView)).first,
-        const Offset(0, -450), const Duration(milliseconds: 900));
-    await idle(t, 1500);
-    await tap(t, find.byTooltip('Back'), after: 600);
-    await tap(t, find.byTooltip('Back'), after: 1500);
+        const Offset(0, -700), const Duration(milliseconds: 1100));
+    await idle(t, 1600);
+    await tap(t, find.byTooltip('Back'), after: 1200);
 
     mark('end');
     await idle(t, 1500);
-  }, timeout: const Timeout(Duration(minutes: 6)));
+  }, timeout: const Timeout(Duration(minutes: 8)));
 }
