@@ -58,7 +58,12 @@ Finder get sheet => find.byType(BottomSheet);
 Finder listSwitch(String label) => find.descendant(
     of: find.byWidgetPredicate((w) => w is SegmentedButton),
     matching: find.text(label));
-Finder get addField => find.byType(TextField);
+Finder get addField => find.descendant(
+    of: find.byType(BottomSheet), matching: find.byType(TextField));
+
+/// A button on the bottom bar.
+Finder navButton(String label) => find.descendant(
+    of: find.byType(NavigationBar), matching: find.text(label));
 
 /// Adds [typed]; if "Did you mean…?" appears, picks [pick] (or the first).
 Future<void> add(WidgetTester t, String typed, {String? pick}) async {
@@ -66,6 +71,7 @@ Future<void> add(WidgetTester t, String typed, {String? pick}) async {
   t.state<ScaffoldMessengerState>(find.byType(ScaffoldMessenger).first)
       .removeCurrentSnackBar();
   await idle(t, 200);
+  await tap(t, find.widgetWithText(FloatingActionButton, 'Add'), after: 700);
   await type(t, addField, typed);
   await tap(t, find.byTooltip('Add'), after: 100);
   mark('~wait'); // network lookup: shortened in the video
@@ -82,8 +88,8 @@ Future<void> add(WidgetTester t, String typed, {String? pick}) async {
       mark('~go');
       await idle(t, 1200); // let viewers read the suggestions
       final choice = pick == null
-          ? find.descendant(of: sheet, matching: find.byType(ListTile))
-          : find.descendant(of: sheet, matching: find.text(pick));
+          ? find.descendant(of: sheet.last, matching: find.byType(ListTile))
+          : find.descendant(of: sheet.last, matching: find.text(pick));
       await waitFor(t, choice);
       await tap(t, choice, after: 200);
       await waitFor(t, added);
@@ -101,12 +107,14 @@ Future<void> clearSnack(WidgetTester t) async {
   await idle(t, 300);
 }
 
-/// Scrolls the tab bar so [name] is on screen, then opens that tab.
+/// Taps the category button at the top and picks [name].
 Future<void> openTab(WidgetTester t, String name, {int after = 700}) async {
-  final tab = find.widgetWithText(Tab, name);
-  await t.ensureVisible(tab);
-  await idle(t, 250);
-  await tap(t, tab, after: after);
+  await tap(t, find.byIcon(Icons.arrow_drop_down), after: 700);
+  await tap(
+      t,
+      find.descendant(
+          of: find.byType(BottomSheet), matching: find.text(name)),
+      after: after);
 }
 
 /// Scrolls the open page until [f] shows, then taps it.
@@ -138,21 +146,21 @@ void main() {
     mark('start');
     await idle(t, 2500); // recording starts
 
-    mark('Type a title. It is looked up and filed for you.');
+    mark('Tap Add and type a title. It is looked up for you.');
     await add(t, 'Inception');
 
     mark('Typo? "Did you mean...?" fixes it.');
     await add(t, 'Intersteller', pick: 'Interstellar');
 
-    mark('New: Games, for every console.');
+    mark('Tap the name at the top to switch lists. New: Games.');
     await openTab(t, 'Games');
     await add(t, 'Minecraft');
 
-    mark('New: paste a YouTube or social link. It fills itself in.');
+    mark('Paste a YouTube or social link. It fills itself in.');
     await openTab(t, 'Videos');
     await add(t, 'https://www.youtube.com/watch?v=aqz-KE-bpKQ');
 
-    mark('New: tick a whole show, a season or single episodes.');
+    mark('Tick a whole season or single episodes.');
     await openTab(t, 'Series');
     await add(t, 'Severence', pick: 'Severance');
     await clearSnack(t);
@@ -176,7 +184,8 @@ void main() {
     await idle(t, 1500);
     await tap(t, listSwitch('Watched'), after: 1200);
 
-    mark('Rate it and save where you watched it.');
+    mark('Tap it to rate it and say where you watched it.');
+    await clearSnack(t);
     await tap(t, find.text('Inception'), after: 900);
     await tap(t, find.byTooltip('5 stars'), after: 400);
     final netflix = find.widgetWithText(ChoiceChip, 'Netflix');
@@ -184,35 +193,26 @@ void main() {
     await tap(t, netflix, after: 900);
     await tap(t, find.text('Save'), after: 1300);
 
-    mark('Long-press to select several. Move, tag or delete together.');
-    await tap(t, listSwitch('To Watch'), after: 800);
-    await clearSnack(t);
-    await t.longPress(visible(find.textContaining('Dune')).first);
-    await idle(t, 500);
-    await tap(t, find.textContaining('Arrival'), after: 600);
-    await tap(t, find.byTooltip('Add to a folder'), after: 600);
-    await type(t, find.widgetWithText(TextField, 'New folder name'),
-        'Movie night');
-    await tap(t, find.text('Add'), after: 1300);
+    mark('Folders: group anything and share it. No app needed.');
+    await tap(t, navButton('Folders'), after: 1000);
+    await tap(t, find.text('New folder'), after: 600);
+    await type(t, find.byType(TextField), 'Movie night');
+    await tap(t, find.text('Next'), after: 900);
+    await tap(t, find.textContaining('Dune'), after: 400);
+    await tap(t, find.textContaining('Arrival'), after: 700);
+    await tap(t, find.text('Done'), after: 1600);
+    await tap(t, find.byTooltip('Back'), after: 900);
 
-    mark('New: share a folder as a simple message. No app needed.');
-    await tap(t, find.byTooltip('Folders'), after: 1000);
-    await tap(t, find.text('Movie night'), after: 2200);
-    await tap(t, find.byTooltip('Back'), after: 500);
-    await tap(t, find.byTooltip('Back'), after: 700);
+    mark("Can't decide? Pick chooses from your list.");
+    await tap(t, navButton('Pick'), after: 800);
+    await tap(t, find.text('Pick for me'), after: 2000);
 
-    mark("Can't decide? Let it pick from your list.");
-    await tap(t, find.byTooltip('Pick something for me'), after: 800);
-    await tap(t, find.text('Pick for me'), after: 1800);
-    await tap(t, find.byTooltip('Back'), after: 700);
-
-    mark('Themes, app lock, private items and backups in Settings.');
-    await tap(t, find.byTooltip('Settings'), after: 900);
-    await tap(t, find.text('AMOLED black'), after: 1200);
-    await t.timedDrag(visible(find.byType(ListView)).first,
-        const Offset(0, -700), const Duration(milliseconds: 1100));
-    await idle(t, 1600);
-    await tap(t, find.byTooltip('Back'), after: 1200);
+    mark('More: import, backups, reminders and themes.');
+    await tap(t, navButton('More'), after: 1400);
+    final amoled = find.text('AMOLED black');
+    await scrollTo(t, amoled);
+    await tap(t, amoled, after: 1200);
+    await tap(t, navButton('Lists'), after: 1800);
 
     mark('end');
     await idle(t, 1500);

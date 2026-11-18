@@ -617,9 +617,9 @@ class _EditItemPageState extends State<EditItemPage> {
                 title: const Text('Private'),
                 subtitle: Text(lockOn
                     ? 'Hidden until you choose "Show private items" in '
-                        'Settings > App lock (needs your PIN). Never shown '
+                        'More > App lock (needs your PIN). Never shown '
                         'in the widget or in shared folders.'
-                    : 'Turn on the app lock first (Settings > App lock).'),
+                    : 'Turn on the app lock first (More > App lock).'),
                 value: _private,
                 onChanged: lockOn || _private
                     ? (v) => setState(() => _private = v)

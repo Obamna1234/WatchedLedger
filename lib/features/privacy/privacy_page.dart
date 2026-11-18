@@ -75,7 +75,7 @@ class PrivacyPage extends StatelessWidget {
             ),
             body(
               'Mobile data: by default nothing is fetched on mobile data '
-              '(Settings > Use mobile data). Titles added then are saved as '
+              '(More > Use mobile data). Titles added then are saved as '
               'typed and looked up once you are back on Wi-Fi.',
             ),
             heading('Who receives it'),

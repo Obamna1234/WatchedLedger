@@ -74,7 +74,12 @@ It replaces my current Samsung Notes checklist, which is slow and tedious (tap b
 
 ## 7. Main screen
 
-- Text box at the top to add a title, with a selector for category and which list (To Watch / Watched).
+- **Changed 2026-11-18 (Stage 9, owner's choice "stupid simple"):** no add box or tabs at the top. Instead:
+  - a **category button** at the top ("🎬 Movies ▾") that lists all categories with counts;
+  - the **To Watch / Watched** switch, then a **Search** box and one **Sort & filter** button;
+  - a big **Add** button that opens an add sheet (category chips, list switch, title or link, "Have a list? Paste it or import a file");
+  - a labelled **bottom bar**: Lists, Folders, Pick, Stats, More (More holds import, backup, reminders, appearance, privacy).
+- Original (replaced): text box at the top to add a title, with a selector for category and which list (To Watch / Watched).
 - Scrollable list below, grouped by genre, with a fast-scroll bar on the side.
 - Sort and filter by genre, release year, date added, date watched, rating or A–Z.
 - Duplicate warning if I add something already on any list.
@@ -136,6 +141,7 @@ Agreed staging. Workflows were built first, so every stage produces installable 
 | **5 Extras** ✅ | Smart "Pick something for me", "More by this director/author", stats, home-screen widgets, share-to-app, AltStore/SideStore source feed |
 | **6 Tracking & sync** (added 2026-11-17) ✅ | Rewatch/reread diary, reading & listening progress with yearly goals, custom lists & tags, episode tracking with "new episode" reminders, phone-to-phone sync over home Wi-Fi |
 | **7 Owner requests after 1.0** (2026-11-17) ✅ | 7a Games (+ Videos) tabs; 7b whole show / season / episode ticks for any series; 7c Samsung Notes `.sdocx` import (tick boxes + strikethrough), any text encoding, status headings, "Not sure" flag; 7d links (oEmbed), Wikidata fallback, open in YouTube/NewPipe/browser, fill-in-yourself path |
+| **9 Simpler navigation** (2026-11-18) | Category button, bottom bar, Add sheet, clearer Folders (New folder, Watching with), picker defaults to everything, higher-contrast theme, import reads more layouts (status words, tables, more CSV columns) |
 | **8 Extras picked by the owner** (2026-11-17) ✅ | 8a Recommended by, Watch with, Where to watch, Not out yet + release reminder, shareable folders; 8b Recently deleted (30 days), private items, select several, duplicate cleaner, backup reminder |
 
 ### 12a. Features added 2026-11-17 (owner's choice)

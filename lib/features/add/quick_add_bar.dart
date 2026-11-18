@@ -293,7 +293,7 @@ class _QuickAddBarState extends State<QuickAddBar> {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Text('Add', style: theme.textTheme.titleLarge),
+          Text('Add to your lists', style: theme.textTheme.titleLarge),
           const SizedBox(height: 12),
           Wrap(
             spacing: 6,

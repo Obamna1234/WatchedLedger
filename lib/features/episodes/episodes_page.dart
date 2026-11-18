@@ -43,7 +43,7 @@ class _EpisodesPageState extends State<EpisodesPage> {
     if (on && !scope.settings.episodeReminders) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
           content: Text('Following. Turn on "New episode reminders" in '
-              'Settings to get a notification when episodes come out.')));
+              'More to get a notification when episodes come out.')));
     } else if (scope.settings.episodeReminders) {
       final reminders = scope.reminders;
       if (reminders != null) await reminders.run(force: true);
@@ -109,7 +109,7 @@ class _EpisodesPageState extends State<EpisodesPage> {
                           : e is OfflineException
                               ? 'Offline mode is on.'
                               : e is _LookupsOff
-                                  ? 'Lookups are switched off in Settings.'
+                                  ? 'Lookups are switched off in More.'
                                   : "Couldn't load the episode list.",
                       textAlign: TextAlign.center,
                     ),
