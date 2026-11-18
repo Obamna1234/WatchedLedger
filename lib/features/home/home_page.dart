@@ -155,6 +155,8 @@ class _HomePageState extends State<HomePage> {
   Future<void> _pickCategory() async {
     final picked = await showModalBottomSheet<MediaCategory>(
       context: context,
+      // Sized to fit every category, so none hide below the fold.
+      isScrollControlled: true,
       showDragHandle: true,
       builder: (_) => _CategorySheet(current: _current),
     );
@@ -205,7 +207,8 @@ class _HomePageState extends State<HomePage> {
         title: TextButton.icon(
           style: TextButton.styleFrom(
             foregroundColor: theme.colorScheme.onSurface,
-            textStyle: theme.textTheme.titleLarge,
+            textStyle: theme.textTheme.titleLarge
+                ?.copyWith(fontWeight: FontWeight.w700),
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
           ),
           onPressed: _pickCategory,
