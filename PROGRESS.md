@@ -113,8 +113,13 @@ Maintained by Claude. Updated at the end of every stage, in the same pull reques
   - **Easier to read:** bolder titles, higher contrast, coloured bands for each genre group.
   - **Import** also understands "Title - watched", "Title (seen)", "Title - to watch", table rows with a ✓, and spreadsheet columns like "Movie", "Seen?" or "Date read".
 
+- **Stage 10, release gate (from your release checklist, 2026-11-19):**
+  - **10a, your data:** a database saved by every past version (0.1.0 to 1.2.0) is kept in the tests and opened by each new version. A new **update test** installs the new version over the last release on Android emulators (oldest supported and newest), and checks nothing is lost and the encryption key still works.
+  - **10b, releases:** new versions go out as a **beta** first. They become the normal release only when you say "release it", and only if every check on that exact build passed. Each release needs a written security and privacy review first. The real-lookup check now runs every day. When a lookup service doesn't answer, the app names it.
+
 ## Next
-- Nothing planned. Ideas for later, only if you want them: QR pairing for sync, iPhone widget and share sheet (needs a paid Apple account to be practical), more lookup sources.
+- 10c: on-device tests of the main features on Android and an iPhone simulator, then the 1.3.0 beta.
+- Ideas for later, only if you want them: QR pairing for sync, iPhone widget and share sheet (needs a paid Apple account to be practical), more lookup sources.
 
 ## Waiting on me (owner)
 - [x] Add the WatchedLedger repo to the Claude GitHub App.
@@ -125,6 +130,8 @@ Maintained by Claude. Updated at the end of every stage, in the same pull reques
 - [ ] Optional: tell Claude which iPhone and iOS version you have, and whether you use a Mac or a Windows PC, so the README can lead with the right sideloading tool.
 
 ## Decisions made
+- **2026-11-19 Beta first:** you chose "beta first, I say yes". A version bump publishes a pre-release. "Release it" (a workflow I run when you say so) makes it the normal release. AltStore/SideStore only see normal releases.
+- **2026-11-19 Update test uses debug builds** of the last release's code and the new code, signed with the same test key, because a test can't drive the signed release app. The database, its encryption key and the update path are the same as in real updates.
 - **2026-11-18 Navigation:** the owner picked the "bottom bar" layout over home tiles or decluttered tabs. This replaces SPEC §7's add box at the top. Swiping sideways no longer changes category (it clashed with swipe-to-tick).
 - **2026-11-17 Enums appended:** `game` (5) and `video` (6) added to the end of the category list; database schema v3 adds link, people, where-to-watch, not-out-yet, private columns and the `trash` table (migration tested).
 - **2026-11-17 Headings in imported notes** only decide the category and grouping, never the genre (your headings' genre words aren't real genres). The genre comes from the lookup.

@@ -31,7 +31,7 @@ repo.
 
 ## Installing
 
-Every release is on the [Releases page](../../releases). Each one has:
+Every release is on the [Releases page](../../releases). New versions appear there first as a **beta** (marked *Pre-release*), for the owner to try. Once it's confirmed, it becomes the normal (*Latest*) release, and only then do AltStore / SideStore offer it. Each release has:
 
 | File | For |
 |---|---|
@@ -96,13 +96,19 @@ New versions then show up in the app's update list, so you don't have to downloa
 | Trigger | What happens |
 |---|---|
 | Push to any branch | `CI` workflow: analyze → test → dependency scan → build the APK and IPA. Download them from the run's **Artifacts** (kept 14 days). |
-| New `version:` in `pubspec.yaml` lands on `main` (or a `vX.Y.Z` tag is pushed) | `Release` workflow: the same build with the real signing key required, then a tag and a GitHub Release with the APK, the IPA and checksums. |
+| Push that changes the app | `Update keeps the library`: on Android emulators (API 24 and 34) the last release saves a library, this build is installed over it as an update, and nothing may be lost. |
+| New `version:` in `pubspec.yaml` lands on `main` (or a `vX.Y.Z` tag is pushed) | `Release` workflow: needs `docs/reviews/vX.Y.Z.md` (the security and privacy review), then the same build with the real signing key, a tag and a **beta** GitHub Release (pre-release) with the APK, the IPA and checksums. |
+| Owner says "release it" | `Release it` workflow (run by hand): checks CI and the update test passed on that exact build, then makes the beta the normal release. |
+| Every day | `Live lookup check`: real searches against every lookup service. |
 
 This repo is **public**, so GitHub Actions minutes are free and unmetered, including the macOS runner the iOS build needs. In a private repo on the free plan, each macOS minute uses up 10 of the 2,000 free monthly minutes.
 
 ### Making a release
 
-Change `version:` in `pubspec.yaml` (for example `0.1.0+1` → `0.2.0+1`) and merge that into `main`. The **Release** workflow notices the new version, then builds, signs, tags `v0.2.0` and publishes the GitHub Release automatically. Pushing a `vX.Y.Z` tag by hand also works.
+1. Write `docs/reviews/vX.Y.Z.md`, the security and privacy review of everything since the last release ([checklist](docs/reviews/README.md)).
+2. Change `version:` in `pubspec.yaml` (for example `1.2.0+1` → `1.3.0+1`) and merge that into `main`. The **Release** workflow builds, signs, tags `v1.3.0` and publishes it as a **beta**.
+3. Try the beta. When happy, run **Actions → Release it** with the version. It makes the beta the normal release, but only if every check on that build passed.
+4. Run **Actions → Past release databases** for the new tag, and add its database to `test/fixtures/`.
 
 The version name comes from `pubspec.yaml` (or the tag). The build number comes from the build time, so it always goes up, and Android accepts each new APK as an update.
 
