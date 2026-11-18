@@ -1,0 +1,77 @@
+# Makes test/fixtures/db_<tag>.sqlite: a database saved by each past
+# release's own code (tool/fixtures/make_fixture_test.dart run inside a
+# checkout of that tag). Run by hand after each release; commit the new
+# fixture so test/past_releases_test.dart keeps opening every one of them.
+# Also runs when the generator itself changes.
+name: Past release databases
+
+on:
+  push:
+    paths:
+      - 'tool/fixtures/**'
+      - '.github/workflows/past-release-dbs.yml'
+  workflow_dispatch:
+    inputs:
+      tags:
+        description: 'Release tags, space separated (blank = all v* tags)'
+        default: ''
+
+permissions:
+  contents: read
+
+jobs:
+  list:
+    runs-on: ubuntu-latest
+    outputs:
+      tags: ${{ steps.t.outputs.tags }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - id: t
+        env:
+          WANTED: ${{ inputs.tags }}
+        run: |
+          set -euo pipefail
+          if [ -n "$WANTED" ]; then tags="$WANTED"; else tags="$(git tag -l 'v*' | grep -v -- '-beta' | tr '\n' ' ')"; fi
+          json="$(printf '%s\n' $tags | jq -R . | jq -cs .)"
+          echo "tags=$json" >> "$GITHUB_OUTPUT"
+
+  fixture:
+    needs: list
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        tag: ${{ fromJson(needs.list.outputs.tags) }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          path: current
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          ref: ${{ matrix.tag }}
+          path: old
+      - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2.23.0
+        with:
+          channel: stable
+          flutter-version: '3.47.x'
+          cache: true
+      - name: Save a database with ${{ matrix.tag }}'s own code
+        env:
+          TAG: ${{ matrix.tag }}
+        run: |
+          set -euo pipefail
+          cd old
+          bash tool/bootstrap.sh
+          cp ../current/tool/fixtures/make_fixture_test.dart test/zz_make_fixture_test.dart
+          FIXTURE_OUT="$GITHUB_WORKSPACE/db_${TAG}.sqlite" flutter test test/zz_make_fixture_test.dart
+          ls -l "$GITHUB_WORKSPACE/db_${TAG}.sqlite"
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: db_${{ matrix.tag }}
+          path: db_${{ matrix.tag }}.sqlite
+          retention-days: 30
