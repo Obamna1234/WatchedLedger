@@ -51,12 +51,14 @@ jobs:
           disable-animations: false
           emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim
           script: bash tool/demo/record.sh
-      - name: Cut the 30-second captioned video
+      - name: Cut the 40-second captioned video with music
         if: always()
         continue-on-error: true
         run: |
-          command -v ffmpeg || (sudo apt-get update -q && sudo apt-get install -y -q ffmpeg fonts-dejavu-core)
-          python3 -I tool/demo/make_video.py demo-out demo-out/WatchedLedger-demo.mp4
+          sudo apt-get update -q
+          sudo apt-get install -y -q ffmpeg fonts-dejavu-core python3-numpy
+          python3 -I tool/demo/make_music.py demo-out/music.wav 40
+          python3 -I tool/demo/make_video.py demo-out demo-out/WatchedLedger-demo.mp4 demo-out/music.wav
       - name: Publish to the demo-recordings branch
         if: always()
         env:
