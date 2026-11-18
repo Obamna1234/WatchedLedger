@@ -154,6 +154,19 @@ def main():
     total = 3.5
     for i, (sc, (title, body)) in enumerate(zip(scenes, STEPS), 1):
         vf = framed(panel(work, f's{i}', i, title, body))
+        # Trim dead time: at most 1.2 s before the first touch and 2.5 s
+        # after the last one (the "after" still covers the result).
+        scene_taps = [tp[0] for tp in all_taps if sc['a'] <= tp[0] < sc['b']]
+        if scene_taps:
+            first, last = scene_taps[0], scene_taps[-1]
+            pieces = sc['pieces']
+            pa, pb, pw = pieces[0]
+            if not pw and first - pa > 1.2:
+                pieces[0] = (first - 1.2, pb, pw)
+            pa, pb, pw = pieces[-1]
+            if not pw and pa <= last and pb - last > 2.5:
+                pieces[-1] = (pa, last + 2.5, pw)
+            sc['b'] = pieces[-1][1]
         out = os.path.join(work, f'{i:02d}0_in.mp4')
         still(raw, sc['a'] + 0.05, HOLD_IN, vf, out)
         parts.append(out)
