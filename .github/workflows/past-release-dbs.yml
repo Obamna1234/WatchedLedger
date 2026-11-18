@@ -75,3 +75,29 @@ jobs:
           name: db_${{ matrix.tag }}
           path: db_${{ matrix.tag }}.sqlite
           retention-days: 30
+
+  publish:
+    # Puts the fixtures on the past-release-dbs branch, to copy into
+    # test/fixtures/ (artifacts can't be fetched from every environment).
+    needs: fixture
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          pattern: db_*
+          merge-multiple: true
+          path: out
+      - env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          cd out
+          ls -l
+          git init -q -b past-release-dbs
+          git add -A
+          git -c user.name='github-actions[bot]' \
+              -c user.email='41898282+github-actions[bot]@users.noreply.github.com' \
+              commit -qm "Past release databases from ${GITHUB_SHA::7}"
+          git push -q -f "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" past-release-dbs
