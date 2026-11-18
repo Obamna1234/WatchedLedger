@@ -30,9 +30,13 @@ class ParsedQuery {
 }
 
 class LookupResult {
-  const LookupResult(this.candidates, this.sourcesTried, {this.error});
+  const LookupResult(this.candidates, this.sourcesTried,
+      {this.error, this.failed = const []});
   final List<LookupCandidate> candidates;
   final List<String> sourcesTried;
+
+  /// Sources that didn't answer (down, changed or unreachable).
+  final List<String> failed;
 
   /// Last error from a source, if every source failed or returned nothing.
   final Object? error;
@@ -84,6 +88,7 @@ class LookupService {
     final query = ParsedQuery.parse(raw);
     if (query.text.isEmpty) return const LookupResult([], []);
     final tried = <String>[];
+    final failed = <String>[];
     Object? lastError;
     // If any source answered (even with nothing), it's "no matches", not
     // "couldn't reach".
@@ -99,6 +104,7 @@ class LookupService {
         rethrow;
       } catch (e) {
         lastError = e;
+        failed.add(provider.displayName);
       }
     }
 
@@ -116,9 +122,10 @@ class LookupService {
     }
 
     if (found.isEmpty) {
-      return LookupResult(const [], tried, error: answered ? null : lastError);
+      return LookupResult(const [], tried,
+          error: answered ? null : lastError, failed: failed);
     }
-    return LookupResult(rank(query, found), tried);
+    return LookupResult(rank(query, found), tried, failed: failed);
   }
 
   static bool _hasClose(ParsedQuery query, List<LookupCandidate> found) {

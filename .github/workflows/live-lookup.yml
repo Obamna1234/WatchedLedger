@@ -1,6 +1,6 @@
 # Checks the REAL lookup services (iTunes, TVmaze, Open Library, Google
 # Books) with correct and misspelled titles, and writes a results table to
-# the run's summary page. Runs weekly so we notice if a service changes,
+# the run's summary page. Runs daily so we notice if a service changes,
 # and whenever the lookup code changes.
 name: Live lookup check
 
@@ -12,7 +12,7 @@ on:
       - 'lib/core/net/**'
       - '.github/workflows/live-lookup.yml'
   schedule:
-    - cron: '17 3 * * 1' # Mondays 03:17 UTC
+    - cron: '17 3 * * *' # every day 03:17 UTC (11:17 Perth)
   workflow_dispatch:
 
 permissions:

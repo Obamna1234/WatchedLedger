@@ -103,8 +103,9 @@ class _LookupSheetState extends State<_LookupSheet> {
       setState(() {
         _result = result;
         if (result.couldNotReach) {
-          _problem = "Couldn't reach ${result.sourcesTried.join(' or ')}. "
-              'Check your connection, or save the title as typed.';
+          _problem = "Couldn't reach ${result.sourcesTried.join(' or ')} "
+              'right now. Your lists still work: save it as typed and '
+              'it can be matched later.';
         }
       });
     } on NotOnWifiException {
@@ -144,8 +145,12 @@ class _LookupSheetState extends State<_LookupSheet> {
     } else if (result == null) {
       status = '';
     } else if (candidates.isEmpty) {
-      status = 'No matches in ${result.sourcesTried.join(' or ')}. '
-          'Keep typing to search again, or save it as typed.';
+      final down = result.failed;
+      status = down.isEmpty
+          ? 'No matches in ${result.sourcesTried.join(' or ')}. '
+              'Keep typing to search again, or save it as typed.'
+          : "No matches. ${down.join(' and ')} didn't answer, so try again "
+              'later or save it as typed.';
     } else {
       status = 'From ${result.sourcesTried.last}. Tap the right one.';
     }

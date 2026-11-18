@@ -382,6 +382,21 @@ void main() {
       expect(hosts, ['en.wikipedia.org', 'itunes.apple.com', 'www.wikidata.org']);
     });
 
+    test('names the sources that did not answer', () async {
+      final net = client((req) async {
+        if (req.url.host == 'itunes.apple.com') {
+          throw http.ClientException('down');
+        }
+        return req.url.host == 'en.wikipedia.org'
+            ? pages([])
+            : jsonResponse({'search': []});
+      });
+      final r = await LookupService(net).search('nothing', MediaCategory.movie);
+      expect(r.candidates, isEmpty);
+      expect(r.couldNotReach, isFalse, reason: 'others answered');
+      expect(r.failed, ['iTunes']);
+    });
+
     test('podcast typos are respelled via Wikipedia, then iTunes again',
         () async {
       final terms = <String>[];
