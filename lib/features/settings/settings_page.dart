@@ -6,6 +6,7 @@ import '../../core/settings.dart';
 import '../../core/theme.dart';
 import '../data/data_page.dart';
 import '../duplicates/duplicates_page.dart';
+import '../import/import_page.dart';
 import '../lock/lock_settings_page.dart';
 import '../privacy/privacy_page.dart';
 import '../sync/sync_page.dart';
@@ -30,11 +31,97 @@ class SettingsPage extends StatelessWidget {
         );
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Settings')),
+      appBar: AppBar(title: const Text('More')),
       body: ListenableBuilder(
         listenable: Listenable.merge([settings, scope.network, scope.lock]),
         builder: (context, _) => ListView(
           children: [
+            section('Your lists'),
+            ListTile(
+              leading: const Icon(Icons.playlist_add),
+              title: const Text('Import a list or file'),
+              subtitle: const Text('Paste a list, or pick a text, CSV or '
+                  'Samsung Notes file'),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => Navigator.of(context).push(
+                MaterialPageRoute<void>(builder: (_) => const ImportPage()),
+              ),
+            ),
+            ListTile(
+              leading: const Icon(Icons.save_alt),
+              title: const Text('Backup and export'),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => Navigator.of(context).push(
+                MaterialPageRoute<void>(builder: (_) => const DataPage()),
+              ),
+            ),
+            ListTile(
+              leading: const Icon(Icons.content_copy_outlined),
+              title: const Text('Find duplicates'),
+              subtitle: const Text('Merge things added more than once'),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => Navigator.of(context).push(
+                MaterialPageRoute<void>(builder: (_) => const DuplicatesPage()),
+              ),
+            ),
+            ListTile(
+              leading: const Icon(Icons.restore_from_trash_outlined),
+              title: const Text('Recently deleted'),
+              subtitle: const Text('Kept for 30 days'),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => Navigator.of(context).push(
+                MaterialPageRoute<void>(builder: (_) => const TrashPage()),
+              ),
+            ),
+            ListTile(
+              leading: const Icon(Icons.sync),
+              title: const Text('Sync with another phone'),
+              subtitle: const Text('Over your home Wi-Fi, encrypted, no '
+                  'account or server.'),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => Navigator.of(context).push(
+                MaterialPageRoute<void>(builder: (_) => const SyncPage()),
+              ),
+            ),
+            if (scope.reminders case final reminders?) ...[
+              section('Reminders'),
+              const ListTile(
+                leading: Icon(Icons.event_available_outlined),
+                title: Text('Release-day reminders'),
+                subtitle: Text('Mark anything "Not out yet" with a date '
+                    '(tap it, then Not out yet) and the phone reminds you on '
+                    'the day, if notifications are allowed. Those items sit '
+                    'at the top of their list.'),
+              ),
+              SwitchListTile(
+                secondary: const Icon(Icons.notifications_active_outlined),
+                title: const Text('New episode reminders'),
+                subtitle: const Text(
+                  'For shows you follow (Series → Edit → Episodes). About '
+                  'once a day the app asks TVmaze for their episode lists; '
+                  'the phone then reminds you on the air date.',
+                ),
+                value: settings.episodeReminders,
+                onChanged: (on) async {
+                  if (!on) {
+                    await settings.setEpisodeReminders(false);
+                    await reminders.cancelAll();
+                    return;
+                  }
+                  final allowed = await reminders.requestPermission();
+                  if (!allowed) {
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+                          content: Text('Notifications are blocked for this '
+                              'app in your phone settings.')));
+                    }
+                    return;
+                  }
+                  await settings.setEpisodeReminders(true);
+                  await reminders.run(force: true);
+                },
+              ),
+            ],
             section('Appearance'),
             for (final mode in AppThemeMode.values)
               ListTile(
@@ -97,73 +184,6 @@ class SettingsPage extends StatelessWidget {
               trailing: const Icon(Icons.chevron_right),
               onTap: () => Navigator.of(context).push(
                 MaterialPageRoute<void>(builder: (_) => const PrivacyPage()),
-              ),
-            ),
-            if (scope.reminders case final reminders?) ...[
-              section('Notifications'),
-              SwitchListTile(
-                title: const Text('New episode reminders'),
-                subtitle: const Text(
-                  'For shows you follow (Series → Edit → Episodes). About '
-                  'once a day the app asks TVmaze for their episode lists; '
-                  'the phone then reminds you on the air date.',
-                ),
-                value: settings.episodeReminders,
-                onChanged: (on) async {
-                  if (!on) {
-                    await settings.setEpisodeReminders(false);
-                    await reminders.cancelAll();
-                    return;
-                  }
-                  final allowed = await reminders.requestPermission();
-                  if (!allowed) {
-                    if (context.mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-                          content: Text('Notifications are blocked for this '
-                              'app in your phone settings.')));
-                    }
-                    return;
-                  }
-                  await settings.setEpisodeReminders(true);
-                  await reminders.run(force: true);
-                },
-              ),
-            ],
-            section('Your data'),
-            ListTile(
-              leading: const Icon(Icons.save_alt),
-              title: const Text('Import, export and backup'),
-              trailing: const Icon(Icons.chevron_right),
-              onTap: () => Navigator.of(context).push(
-                MaterialPageRoute<void>(builder: (_) => const DataPage()),
-              ),
-            ),
-            ListTile(
-              leading: const Icon(Icons.content_copy_outlined),
-              title: const Text('Find duplicates'),
-              subtitle: const Text('Merge things added more than once'),
-              trailing: const Icon(Icons.chevron_right),
-              onTap: () => Navigator.of(context).push(
-                MaterialPageRoute<void>(builder: (_) => const DuplicatesPage()),
-              ),
-            ),
-            ListTile(
-              leading: const Icon(Icons.restore_from_trash_outlined),
-              title: const Text('Recently deleted'),
-              subtitle: const Text('Kept for 30 days'),
-              trailing: const Icon(Icons.chevron_right),
-              onTap: () => Navigator.of(context).push(
-                MaterialPageRoute<void>(builder: (_) => const TrashPage()),
-              ),
-            ),
-            ListTile(
-              leading: const Icon(Icons.sync),
-              title: const Text('Sync with another phone'),
-              subtitle: const Text('Over your home Wi-Fi, encrypted, no '
-                  'account or server.'),
-              trailing: const Icon(Icons.chevron_right),
-              onTap: () => Navigator.of(context).push(
-                MaterialPageRoute<void>(builder: (_) => const SyncPage()),
               ),
             ),
             section('About'),

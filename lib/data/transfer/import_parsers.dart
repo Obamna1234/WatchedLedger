@@ -211,8 +211,8 @@ ListStatus _statusFrom(String s, {ListStatus fallback = ListStatus.todo}) {
   final v = s.trim().toLowerCase();
   if (v.isEmpty) return fallback;
   const done = ['done', 'watched', 'read', 'listened', 'played', 'finished',
-    'yes',
-    'true', 'x', '1', 'completed'];
+    'yes', 'y', 'true', 'x', '[x]', '1', 'completed', 'complete', 'seen',
+    'beaten', 'heard', '\u2713', '\u2714', '\u2705', '\u2611'];
   return done.contains(v) ? ListStatus.done : ListStatus.todo;
 }
 
@@ -286,11 +286,31 @@ ImportParseResult? _fromCsv(
   }
 
   // Any spreadsheet with a title column.
-  final titleCol = ['title', 'name', 'titel', 'titre']
-      .firstWhere(cols.containsKey, orElse: () => '');
+  final titleCol = [
+    'title', 'name', 'titel', 'titre', 'movie', 'film', 'show', 'series',
+    'book', 'audiobook', 'podcast', 'game', 'video', 'item',
+  ].firstWhere(cols.containsKey, orElse: () => '');
   if (titleCol.isNotEmpty) {
-    final statusCol = ['status', 'list', 'watched', 'done', 'read']
-        .firstWhere(cols.containsKey, orElse: () => '');
+    final statusCol = [
+      'status', 'list', 'watched', 'watched?', 'seen', 'seen?', 'done',
+      'done?', 'read', 'read?', 'played', 'completed', 'finished', 'state',
+    ].firstWhere(cols.containsKey, orElse: () => '');
+    // A filled-in "date watched" column also means it's done.
+    final dateCol = [
+      'date watched', 'watched on', 'watched date', 'date read', 'read on',
+      'finished on', 'date finished', 'completed on', 'date completed',
+    ].firstWhere(cols.containsKey, orElse: () => '');
+    ListStatus statusOf(List<String> r) {
+      if (statusCol.isNotEmpty) {
+        final st = _statusFrom(_cell(r, cols, statusCol));
+        if (st == ListStatus.done) return st;
+      }
+      if (dateCol.isNotEmpty && _cell(r, cols, dateCol).trim().isNotEmpty) {
+        return ListStatus.done;
+      }
+      return ListStatus.todo;
+    }
+
     final catCol = ['category', 'type', 'kind', 'media']
         .firstWhere(cols.containsKey, orElse: () => '');
     return ImportParseResult(ImportFormat.genericCsv, [
@@ -298,11 +318,12 @@ ImportParseResult? _fromCsv(
         if (cleanTitle(_cell(r, cols, titleCol)).isNotEmpty)
           ImportRow(
             title: cleanTitle(_unformula(_cell(r, cols, titleCol))),
-            category: catCol.isEmpty ? null : _categoryFrom(_cell(r, cols, catCol)),
-            status: statusCol.isEmpty
-                ? ListStatus.todo
-                : _statusFrom(_cell(r, cols, statusCol)),
-            statusSure: statusCol.isNotEmpty,
+            category: catCol.isEmpty
+                ? _categoryFrom(titleCol)
+                : _categoryFrom(_cell(r, cols, catCol)),
+            status: statusOf(r),
+            statusSure: statusCol.isNotEmpty || dateCol.isNotEmpty,
+            finished: dateCol.isEmpty ? null : _date(_cell(r, cols, dateCol)),
             year: _year(_cell(r, cols, 'year')),
             rating: _stars(_cell(r, cols, 'rating'), 5),
             note: _note(_cell(r, cols, 'note')),
@@ -425,9 +446,23 @@ final RegExp _todoMarker = RegExp(
     r'[☐□◻⬜])?\s*(?:\d{1,4}[.)]\s+)?');
 final RegExp _strike = RegExp('[\u0335\u0336\u0337\u0338]');
 final RegExp _markdownStrike = RegExp(r'^~~(.+)~~$');
-final RegExp _trailingDone =
-    RegExp(r'\s*(?:[✓✔✅]|\((?:done|watched|read|seen)\))\s*$',
-        caseSensitive: false);
+// "Heat ✓", "Heat (seen)", "Heat - watched", "Heat: done", "Heat [x]".
+final RegExp _trailingDone = RegExp(
+    r'\s*(?:[✓✔✅☑]|\[[xX✓✔]\]|'
+    r'[(\[](?:done|watched|read|seen|finished|completed|played|listened)[)\]]|'
+    r'(?:\s[-–—|]|:)\s*(?:done|watched|read|seen|finished|completed|played|'
+    r'listened|yes|[✓✔✅x]))\s*$',
+    caseSensitive: false);
+// "Heat - to watch", "Heat (not watched)", "Heat [ ]", "Heat: no".
+final RegExp _trailingTodo = RegExp(
+    r'\s*(?:\[\s?\]|[☐□]|'
+    r'[(\[](?:to ?(?:watch|read|play|listen)|not (?:yet )?(?:watched|seen|read|'
+    r'played)|unwatched|unread|todo|to do|want)[)\]]|'
+    r'(?:\s[-–—|]|:)\s*(?:to ?(?:watch|read|play|listen)|not (?:yet )?(?:watched|seen|'
+    r'read|played)|unwatched|unread|todo|to do|no|[✗✘❌]))\s*$',
+    caseSensitive: false);
+// A table row: "| Heat | 1995 | ✓ |" (Markdown, or copied from a sheet).
+final RegExp _tableRule = RegExp(r'^\s*\|?[\s:|-]+\|?\s*$');
 final RegExp _yearInBrackets = RegExp(r'\s*\(((?:18|19|20)\d{2})\)\s*$');
 final RegExp _heading = RegExp(
     r'^\s*(movies?|films?|series|tv(?: shows?)?|shows?|books?|audiobooks?|'
@@ -525,6 +560,27 @@ ImportParseResult _fromLines(String text) {
       continue;
     }
 
+    // Table rows: the first cell is the title; a tick-like cell means done.
+    if (line.contains('|')) {
+      if (_tableRule.hasMatch(line)) continue;
+      final cells = [
+        for (final c in line.split('|'))
+          if (c.trim().isNotEmpty) c.trim(),
+      ];
+      if (cells.length >= 2) {
+        final header = cells.first.toLowerCase();
+        if (const {'title', 'name', 'movie', 'show', 'book', 'game'}
+            .contains(header)) {
+          continue;
+        }
+        final ticked = cells.skip(1).any((c) =>
+            _statusFrom(c) == ListStatus.done && !RegExp(r'^\d+$').hasMatch(c));
+        final year = cells.skip(1).map(_year).whereType<int>().firstOrNull;
+        line = '${ticked ? '[x] ' : ''}${cells.first}'
+            '${year == null ? '' : ' ($year)'}';
+      }
+    }
+
     final boxed = _emptyBox.hasMatch(line);
     var done = false;
     if (_strike.hasMatch(line)) {
@@ -544,9 +600,13 @@ ImportParseResult _fromLines(String text) {
       done = true;
       line = md.group(1)!;
     }
+    var sureTodo = false;
     if (_trailingDone.hasMatch(line)) {
       done = true;
       line = line.replaceFirst(_trailingDone, '');
+    } else if (_trailingTodo.hasMatch(line)) {
+      sureTodo = true;
+      line = line.replaceFirst(_trailingTodo, '');
     }
 
     int? year;
@@ -576,7 +636,8 @@ ImportParseResult _fromLines(String text) {
       rating: rating,
       note: note,
       group: group,
-      statusSure: done || boxed || sectionStatus != null || sawOurHeader,
+      statusSure:
+          done || boxed || sureTodo || sectionStatus != null || sawOurHeader,
     ));
   }
   return ImportParseResult(

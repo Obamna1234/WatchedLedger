@@ -14,12 +14,60 @@ import '../../data/lookup/lookup_service.dart';
 import '../../data/models.dart';
 import '../lookup/lookup_sheet.dart';
 
-/// Text box at the top of the main screen. The category follows the open tab
-/// but can be changed for a single add.
+/// Opens the "Add" sheet from the big + button. Starts on the category and
+/// list you're looking at; both can be changed with one tap.
+Future<void> showAddSheet(
+  BuildContext context, {
+  required MediaCategory category,
+  ListStatus status = ListStatus.todo,
+  VoidCallback? onImport,
+}) {
+  return showModalBottomSheet<void>(
+    context: context,
+    isScrollControlled: true,
+    showDragHandle: true,
+    builder: (sheetContext) => Padding(
+      padding: EdgeInsets.only(
+          bottom: MediaQuery.viewInsetsOf(sheetContext).bottom),
+      child: SafeArea(
+        child: QuickAddBar(
+          category: category,
+          status: status,
+          autofocus: true,
+          onAdded: () => Navigator.of(sheetContext).pop(),
+          onImport: onImport == null
+              ? null
+              : () {
+                  Navigator.of(sheetContext).pop();
+                  onImport();
+                },
+        ),
+      ),
+    ),
+  );
+}
+
+/// The add form: what kind of thing, which list, and the title.
 class QuickAddBar extends StatefulWidget {
-  const QuickAddBar({super.key, required this.category, this.focusNode});
+  const QuickAddBar({
+    super.key,
+    required this.category,
+    this.status = ListStatus.todo,
+    this.focusNode,
+    this.autofocus = false,
+    this.onAdded,
+    this.onImport,
+  });
 
   final MediaCategory category;
+  final ListStatus status;
+  final bool autofocus;
+
+  /// Called after something was saved (the sheet closes).
+  final VoidCallback? onAdded;
+
+  /// "Paste a list or import a file".
+  final VoidCallback? onImport;
 
   /// Lets the home screen widget's "+" jump straight into typing.
   final FocusNode? focusNode;
@@ -33,7 +81,7 @@ class _QuickAddBarState extends State<QuickAddBar> {
   final _ownFocus = FocusNode();
   FocusNode get _focus => widget.focusNode ?? _ownFocus;
   late MediaCategory _category = widget.category;
-  ListStatus _status = ListStatus.todo;
+  late ListStatus _status = widget.status;
   bool _busy = false;
 
   @override
@@ -67,7 +115,10 @@ class _QuickAddBarState extends State<QuickAddBar> {
     try {
       final added = await addLinkItem(context, link,
           fallback: _category, status: _status);
-      if (added && mounted) _controller.clear();
+      if (added && mounted) {
+        _controller.clear();
+        widget.onAdded?.call();
+      }
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -172,7 +223,9 @@ class _QuickAddBarState extends State<QuickAddBar> {
       if (!mounted) return;
       _controller.clear();
       if (fillIn) {
-        await openNewItemEditor(context, scope.db, id);
+        final nav = Navigator.of(context);
+        widget.onAdded?.call();
+        await openNewItemEditor(nav.context, scope.db, id);
         return;
       }
       final year = picked?.year;
@@ -192,6 +245,7 @@ class _QuickAddBarState extends State<QuickAddBar> {
             onPressed: () => scope.db.deleteItem(id),
           ),
         ));
+      widget.onAdded?.call();
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -232,66 +286,86 @@ class _QuickAddBarState extends State<QuickAddBar> {
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
+    final theme = Theme.of(context);
     return Padding(
-      padding: const EdgeInsets.fromLTRB(8, 8, 8, 8),
-      child: Row(
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          PopupMenuButton<MediaCategory>(
-            tooltip: 'Category: ${_category.tabLabel}',
-            initialValue: _category,
-            onSelected: (c) => setState(() => _category = c),
-            icon: Icon(_category.icon, color: scheme.primary),
-            itemBuilder: (context) => [
+          Text('Add', style: theme.textTheme.titleLarge),
+          const SizedBox(height: 12),
+          Wrap(
+            spacing: 6,
+            runSpacing: 6,
+            children: [
               for (final c in MediaCategory.values)
-                PopupMenuItem(
-                  value: c,
-                  child: ListTile(
-                    leading: Icon(c.icon),
-                    title: Text(c.tabLabel),
-                    dense: true,
-                    contentPadding: EdgeInsets.zero,
-                  ),
+                ChoiceChip(
+                  avatar: Icon(c.icon, size: 18),
+                  label: Text(c.tabLabel),
+                  showCheckmark: false,
+                  selected: c == _category,
+                  onSelected: (_) => setState(() => _category = c),
                 ),
             ],
           ),
-          Expanded(
-            child: TextField(
-              controller: _controller,
-              focusNode: _focus,
-              textInputAction: TextInputAction.done,
-              textCapitalization: TextCapitalization.words,
-              inputFormatters: [
-                LengthLimitingTextInputFormatter(kMaxTitleLength),
-              ],
-              onSubmitted: (_) => _submit(),
-              decoration: InputDecoration(
-                hintText: 'Add a ${_category.singular}…',
-                isDense: true,
-                border: const OutlineInputBorder(),
+          const SizedBox(height: 12),
+          SegmentedButton<ListStatus>(
+            showSelectedIcon: false,
+            segments: [
+              ButtonSegment(
+                  value: ListStatus.todo, label: Text(_category.todoLabel)),
+              ButtonSegment(
+                  value: ListStatus.done, label: Text(_category.doneLabel)),
+            ],
+            selected: {_status},
+            onSelectionChanged: (s) => setState(() => _status = s.first),
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: TextField(
+                  controller: _controller,
+                  focusNode: _focus,
+                  autofocus: widget.autofocus,
+                  textInputAction: TextInputAction.done,
+                  textCapitalization: TextCapitalization.words,
+                  inputFormatters: [
+                    LengthLimitingTextInputFormatter(kMaxTitleLength),
+                  ],
+                  onSubmitted: (_) => _submit(),
+                  decoration: InputDecoration(
+                    hintText: _category == MediaCategory.video
+                        ? 'Paste a link or type a title'
+                        : 'Type a ${_category.singular} title or paste a link',
+                    border: const OutlineInputBorder(),
+                  ),
+                ),
               ),
+              const SizedBox(width: 8),
+              IconButton.filled(
+                tooltip: 'Add',
+                iconSize: 28,
+                onPressed: _busy ? null : _submit,
+                icon: _busy
+                    ? const SizedBox(
+                        width: 24,
+                        height: 24,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.add),
+              ),
+            ],
+          ),
+          if (widget.onImport != null) ...[
+            const SizedBox(height: 8),
+            TextButton.icon(
+              icon: const Icon(Icons.playlist_add),
+              label: const Text('Have a list? Paste it or import a file'),
+              onPressed: widget.onImport,
             ),
-          ),
-          const SizedBox(width: 4),
-          TextButton(
-            onPressed: () => setState(() {
-              _status = _status == ListStatus.todo
-                  ? ListStatus.done
-                  : ListStatus.todo;
-            }),
-            child: Text(_category.labelFor(_status)),
-          ),
-          IconButton.filled(
-            tooltip: 'Add',
-            onPressed: _busy ? null : _submit,
-            icon: _busy
-                ? const SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                : const Icon(Icons.add),
-          ),
+          ],
         ],
       ),
     );
