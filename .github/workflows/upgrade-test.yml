@@ -1,0 +1,99 @@
+# "Updating keeps the library": on an Android emulator (oldest supported,
+# API 24, and a recent one), build and run the LAST RELEASE's code, save a
+# library in the app's real encrypted database, then install this build over
+# it (no uninstall, same data) and check everything is still there.
+#
+# Both builds are debug builds of their own code, signed with the runner's
+# debug key, so the second installs over the first exactly like an update.
+name: Update keeps the library
+
+on:
+  push:
+    branches: ['**']
+    paths:
+      - 'lib/**'
+      - 'android/**'
+      - 'ios/**'
+      - 'pubspec.*'
+      - 'integration_test/upgrade_*'
+      - '.github/workflows/upgrade-test.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: upgrade-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  update:
+    name: Update on Android ${{ matrix.api }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        api: [24, 34]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+          path: new
+      - name: Find the last release
+        id: last
+        run: |
+          set -euo pipefail
+          cd new
+          tag="$(git tag -l 'v*' --sort=-v:refname | grep -v -- '-' | head -1)"
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          echo "Updating from $tag" >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          ref: ${{ steps.last.outputs.tag }}
+          path: old
+      - uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6.1.0
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2.23.0
+        with:
+          channel: stable
+          flutter-version: '3.47.x'
+          cache: true
+      - name: Prepare both versions
+        run: |
+          set -euo pipefail
+          (cd old && bash tool/bootstrap.sh)
+          cp new/integration_test/upgrade_seed_test.dart old/integration_test/
+          mkdir -p old/test_driver && cp new/test_driver/integration_test.dart old/test_driver/
+          (cd new && bash tool/bootstrap.sh)
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - name: Last release saves a library, this build is installed over it
+        uses: ReactiveCircus/android-emulator-runner@c9c93e6ba9c4194322e114c40970d5983d9a07cc # v2.38.0
+        with:
+          api-level: ${{ matrix.api }}
+          target: google_apis
+          arch: x86_64
+          profile: pixel_6
+          disable-animations: true
+          emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim
+          # Each line runs on its own. `flutter drive` uninstalls the app when
+          # it finishes unless told --keep-app-running, which would turn this
+          # into a fresh install. The new build then goes on with a plain
+          # `adb install -r` (an update: it fails rather than wiping data),
+          # and the check runs on that exact binary.
+          script: |
+            adb shell settings put global hide_error_dialogs 1 || true
+            cd old && flutter drive --keep-app-running --driver=test_driver/integration_test.dart --target=integration_test/upgrade_seed_test.dart -d emulator-5554
+            echo "== after the last release saved its library"; adb shell run-as app.watchedledger ls -la files
+            cd new && flutter build apk --debug --target=integration_test/upgrade_check_test.dart
+            adb install -r -t new/build/app/outputs/flutter-apk/app-debug.apk
+            echo "== after this build was installed over it"; adb shell run-as app.watchedledger ls -la files; adb shell dumpsys package app.watchedledger | grep -E "firstInstallTime|lastUpdateTime"
+            cd new && flutter drive --driver=test_driver/integration_test.dart --target=integration_test/upgrade_check_test.dart --use-application-binary=build/app/outputs/flutter-apk/app-debug.apk -d emulator-5554
