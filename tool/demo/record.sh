@@ -6,6 +6,12 @@ OUT=demo-out
 mkdir -p "$OUT"
 adb logcat -c
 
+# The slow software emulator often shows "Pixel Launcher isn't responding".
+# Hide system error dialogs so none land on the recording.
+adb shell settings put global hide_error_dialogs 1 || true
+adb shell settings put secure anr_show_background 0 || true
+adb shell am broadcast -a android.intent.action.CLOSE_SYSTEM_DIALOGS >/dev/null || true
+
 # Software-rendered emulator: a smaller screen draws more frames per second.
 adb shell wm size 720x1600
 adb shell wm density 280
@@ -14,6 +20,7 @@ adb shell wm density 280
 (
   adb logcat -v epoch -s flutter:I | while IFS= read -r line; do
     if [[ "$line" == *"MARK|start"* ]]; then
+      adb shell am broadcast -a android.intent.action.CLOSE_SYSTEM_DIALOGS >/dev/null || true
       adb shell date +%s.%N > "$OUT/rec_t0.txt"
       adb shell screenrecord --size 720x1600 --bit-rate 6000000 --time-limit 180 /sdcard/demo.mp4 &
       echo "screen recording started"
