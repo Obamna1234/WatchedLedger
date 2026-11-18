@@ -9,6 +9,7 @@ smaller with an explanation panel underneath, so nothing is covered.
 Network waits (lookups) are shortened to about a second.
 """
 import os
+import re
 import subprocess
 import sys
 import tempfile
@@ -90,14 +91,63 @@ def still(raw, at, dur, vf, out):
                f'setpts=PTS-STARTPTS,{vf}'], out)
 
 
+RING_R = 44  # touch ring radius in screen pixels
+
+
+def make_ring(path):
+    """A white ring with a dark edge, like Android's "show taps" dot."""
+    from PIL import Image, ImageDraw
+    size = RING_R * 2 + 8
+    img = Image.new('RGBA', (size, size), (0, 0, 0, 0))
+    d = ImageDraw.Draw(img)
+    box = (4, 4, size - 4, size - 4)
+    d.ellipse(box, fill=(255, 255, 255, 70), outline=(20, 20, 20, 200), width=9)
+    d.ellipse((8, 8, size - 8, size - 8), outline=(255, 255, 255, 235), width=5)
+    img.save(path)
+
+
+def touches(marks):
+    """(time, x, y, kind) for every '~tap x y' / '~swipe x y' mark."""
+    out = []
+    for t, c in marks:
+        m = re.match(r'~(tap|swipe) (\d+) (\d+)$', c)
+        if m:
+            out.append((t, int(m.group(2)), int(m.group(3)), m.group(1)))
+    return out
+
+
+def play(raw, a, b, speed, dur, vf, ring, taps, out):
+    """One piece of the recording, with a ring drawn at each touch."""
+    if not taps:
+        mv.encode(['-ss', f'{a:.3f}', '-to', f'{b:.3f}', '-i', raw, '-vf',
+                   f'setpts=(PTS-STARTPTS)/{speed:.4f},fps={FPS},{vf}',
+                   '-t', f'{dur:.3f}'], out)
+        return
+    graph = [f'[0:v]setpts=(PTS-STARTPTS)/{speed:.4f},fps={FPS}[v0]',
+             f"[1:v]split={len(taps)}" + ''.join(f'[r{k}]' for k in range(len(taps)))]
+    for k, (t, x, y, kind) in enumerate(taps):
+        start = max(0.0, (t - a) / speed - 0.1)
+        end = start + (0.9 if kind == 'swipe' else 0.55)
+        graph.append(f"[v{k}][r{k}]overlay=x={x - RING_R - 4}:y={y - RING_R - 4}:"
+                     f"enable='between(t,{start:.3f},{end:.3f})'[v{k + 1}]")
+    graph.append(f'[v{len(taps)}]{vf}[out]')
+    mv.encode(['-ss', f'{a:.3f}', '-to', f'{b:.3f}', '-i', raw,
+               '-loop', '1', '-i', ring, '-filter_complex', ';'.join(graph),
+               '-map', '[out]', '-t', f'{dur:.3f}'], out)
+
+
 def main():
     folder, output = sys.argv[1], sys.argv[2]
     raw = os.path.join(folder, 'raw.mp4')
-    scenes = mv.plan_scenes(mv.read_marks(folder))
+    marks = mv.read_marks(folder)
+    scenes = mv.plan_scenes(marks)
+    all_taps = touches(marks)
     if len(scenes) != len(STEPS):
         sys.exit(f'{len(scenes)} scenes in the recording, {len(STEPS)} steps')
 
     work = tempfile.mkdtemp(prefix='walk-')
+    ring = os.path.join(work, 'ring.png')
+    make_ring(ring)
     parts = [os.path.join(work, '000_title.mp4')]
     mv.card(work, parts[0], 3.5, 'WatchedLedger',
             'How to use it\n\nVersion 1.2')
@@ -113,9 +163,9 @@ def main():
             speed = max(1.0, length / WAIT_SHOW) if waiting else 1.0
             dur = length / speed
             out = os.path.join(work, f'{i:02d}{j}_play.mp4')
-            mv.encode(['-ss', f'{a:.3f}', '-to', f'{b:.3f}', '-i', raw, '-vf',
-                       f'setpts=(PTS-STARTPTS)/{speed:.4f},fps={FPS},{vf}',
-                       '-t', f'{dur:.3f}'], out)
+            taps = [] if waiting else [
+                tp for tp in all_taps if a <= tp[0] < b]
+            play(raw, a, b, speed, dur, vf, ring, taps, out)
             parts.append(out)
             total += dur
         out = os.path.join(work, f'{i:02d}9_out.mp4')

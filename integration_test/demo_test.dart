@@ -42,8 +42,16 @@ Future<void> hideKeyboard(WidgetTester t) async {
   await idle(t, 500);
 }
 
+/// Logs where a touch lands (screen pixels) so the video can draw a ring.
+void markTouch(WidgetTester t, Offset at, [String kind = 'tap']) {
+  final px = at * t.view.devicePixelRatio;
+  mark('~$kind ${px.dx.toStringAsFixed(0)} ${px.dy.toStringAsFixed(0)}');
+}
+
 Future<void> tap(WidgetTester t, Finder f, {int after = 500}) async {
-  await t.tap(visible(f).first);
+  final target = visible(f).first;
+  markTouch(t, t.getCenter(target));
+  await t.tap(target);
   await idle(t, after);
 }
 
@@ -193,6 +201,7 @@ void main() {
 
     mark('Swipe right to tick it off. Undo is always there.');
     await openTab(t, 'Movies', after: 900);
+    markTouch(t, t.getCenter(visible(find.text('Inception')).first), 'swipe');
     await t.timedDrag(visible(find.text('Inception')).first,
         const Offset(420, 0), const Duration(milliseconds: 700));
     await idle(t, 1500);
