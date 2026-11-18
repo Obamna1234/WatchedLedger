@@ -1,5 +1,7 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:watchedledger/core/lock/app_lock.dart';
+import 'package:watchedledger/features/lock/lock_gate.dart';
 
 class FakeBiometrics implements Biometrics {
   FakeBiometrics({this.has = true, this.succeeds = true});
@@ -191,5 +193,31 @@ void main() {
     await lock.load();
     expect(lock.locked, isTrue);
     expect(await lock.unlockWithPin('2468'), isFalse);
+  });
+
+  testWidgets('the PIN pad can be reached on a small screen with large text',
+      (t) async {
+    t.view.physicalSize = const Size(320, 480);
+    t.view.devicePixelRatio = 1;
+    addTearDown(t.view.reset);
+    final lock = make();
+    await t.runAsync(() async {
+      await lock.load();
+      await lock.setPin('482913');
+    });
+    await t.pumpWidget(MaterialApp(
+      builder: (context, child) => MediaQuery(
+        data: MediaQuery.of(context)
+            .copyWith(textScaler: const TextScaler.linear(2)),
+        child: child!,
+      ),
+      home: LockScreen(lock: lock),
+    ));
+    // No overflow, and the last row of the pad scrolls into reach.
+    expect(t.takeException(), isNull);
+    await t.scrollUntilVisible(find.text('0'), 120);
+    await t.tap(find.text('0'));
+    await t.pump();
+    expect(t.takeException(), isNull);
   });
 }

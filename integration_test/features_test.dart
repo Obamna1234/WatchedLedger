@@ -173,6 +173,8 @@ void main() {
     await expectSoon(t, find.text('WatchedLedger is locked'), 'the lock screen');
     expect(find.textContaining('Device check').hitTestable(), findsNothing,
         reason: 'nothing from the library shows while locked');
+    FocusManager.instance.primaryFocus?.unfocus();
+    await settle(t, 600);
     await enterPin(t, '000000');
     // Checking a PIN takes a moment on purpose; wait for the answer.
     await expectSoon(t, find.text('Wrong PIN'), 'the "Wrong PIN" message',

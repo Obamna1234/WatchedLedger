@@ -115,6 +115,8 @@ class _LockScreenState extends State<LockScreen> {
   @override
   void initState() {
     super.initState();
+    // A keyboard left open would cover the PIN pad.
+    FocusManager.instance.primaryFocus?.unfocus();
     _startTicker();
     if (widget.lock.useBiometrics) {
       WidgetsBinding.instance.addPostFrameCallback((_) => _biometric());
@@ -184,9 +186,14 @@ class _LockScreenState extends State<LockScreen> {
       color: theme.colorScheme.surface,
       child: SafeArea(
         child: Center(
-          child: ConstrainedBox(
+          // Scrolls on small screens or with large text, so the whole PIN
+          // pad can always be reached.
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.symmetric(vertical: 16),
+            child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 360),
             child: Column(
+              mainAxisSize: MainAxisSize.min,
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Icon(Icons.lock_outline,
@@ -220,6 +227,7 @@ class _LockScreenState extends State<LockScreen> {
                 ),
               ],
             ),
+          ),
           ),
         ),
       ),
