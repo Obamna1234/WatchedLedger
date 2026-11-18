@@ -84,7 +84,16 @@ jobs:
           profile: pixel_6
           disable-animations: true
           emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim
+          # Each line runs on its own. The new build is installed with a plain
+          # `adb install -r` (an update, which fails rather than wiping data),
+          # then the check runs on that exact binary.
           script: |
             adb shell settings put global hide_error_dialogs 1 || true
             cd old && flutter drive --driver=test_driver/integration_test.dart --target=integration_test/upgrade_seed_test.dart -d emulator-5554
-            cd new && flutter drive --driver=test_driver/integration_test.dart --target=integration_test/upgrade_check_test.dart -d emulator-5554
+            echo "== app files after the last release saved its library"; adb shell run-as app.watchedledger ls -laR files shared_prefs || true
+            adb shell dumpsys package app.watchedledger | grep -E "versionName|firstInstallTime|lastUpdateTime" || true
+            cd new && flutter build apk --debug --target=integration_test/upgrade_check_test.dart
+            adb install -r -t new/build/app/outputs/flutter-apk/app-debug.apk
+            echo "== app files after installing this build over it"; adb shell run-as app.watchedledger ls -laR files shared_prefs || true
+            adb shell dumpsys package app.watchedledger | grep -E "versionName|firstInstallTime|lastUpdateTime" || true
+            cd new && flutter drive --driver=test_driver/integration_test.dart --target=integration_test/upgrade_check_test.dart --use-application-binary=build/app/outputs/flutter-apk/app-debug.apk -d emulator-5554
