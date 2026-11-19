@@ -1,0 +1,85 @@
+--------- beginning of main
+         1795130688.289  6094  6189 I flutter : The Dart VM service is listening on http://127.0.0.1:45923/zZ1_CgoeMZk=/
+         1795130688.581  6094  6182 I flutter : [IMPORTANT:flutter/shell/platform/android/android_context_gl_impeller.cc(104)] Using the Impeller rendering backend (OpenGLES).
+         1795130692.222  6094  6094 I flutter : 00:00 +0: demo
+         1795130695.488  6094  6094 I flutter : MARK|~tap 610 1341
+         1795130697.321  6094  6094 I flutter : MARK|~tap 650 1383
+         1795130697.464  6094  6094 I flutter : MARK|~wait
+         1795130698.085  6094  6094 I flutter : MARK|~go
+         1795130699.531  6094  6094 I flutter : MARK|~tap 360 571
+         1795130701.673  6094  6094 I flutter : MARK|~tap 610 1341
+         1795130703.721  6094  6094 I flutter : MARK|~tap 650 1383
+         1795130703.902  6094  6094 I flutter : MARK|~wait
+         1795130704.062  6094  6094 I flutter : MARK|~go
+         1795130705.528  6094  6094 I flutter : MARK|~tap 360 571
+         1795130707.673  6094  6094 I flutter : MARK|~tap 610 1341
+         1795130710.355  6094  6094 I flutter : MARK|~tap 650 1383
+         1795130710.474  6094  6094 I flutter : MARK|~wait
+         1795130710.649  6094  6094 I flutter : MARK|~go
+         1795130712.970  6094  6094 I flutter : MARK|start
+         1795130715.545  6094  6094 I flutter : MARK|Tap Add and type a title. It is looked up for you.
+         1795130715.754  6094  6094 I flutter : MARK|~tap 610 1341
+         1795130718.321  6094  6094 I flutter : MARK|~tap 650 1383
+         1795130718.517  6094  6094 I flutter : MARK|~wait
+         1795130718.782  6094  6094 I flutter : MARK|~go
+         1795130720.237  6094  6094 I flutter : MARK|Typo? "Did you mean...?" fixes it.
+         1795130720.503  6094  6094 I flutter : MARK|~tap 610 1341
+         1795130723.638  6094  6094 I flutter : MARK|~tap 650 1383
+         1795130723.808  6094  6094 I flutter : MARK|~wait
+         1795130724.010  6094  6094 I flutter : MARK|~go
+         1795130725.588  6094  6094 I flutter : MARK|~tap 409 553
+         1795130727.670  6094  6094 I flutter : MARK|Tap the name at the top to switch lists. New: Games.
+         1795130727.671  6094  6094 I flutter : MARK|~tap 218 91
+         1795130728.436  6094  6094 I flutter : MARK|~tap 395 1352
+         1795130729.466  6094  6094 I flutter : MARK|~tap 610 1341
+         1795130732.071  6094  6094 I flutter : MARK|~tap 650 1383
+         1795130732.240  6094  6094 I flutter : MARK|~wait
+         1795130733.260  6094  6094 I flutter : MARK|~go
+         1795130734.737  6094  6094 I flutter : MARK|Paste a YouTube or social link. It fills itself in.
+         1795130734.737  6094  6094 I flutter : MARK|~tap 213 91
+         1795130735.507  6094  6094 I flutter : MARK|~tap 395 1478
+         1795130736.522  6094  6094 I flutter : MARK|~tap 610 1341
+         1795130745.677  6094  6094 I flutter : MARK|~tap 650 1383
+         1795130745.814  6094  6094 I flutter : MARK|~wait
+         1795130746.102  6094  6094 I flutter : MARK|~go
+         1795130747.570  6094  6094 I flutter : MARK|Tick a whole season or single episodes.
+         1795130747.571  6094  6094 I flutter : MARK|~tap 212 91
+         1795130748.383  6094  6094 I flutter : MARK|~tap 395 848
+         1795130749.479  6094  6094 I flutter : MARK|~tap 610 1341
+         1795130752.237  6094  6094 I flutter : MARK|~tap 650 1383
+         1795130752.355  6094  6094 I flutter : MARK|~wait
+         1795130753.438  6094  6094 I flutter : MARK|~go
+         1795130754.989  6094  6094 I flutter : MARK|~tap 409 553
+         1795130757.366  6094  6094 I flutter : MARK|~tap 353 466
+         1795130759.405  6094  6094 I flutter : MARK|~tap 376 1299
+         1795130760.256  6094  6094 I flutter : MARK|~tap 611 448
+         1795130761.758  6094  6094 I flutter : MARK|~tap 49 91
+         1795130762.493  6094  6094 I flutter : MARK|~tap 664 91
+         1795130769.204  6094  6094 I flutter : MARK|Swipe right to tick it off. Undo is always there.
+         1795130769.204  6094  6094 I flutter : MARK|~tap 202 91
+         1795130770.015  6094  6094 I flutter : MARK|~tap 395 722
+         1795130771.008  6094  6094 I flutter : MARK|~swipe 353 599
+         1795130773.408  6094  6094 I flutter : MARK|~tap 530 196
+         1795130774.644  6094  6094 I flutter : MARK|Tap it to rate it and say where you watched it.
+         1795130774.990  6094  6094 I flutter : MARK|~tap 353 466
+         1795130775.917  6094  6094 I flutter : MARK|~tap 406 1232
+         1795130776.813  6094  6094 I flutter : MARK|~tap 94 642
+         1795130777.768  6094  6094 I flutter : MARK|~tap 664 91
+         1795130780.309  6094  6094 I flutter : MARK|Folders: group anything and share it. No app needed.
+         1795130780.325  6094  6094 I flutter : MARK|~tap 216 1520
+         1795130783.483  6094  6094 I flutter : MARK|~tap 597 1341
+         1795130786.388  6094  6094 I flutter : MARK|~tap 495 930
+         1795130787.356  6094  6094 I flutter : MARK|~tap 360 543
+         1795130787.860  6094  6094 I flutter : MARK|~tap 360 291
+         1795130788.651  6094  6094 I flutter : MARK|~tap 664 91
+         1795130790.277  6094  6094 I flutter : MARK|~tap 49 91
+         1795130791.270  6094  6094 I flutter : MARK|Can't decide? Pick chooses from your list.
+         1795130791.270  6094  6094 I flutter : MARK|~tap 360 1520
+         1795130792.171  6094  6094 I flutter : MARK|~tap 376 651
+         1795130794.288  6094  6094 I flutter : MARK|More: import, backups, reminders and themes.
+         1795130794.290  6094  6094 I flutter : MARK|~tap 648 1520
+         1795130796.446  6094  6094 I flutter : MARK|~tap 360 180
+         1795130797.755  6094  6094 I flutter : MARK|~tap 72 1520
+         1795130799.637  6094  6094 I flutter : MARK|end
+         1795130801.159  6094  6094 I flutter : 01:48 +1: (tearDownAll)
+         1795130801.160  6094  6094 I flutter : 01:48 +2: All tests passed!
