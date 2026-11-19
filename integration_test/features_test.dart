@@ -172,7 +172,14 @@ void main() {
     await tapOn(t, find.text('Lock with a PIN'), 'Lock with a PIN');
     await enterPin(t, '482913');
     await enterPin(t, '482913');
-    await tapOn(t, find.text('Hide in recent apps'), 'Hide in recent apps');
+    // On by default once a PIN is set; only switch it on if it isn't.
+    final hide = find.widgetWithText(SwitchListTile, 'Hide in recent apps');
+    await expectSoon(t, hide, 'Hide in recent apps');
+    if (!t.widget<SwitchListTile>(hide).value) {
+      await tapOn(t, hide, 'Hide in recent apps');
+    }
+    expect(t.widget<SwitchListTile>(hide).value, isTrue,
+        reason: 'Hide in recent apps is on');
     await tapOn(t, find.text('Lock now'), 'Lock now');
     await expectSoon(t, find.text('WatchedLedger is locked'), 'the lock screen');
     expect(find.textContaining('Device check').hitTestable(), findsNothing,
