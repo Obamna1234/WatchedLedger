@@ -29,7 +29,7 @@ Future<void> expectSoon(WidgetTester t, Finder f, String what,
   // Say what WAS on screen, so a failure can be read from the log.
   final shown = <String>{
     for (final e in find.byType(Text).hitTestable().evaluate())
-      if ((e.widget as Text).data case final d?) d,
+      ?(e.widget as Text).data,
   };
   fail('Never saw: $what. On screen: ${shown.join(' | ')}');
 }
@@ -81,9 +81,13 @@ Future<void> addTitle(WidgetTester t, String title) async {
 
 Future<void> enterPin(WidgetTester t, String pin) async {
   for (final d in pin.split('')) {
+    await t.ensureVisible(find.text(d).last);
+    await settle(t, 120);
     await t.tap(find.text(d).hitTestable().last);
     await settle(t, 120);
   }
+  await t.ensureVisible(find.byTooltip('OK').last);
+  await settle(t, 120);
   await tapOn(t, find.byTooltip('OK'), 'OK on the keypad');
 }
 

@@ -75,7 +75,9 @@ class _LockGateState extends State<LockGate> with WidgetsBindingObserver {
           excluding: locked,
           child: ExcludeSemantics(excluding: locked, child: widget.child),
         ),
-        if (locked) LockScreen(lock: widget.lock),
+        // Built above the app's navigator, so it brings its own Overlay: the
+        // pad's buttons have tooltips, which cannot build without one.
+        if (locked) Overlay.wrap(child: LockScreen(lock: widget.lock)),
         if (_covered && !locked) const _PrivacyCover(),
       ],
     );

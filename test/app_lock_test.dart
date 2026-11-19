@@ -220,4 +220,42 @@ void main() {
     await t.pump();
     expect(t.takeException(), isNull);
   });
+  // Regression: the lock screen sits above the app's navigator (it is built
+  // in MaterialApp.builder), where there is no Overlay. The OK and Delete
+  // buttons have tooltips, which need one, so they failed to build and the
+  // PIN could not be submitted.
+  testWidgets('the PIN can be entered and submitted where the app shows it',
+      (t) async {
+    final lock = make();
+    await t.runAsync(() async {
+      await lock.load();
+      await lock.setPin('482913');
+    });
+    lock.lockNow();
+    await t.pumpWidget(MaterialApp(
+      home: const Scaffold(body: Text('The library')),
+      builder: (context, child) => LockGate(lock: lock, child: child!),
+    ));
+    await t.pump();
+    expect(t.takeException(), isNull);
+    expect(find.text('WatchedLedger is locked'), findsOneWidget);
+    expect(find.byTooltip('OK'), findsOneWidget);
+    expect(find.byTooltip('Delete'), findsOneWidget);
+
+    for (final d in '482913'.split('')) {
+      await t.tap(find.text(d));
+      await t.pump();
+    }
+    await t.tap(find.byTooltip('OK'));
+    for (var i = 0; i < 50 && lock.locked; i++) {
+      await t.runAsync(
+          () => Future<void>.delayed(const Duration(milliseconds: 50)));
+      await t.pump();
+    }
+    await t.pump();
+    expect(t.takeException(), isNull);
+    expect(lock.locked, isFalse);
+    expect(find.text('WatchedLedger is locked'), findsNothing);
+    expect(find.text('The library'), findsOneWidget);
+  });
 }

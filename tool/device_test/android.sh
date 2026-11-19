@@ -5,6 +5,12 @@
 # - "Hide in recent apps" really sets FLAG_SECURE on the app's window.
 set -uo pipefail
 adb shell settings put global hide_error_dialogs 1 || true
+# A freshly booted emulator can report "booted" before it can install apps
+# (an install then hangs). Wait until the package manager answers.
+for _ in $(seq 1 90); do
+  adb shell pm path android 2>/dev/null | grep -q package: && break
+  sleep 2
+done
 adb logcat -c
 
 (
@@ -21,7 +27,8 @@ adb logcat -c
 ) &
 sharer=$!
 
-flutter drive --keep-app-running \
+# Never hang the whole job: a stuck install or app gets 30 minutes.
+timeout 1800 flutter drive --keep-app-running \
   --driver=test_driver/integration_test.dart \
   --target=integration_test/features_test.dart \
   -d emulator-5554

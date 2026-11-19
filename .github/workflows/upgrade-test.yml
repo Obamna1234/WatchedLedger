@@ -66,6 +66,13 @@ jobs:
       - name: Prepare both versions
         run: |
           set -euo pipefail
+          # Old releases resolve their packages fresh. Give them today's
+          # package pins (if they had none), so a package update published
+          # since then can't break the old build.
+          if ! grep -q '^dependency_overrides:' old/pubspec.yaml; then
+            printf '\n' >> old/pubspec.yaml
+            sed -n '/^dependency_overrides:/,/^$/p' new/pubspec.yaml >> old/pubspec.yaml
+          fi
           (cd old && bash tool/bootstrap.sh)
           cp new/integration_test/upgrade_seed_test.dart old/integration_test/
           mkdir -p old/test_driver && cp new/test_driver/integration_test.dart old/test_driver/
