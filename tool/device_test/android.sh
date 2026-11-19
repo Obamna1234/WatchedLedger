@@ -52,10 +52,14 @@ kill "$sharer" 2>/dev/null || true
 
 if [ $status -eq 0 ]; then
   sleep 2
-  if adb shell dumpsys window windows | awk '
+  # Newer Android prints the flag by name (SECURE); Android 7 prints all the
+  # flags as one number (fl=#81812100), where FLAG_SECURE is 0x2000.
+  win="$(adb shell dumpsys window windows | awk '
       /Window #/ { inapp = /app\.watchedledger/ }
-      inapp && /SECURE/ { found = 1 }
-      END { exit !found }'; then
+      inapp { print }')"
+  hex="$(printf '%s\n' "$win" | grep -o 'fl=#[0-9a-fA-F]*' | head -1 | cut -c5-)"
+  if printf '%s\n' "$win" | grep -q SECURE ||
+     { [ -n "$hex" ] && [ $(( 16#$hex & 0x2000 )) -ne 0 ]; }; then
     echo "Hide in recent apps: FLAG_SECURE is set on the app's window."
   else
     echo "::error::Hide in recent apps is on, but the app's window is not FLAG_SECURE."
