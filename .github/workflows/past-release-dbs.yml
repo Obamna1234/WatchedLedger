@@ -32,9 +32,13 @@ jobs:
       - id: t
         env:
           WANTED: ${{ inputs.tags }}
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
         run: |
           set -euo pipefail
-          if [ -n "$WANTED" ]; then tags="$WANTED"; else tags="$(git tag -l 'v*' | grep -v -- '-beta' | tr '\n' ' ')"; fi
+          # Normal releases only; betas (pre-releases) don't count.
+          if [ -n "$WANTED" ]; then tags="$WANTED"; else tags="$(gh api "repos/$REPO/releases?per_page=100" --jq '.[] | select(.prerelease == false and .draft == false) | .tag_name' | tr '\n' ' ')"; fi
+          for t in $tags; do [[ "$t" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "::error::Bad tag $t"; exit 1; }; done
           json="$(printf '%s\n' $tags | jq -R . | jq -cs .)"
           echo "tags=$json" >> "$GITHUB_OUTPUT"
 
@@ -80,6 +84,8 @@ jobs:
     # Puts the fixtures on the past-release-dbs branch, to copy into
     # test/fixtures/ (artifacts can't be fetched from every environment).
     needs: fixture
+    # Only main (or a run started by hand) may replace the fixtures branch.
+    if: github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     permissions:
       contents: write

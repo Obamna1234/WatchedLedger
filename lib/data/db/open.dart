@@ -32,7 +32,15 @@ class DbKeyProblem extends OpenResult {
 class DbFailed extends OpenResult {
   const DbFailed(this.error);
   final Object error;
+
+  /// What went wrong, safe to show or log: never contains the key.
+  String get message => hideKeys(error.toString());
 }
+
+/// Replaces anything that looks like a key (a long run of hex digits) so an
+/// error message can be shown or logged without giving the key away.
+String hideKeys(String text) =>
+    text.replaceAll(RegExp(r'[0-9a-fA-F]{32,}'), '<hidden>');
 
 const String _dbFileName = 'watchedledger.sqlite';
 const String _keyName = 'watchedledger.db_key.v1';
@@ -69,7 +77,13 @@ QueryExecutor _encryptedExecutor(File file, String hexKey) {
         throw StateError(
             '$_noCipherMarker: this build has no SQLite3MultipleCiphers support');
       }
-      rawDb.execute("PRAGMA key = '$hexKey';");
+      try {
+        rawDb.execute("PRAGMA key = '$hexKey';");
+      } catch (e) {
+        // The SQLite error would quote the statement, key included.
+        throw StateError('setting the database key failed '
+            '(${e.runtimeType})');
+      }
       rawDb.execute('PRAGMA secure_delete = ON;');
     },
   );

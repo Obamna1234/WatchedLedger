@@ -43,10 +43,14 @@ jobs:
           path: new
       - name: Find the last release
         id: last
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
         run: |
           set -euo pipefail
-          cd new
-          tag="$(git tag -l 'v*' --sort=-v:refname | grep -v -- '-' | head -1)"
+          # The newest normal release; betas (pre-releases) don't count.
+          tag="$(gh api "repos/$REPO/releases?per_page=100" --jq '[.[] | select(.prerelease == false and .draft == false)] | first | .tag_name')"
+          [[ "$tag" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "::error::No release found ($tag)"; exit 1; }
           echo "tag=$tag" >> "$GITHUB_OUTPUT"
           echo "Updating from $tag" >> "$GITHUB_STEP_SUMMARY"
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1

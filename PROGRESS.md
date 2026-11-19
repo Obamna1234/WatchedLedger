@@ -120,8 +120,14 @@ Maintained by Claude. Updated at the end of every stage, in the same pull reques
   - **10c, on real devices:** the main features are tested on the built app on Android emulators (oldest supported and newest) and an iPhone simulator. That covers adding, ticking and Undo in every category, saving as typed when offline, search, importing a pasted list, sharing into the app, the app lock (including a wrong PIN) and "Hide in recent apps". Backup files, exports and the home screen widget are covered by the regular tests, because a test can't use the phone's file picker.
   - **What the device tests caught (fixed):** the PIN lock screen's OK and Delete buttons couldn't appear (they need a layer the lock screen didn't have), so a PIN couldn't be submitted. This was already in 1.2.0. A package update published on 18 November would also have stopped new Android builds from opening the library. That package is now pinned to the version 1.2.0 used.
 
+- **Security and privacy review for 1.3.0** (`docs/reviews/v1.3.0.md`, by a separate reviewer): nothing medium or worse. The four small findings were fixed anyway:
+  - the database key can never appear in an error message or log;
+  - "Release it" only works from main;
+  - betas are never treated as the last release;
+  - the demo video's speed setting only accepts a number.
+
 ## Next
-- The 1.3.0 beta (security and privacy review first).
+- The 1.3.0 beta: try it, then say "release it".
 - Ideas for later, only if you want them: QR pairing for sync, iPhone widget and share sheet (needs a paid Apple account to be practical), more lookup sources.
 
 ## Waiting on me (owner)
@@ -133,6 +139,7 @@ Maintained by Claude. Updated at the end of every stage, in the same pull reques
 - [ ] Optional: tell Claude which iPhone and iOS version you have, and whether you use a Mac or a Windows PC, so the README can lead with the right sideloading tool.
 
 ## Decisions made
+- **2026-11-19 Optional extra lock on releases:** you could make GitHub ask you to approve every "Release it" run (a protected Environment). Not set up; say if you want it.
 - **2026-11-19 Package pin:** `jni` 1.1.2 and `jni_flutter` 1.0.4+1 are pinned (`dependency_overrides` in pubspec.yaml), because jni 1.2.0 broke `path_provider_android` on Android. Remove the pin when `path_provider_android` is updated for it.
 - **2026-11-19 Beta first:** you chose "beta first, I say yes". A version bump publishes a pre-release. "Release it" (a workflow I run when you say so) makes it the normal release. AltStore/SideStore only see normal releases.
 - **2026-11-19 Update test uses debug builds** of the last release's code and the new code, signed with the same test key, because a test can't drive the signed release app. The database, its encryption key and the update path are the same as in real updates.

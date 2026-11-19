@@ -218,8 +218,11 @@ void main() {
     await waitFor(t, visible(find.widgetWithText(FloatingActionButton, 'Add')));
     await idle(t, 1300);
 
+    // A keyboard left open by the edit screen pushes the bottom bar up.
+    await hideKeyboard(t);
     mark('Folders: group anything and share it. No app needed.');
     await tap(t, navButton('Folders'), after: 1000);
+    await waitFor(t, visible(find.text('New folder')));
     await tap(t, find.text('New folder'), after: 600);
     await type(t, find.byType(TextField), 'Movie night');
     await tap(t, find.text('Next'), after: 900);
