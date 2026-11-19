@@ -10,6 +10,7 @@ Maintained by Claude. Updated at the end of every stage, in the same pull reques
 **Stage 6 (tracking and sync) is merged** (2026-11-17) and released as **v1.0.0**.
 **Stages 7 and 8 (your requests after 1.0) are merged** (2026-11-17) and released as **v1.1.0**.
 **Stage 9 (simpler navigation) is merged** (2026-11-18) and released as **v1.2.0**.
+**Stage 10 (release checklist) is merged** (2026-11-19). **v1.3.0 is out as a beta**; it becomes the normal release when you say "release it".
 
 ## Done
 - **Proposal:** structure, packages and tech choices, written up in SPEC.md §13.
@@ -131,6 +132,10 @@ Maintained by Claude. Updated at the end of every stage, in the same pull reques
 - Ideas for later, only if you want them: QR pairing for sync, iPhone widget and share sheet (needs a paid Apple account to be practical), more lookup sources.
 
 ## Waiting on me (owner)
+- [ ] **Try the 1.3.0 beta**, then tell Claude "release it" (or what's wrong). Steps:
+  1. On your Android phone, open the GitHub page **Obamna1234/WatchedLedger → Releases** and find **WatchedLedger 1.3.0 (beta)**.
+  2. Under **Assets**, tap the `.apk` file and open it when it has downloaded. Choose **Update** (not uninstall): your library stays.
+  3. Check what you use most: add, tick, search, import. If you use the PIN lock, check you can unlock with the PIN.
 - [x] Add the WatchedLedger repo to the Claude GitHub App.
 - [x] Switched on auto-merge, automatic branch deletion and Dependabot security updates (2026-11-17).
 - [ ] Optional: **Code → Branches**, delete old merged `stage-…` branches with the 🗑 icon. Keep `main` and `demo-recordings`.

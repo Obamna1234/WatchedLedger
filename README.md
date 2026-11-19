@@ -9,7 +9,7 @@ repo.
 - Your library lives in an **encrypted database on your phone**.
 - See [PRIVACY.md](PRIVACY.md) for exactly what leaves the device, and when.
 
-> **Status: v1.2.0.**
+> **Status: v1.3.0 (beta until the owner says "release it").**
 > - **Lists:** seven categories (Movies, Series, Books, Audiobooks, Podcasts, Games, Videos), switched with the button at the top, each with To Watch / Watched, ticking (tap or swipe) with undo, an edit screen with rating, note and series progress, sort, filter and a genre fast-scroll index.
 > - **Smart add:** titles are looked up automatically with no accounts or API keys. If nothing fits, save exactly what you typed.
 > - **Search:** every match highlighted, ▲ ▼ to jump, "3 of 12" counter, tick from the results.
