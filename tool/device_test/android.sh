@@ -11,6 +11,20 @@ for _ in $(seq 1 90); do
   adb shell pm path android 2>/dev/null | grep -q package: && break
   sleep 2
 done
+# The old Android 24 emulator sometimes hangs for good during the install
+# that `flutter drive` does. Build and install it ourselves instead, with the
+# install verifier off, a time limit and a second try.
+adb shell settings put global verifier_verify_adb_installs 0 || true
+adb shell settings put global package_verifier_enable 0 || true
+flutter build apk --debug --target=integration_test/features_test.dart || exit 1
+apk=build/app/outputs/flutter-apk/app-debug.apk
+installed=0
+for attempt in 1 2 3; do
+  if timeout 300 adb install -r -t "$apk"; then installed=1; break; fi
+  echo "Install attempt $attempt did not finish; restarting adb and trying again."
+  adb kill-server || true; adb start-server || true; adb wait-for-device
+done
+[ $installed -eq 1 ] || { echo "::error::Could not install the app on the emulator."; exit 1; }
 adb logcat -c
 
 (
@@ -31,6 +45,7 @@ sharer=$!
 timeout 1800 flutter drive --keep-app-running \
   --driver=test_driver/integration_test.dart \
   --target=integration_test/features_test.dart \
+  --use-application-binary="$apk" \
   -d emulator-5554
 status=$?
 kill "$sharer" 2>/dev/null || true
