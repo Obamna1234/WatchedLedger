@@ -19,6 +19,8 @@ permissions:
 
 jobs:
   promote:
+    # Only the copy of this workflow on main can release.
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     steps:
       - name: Check the beta and its checks, then release it
@@ -40,10 +42,17 @@ jobs:
           sha="$(gh api "repos/$REPO/commits/$tag" --jq .sha)"
           echo "Checking $tag ($sha)" >> "$GITHUB_STEP_SUMMARY"
 
+          # The release must be built from main.
+          st="$(gh api "repos/$REPO/compare/$sha...main" --jq .status)"
+          if [ "$st" != ahead ] && [ "$st" != identical ]; then
+            echo "::error::$tag ($sha) is not on main."; exit 1
+          fi
+
           # Every required check must have run on this commit and passed.
           runs="$(gh api "repos/$REPO/actions/runs?head_sha=$sha&per_page=100")"
-          for wf in "CI" "Update keeps the library" "Device tests"; do
-            result="$(jq -r --arg wf "$wf" '[.workflow_runs[] | select(.name == $wf)] | sort_by(.created_at) | last | "\(.status) \(.conclusion)"' <<<"$runs")"
+          # Matched by workflow file and a push to main, not just by name.
+          for wf in ci.yml upgrade-test.yml device-tests.yml; do
+            result="$(jq -r --arg p ".github/workflows/$wf" '[.workflow_runs[] | select(.path == $p and .event == "push" and .head_branch == "main")] | sort_by(.created_at) | last | "\(.status) \(.conclusion)"' <<<"$runs")"
             echo "- $wf: $result" >> "$GITHUB_STEP_SUMMARY"
             if [ "$result" != "completed success" ]; then
               echo "::error::$wf has not passed on $tag ($result)."; exit 1

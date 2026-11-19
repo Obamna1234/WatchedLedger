@@ -46,6 +46,8 @@ jobs:
           sudo udevadm control --reload-rules
           sudo udevadm trigger --name-match=kvm
       - name: Run the demo on an emulator and record it
+        env:
+          DEMO_PACE: ${{ inputs.pace || '1' }}
         uses: ReactiveCircus/android-emulator-runner@c9c93e6ba9c4194322e114c40970d5983d9a07cc # v2.38.0
         with:
           api-level: 34
@@ -54,7 +56,7 @@ jobs:
           profile: pixel_6
           disable-animations: false
           emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim
-          script: DEMO_PACE=${{ inputs.pace || '1' }} bash tool/demo/record.sh
+          script: bash tool/demo/record.sh
       - name: Cut the 40-second captioned video with music
         if: always()
         continue-on-error: true

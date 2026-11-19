@@ -47,12 +47,12 @@ class _BootAppState extends State<BootApp> {
       // Right after the phone starts, its secure key store can briefly
       // refuse requests. Try once more before showing the problem screen.
       debugPrint('WatchedLedger: opening the library failed, retrying: '
-          '${result.error}');
+          '${result.message}');
       await Future<void>.delayed(const Duration(seconds: 2));
       result = await openAppDatabase();
       if (result is DbFailed) {
         debugPrint('WatchedLedger: opening the library failed: '
-            '${result.error}');
+            '${result.message}');
       }
     }
     AppServices? services;

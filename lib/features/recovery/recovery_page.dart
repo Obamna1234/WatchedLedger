@@ -54,7 +54,7 @@ class RecoveryPage extends StatelessWidget {
             if (failure != null) ...[
               const SizedBox(height: 16),
               SelectableText(
-                failure!.error.toString(),
+                failure!.message,
                 style: theme.textTheme.bodySmall
                     ?.copyWith(fontFamily: 'monospace'),
               ),

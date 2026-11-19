@@ -2,6 +2,11 @@
 # Runs inside the Android emulator job: drives the app with the demo test and
 # records the screen from the "MARK|start" log line until the test ends.
 set -uo pipefail
+# The pace comes from the workflow's input: only a plain number is accepted.
+DEMO_PACE="${DEMO_PACE:-1}"
+if ! [[ "$DEMO_PACE" =~ ^[0-9]+(\.[0-9]+)?$ ]]; then
+  echo "::error::DEMO_PACE must be a number like 1 or 2.2"; exit 1
+fi
 OUT=demo-out
 mkdir -p "$OUT"
 adb logcat -c
