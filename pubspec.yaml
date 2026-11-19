@@ -35,6 +35,15 @@ dev_dependencies:
   drift_dev: ^2.35.2
   build_runner: ^2.16.2
 
+# Pinned on purpose (2026-11-19). jni 1.2.0 changed how Java classes are
+# looked up, and path_provider_android 2.3.1 (how the app finds its own
+# storage folder on Android) was not updated for it: the app could not open
+# the library ("WatchedLedger couldn't start"). These are the versions v1.2.0
+# shipped with. Remove once a path_provider_android release supports jni 1.2.
+dependency_overrides:
+  jni: 1.1.2
+  jni_flutter: 1.0.4+1
+
 flutter:
   uses-material-design: true
 

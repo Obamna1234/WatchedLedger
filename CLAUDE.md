@@ -40,3 +40,9 @@ You are building WatchedLedger, a private Flutter app for Android and iOS, distr
 - Enums are persisted by index. **Only ever append new values.**
 - Schema changes need a `schemaVersion` bump, a migration step and a migration test. Never drop user data.
 - Nothing in the app deletes the database file. Recovery only moves it aside.
+
+### Releasing (owner's release checklist, 2026-11-19)
+- Every fix gets a regression test; every new feature gets tests that it does what was asked.
+- Before bumping the version: `docs/reviews/vX.Y.Z.md`, a security and privacy review of `git diff vLAST..HEAD` by a separate agent that didn't write the changes (checklist in `docs/reviews/README.md`). Fix anything medium or worse first. The release workflow refuses to publish without it.
+- A version bump on main publishes a **beta** (pre-release). Only when the owner says "release it": run the **Release it** workflow (`promote.yml`) for that version. It refuses unless CI, **Update keeps the library** and **Device tests** passed on that exact commit.
+- After each release, run **Past release databases** for the new tag and commit `test/fixtures/db_vX.Y.Z.sqlite` (from the `past-release-dbs` branch), so every past database keeps being opened by the tests.

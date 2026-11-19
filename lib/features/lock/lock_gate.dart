@@ -75,7 +75,9 @@ class _LockGateState extends State<LockGate> with WidgetsBindingObserver {
           excluding: locked,
           child: ExcludeSemantics(excluding: locked, child: widget.child),
         ),
-        if (locked) LockScreen(lock: widget.lock),
+        // Built above the app's navigator, so it brings its own Overlay: the
+        // pad's buttons have tooltips, which cannot build without one.
+        if (locked) Overlay.wrap(child: LockScreen(lock: widget.lock)),
         if (_covered && !locked) const _PrivacyCover(),
       ],
     );
@@ -115,6 +117,8 @@ class _LockScreenState extends State<LockScreen> {
   @override
   void initState() {
     super.initState();
+    // A keyboard left open would cover the PIN pad.
+    FocusManager.instance.primaryFocus?.unfocus();
     _startTicker();
     if (widget.lock.useBiometrics) {
       WidgetsBinding.instance.addPostFrameCallback((_) => _biometric());
@@ -184,9 +188,14 @@ class _LockScreenState extends State<LockScreen> {
       color: theme.colorScheme.surface,
       child: SafeArea(
         child: Center(
-          child: ConstrainedBox(
+          // Scrolls on small screens or with large text, so the whole PIN
+          // pad can always be reached.
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.symmetric(vertical: 16),
+            child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 360),
             child: Column(
+              mainAxisSize: MainAxisSize.min,
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Icon(Icons.lock_outline,
@@ -220,6 +229,7 @@ class _LockScreenState extends State<LockScreen> {
                 ),
               ],
             ),
+          ),
           ),
         ),
       ),

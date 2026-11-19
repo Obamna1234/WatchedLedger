@@ -84,9 +84,15 @@ void main() {
           ? 'No → "Did you mean…?"'
           : 'Yes: ${auto.title}${auto.year == null ? '' : ' (${auto.year})'}',
       offered ? '✅' : '❌',
-      result.couldNotReach
-          ? 'ERROR: ${result.error}'
-          : (top.isEmpty ? 'nothing found' : top.replaceAll('|', '/')),
+      [
+        result.couldNotReach
+            ? 'ERROR: ${result.error}'
+            : (top.isEmpty ? 'nothing found' : top.replaceAll('|', '/')),
+        if (result.failed.isNotEmpty)
+          "(didn't answer: ${[
+            for (final f in result.failed) '$f: ${result.why[f]}'
+          ].join('; ').replaceAll('|', '/')})",
+      ].join(' '),
       '',
     ].join(' | ').trim());
     return offered;

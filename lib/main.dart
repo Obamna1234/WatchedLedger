@@ -42,7 +42,19 @@ class _BootAppState extends State<BootApp> {
 
   Future<void> _open() async {
     if (_result != null) setState(() => _result = null);
-    final result = await openAppDatabase();
+    var result = await openAppDatabase();
+    if (result is DbFailed) {
+      // Right after the phone starts, its secure key store can briefly
+      // refuse requests. Try once more before showing the problem screen.
+      debugPrint('WatchedLedger: opening the library failed, retrying: '
+          '${result.error}');
+      await Future<void>.delayed(const Duration(seconds: 2));
+      result = await openAppDatabase();
+      if (result is DbFailed) {
+        debugPrint('WatchedLedger: opening the library failed: '
+            '${result.error}');
+      }
+    }
     AppServices? services;
     if (result is DbOpened) {
       // Diary upkeep: entries for older finished items, none left orphaned.
