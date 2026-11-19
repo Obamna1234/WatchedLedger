@@ -11,7 +11,7 @@ const _key =
 
 void main() {
   test('hideKeys removes anything that looks like a key', () {
-    final text = "SqliteException(1): near \"x\": syntax error\n"
+    final text = 'SqliteException(1): near "x": syntax error\n'
         "  Causing statement: PRAGMA key = '$_key';";
     final shown = hideKeys(text);
     expect(shown, isNot(contains(_key)));
